@@ -12,17 +12,17 @@
 
 ### 2. docs/ 的 11 个分层子目录定义
 在 `docs/` 目录下，必须按顺序创建以下 11 个英文命名并带有两位数字序号前缀的子目录。此排序表示了标准的软件工程设计与流转顺序：
-1.  `docs/01_business_research/` —— 业务调研
-2.  `docs/02_competitor_analysis/` —— 竞品分析
-3.  `docs/03_business_modeling/` —— 业务问题建模
-4.  `docs/04_interaction_design/` —— 核心交互链路设计
-5.  `docs/05_ux_specification/` —— 产品原型规范
-6.  `docs/06_system_architecture/` —— 系统架构设计
-7.  `docs/07_data_model/` —— 数据模型
-8.  `docs/08_api_specification/` —— API规范与协议契约
-9.  `docs/09_frontend_implementation_plan/` —— 前端实现计划
-10. `docs/10_backend_implementation_plan/` —— 后端实现计划
-11. `docs/11_integration_and_deployment/` —— 联调以及发布部署
+1.  `docs/01_business_research/` —— 业务调研（业务问题域）
+2.  `docs/02_competitor_analysis/` —— 竞品分析（业务问题域）
+3.  `docs/03_business_modeling/` —— 业务问题建模 （业务问题域）
+4.  `docs/04_interaction_design/` —— 核心交互链路设计（产品交互与体验）
+5.  `docs/05_ux_specification/` —— 产品原型规范（交互与协同实现）
+6.  `docs/06_system_architecture/` —— 系统架构设计（系统工程域）
+7.  `docs/07_data_model/` —— 数据模型（系统工程域）
+8.  `docs/08_api_specification/` —— API规范与协议契约（系统工程域）
+9.  `docs/09_frontend_implementation_plan/` —— 前端实现计划（工程实现域）
+10. `docs/10_backend_implementation_plan/` —— 后端实现计划（工程实现域）
+11. `docs/11_integration_and_deployment/` —— 联调以及发布部署（工程实现域）
 
 ### 3. 占位与追踪约定
 *   **绝对禁止预置大纲模板**。各目录在初始化阶段必须保持为空。
