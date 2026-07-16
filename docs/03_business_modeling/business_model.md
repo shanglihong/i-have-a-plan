@@ -65,7 +65,18 @@
 
 ## 四、 核心实体与概念数据模型
 
-为确保后续系统架构与数据模型设计的一致性，本阶段定义以下核心业务实体模型：
+为确保后续系统架构与数据模型设计的一致性，本阶段定义以下核心业务实体关系模型：
+
+```mermaid
+erDiagram
+    PROJECT ||--o{ TASK_CHAIN : "contains"
+    PROJECT ||--o| HYBRID_KNOWLEDGE_ENGINE : "has"
+    TASK_CHAIN ||--o{ TASK : "consists of"
+    SKILL ||--o{ TASK_CHAIN : "generates (via Semantic Injection)"
+    SKILL }o--|| SANDBOX_AREA : "isolated & checked in"
+    HYBRID_KNOWLEDGE_ENGINE ||--o| VECTOR_CACHE : "contains"
+    HYBRID_KNOWLEDGE_ENGINE ||--o| ENTITY_GRAPH : "contains"
+```
 
 ### 1. 项目实体 (Project)
 * **定义**：一切学习与执行任务的最高层级承载容器。
