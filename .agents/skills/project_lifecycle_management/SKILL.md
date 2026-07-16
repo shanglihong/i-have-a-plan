@@ -14,17 +14,16 @@ description: "用于规范和执行整个工程生命周期的分步处理（包
 ## 生命周期步骤与执行指引
 
 > [!IMPORTANT]
-> **执行顺序约束**：
-> Step 1（工程物理初始化）完成后，**必须立即执行** Step 2（引导用户确立项目级别规则）。
+> **执行顺序**：Step 1（工程物理初始化）完成后，**必须立即执行** Step 2（配置项目级别规则）。
 
 | 步骤名称 | 职责说明 | 执行标准与细则 |
 | :--- | :--- | :--- |
-| **Step 1：项目工程物理初始化与多 Agent 协作规范** | 负责仓库标准目录结构（`frontend/`、`backend/`、`docs/` 及其下 11 个分层子目录）的物理创建，以及协作边界契约 [AGENTS.md](../../AGENTS.md) 的编写。 | 请深入阅读并严格遵循 [Step 1 详细执行标准](./references/step1_initialization.md)。 |
-| **Step 2：引导用户添加项目级别的 Rule 过程** | 在项目开发启动时或日常演进中，引导人类用户定义项目专有的协作与技术规则，并持久化到项目规则配置中。 | 请深入阅读并严格遵循 [Step 2 详细执行标准](./references/step2_project_rules.md)。 |
-| **Step 3：业务调研、反向审查与 Lead 审批规范** | 指导 Agent 在项目开发前进行正向需求对齐与反向防御设计，并扮演专业 Lead 对技术与业务边界进行审批裁决，汇总输出业务总结报告。 | 请深入阅读并严格遵循 [Step 3 详细执行标准](./references/step3_business_research.md)。 |
-| **Step 4：竞品分析调研、防线决策与 Lead 审批规范** | 指导 Agent 分别从业务流程与交互呈现两个维度对核心功能模块进行竞品分析，挖掘系统的核心差异化突破口，并扮演专业 Lead 进行评审裁决，汇总输出竞品决策裁决前置文档。 | 请深入阅读并严格遵循 [Step 4 详细执行标准](./references/step4_competitor_analysis.md)。 |
-| **Step 5：业务建模、数据建模与系统设计前置契约规范** | 指导 Agent 基于正向调研与竞品裁决文档进行业务建模，明确系统的核心业务问题、用户目标，划分业务场景与 MVP 边界，设计核心实体 ER 关系，并固化系统架构与交互前置技术红线契约。 | 请深入阅读并严格遵循 [Step 5 详细执行标准](./references/step5_business_modeling.md)。 |
-| **Step 6 及后续步骤** | *(待后续生命周期演进时扩展并在此添加引用)* | *(待后续生命周期演进时扩展)* |
+| **Step 1：物理初始化与协作规范** | 初始化标准目录结构，编写协作边界契约 [AGENTS.md](../../AGENTS.md)。 | [Step 1 执行标准](./references/step1_initialization.md) |
+| **Step 2：配置项目级别 Rule** | 引导用户确立并持久化项目特有的协作与技术规则。 | [Step 2 执行标准](./references/step2_project_rules.md) |
+| **Step 3：业务调研与反向审查** | 进行正向需求对齐与反向安全防御设计，输出决策总结报告。 | [Step 3 执行标准](./references/step3_business_research.md) |
+| **Step 4：竞品分析与决策裁决** | 从业务流与交互两维度对标竞品，推导差异化并输出决策文档。 | [Step 4 执行标准](./references/step4_competitor_analysis.md) |
+| **Step 5：业务建模与设计契约** | 定义核心业务问题与用户目标，划分 MVP 场景并设计实体 ER 关系与设计红线。 | [Step 5 执行标准](./references/step5_business_modeling.md) |
+| **Step 6 及后续步骤** | *(待后续生命周期演进时扩展)* | *(待扩展)* |
 
 ---
 
