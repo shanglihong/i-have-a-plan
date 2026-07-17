@@ -59,7 +59,8 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
-    [*] --> SANDBOX : Trace-to-Skill 三级漏斗编译生成
+    [*] --> SANDBOX : Trace-to-Skill 三级漏斗提炼
+    ACTIVE --> SANDBOX : 经验复盘触发 (生成变异 Draft 分支)
     SANDBOX --> ACTIVE : 人工确认并通过拓扑排序校验 (批准入库)
     SANDBOX --> [*] : 废弃删除
 ```
@@ -250,6 +251,67 @@ sequenceDiagram
         Algo-->>FE: 返回校验通过信号
         FE->>FE: 连线显示为正常蓝色，保持“批准入库”按钮处于激活状态
     end
+```
+
+---
+
+### 4. 计划项目归档、经验沉淀与技能变异时序
+
+展示用户在完结计划项目时，如何通过强制引导沉淀实战复盘，并自动驱动底层 Skill 进行自我进化变异（Skill Mutation）的过程。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant FE_Board as 前端计划看板
+    participant FE_Exp as 前端复盘卡片
+    participant BE as 后端服务
+    participant DB_Graph as 知识图谱(Graph)
+    participant DB_Skill as 技能沙箱(Sandbox)
+
+    User->>FE_Board: 任务全部 COMPLETED，点击 [归档项目]
+    FE_Board->>FE_Exp: 弹出 [实战复盘与经验沉淀] 富文本卡片
+    User->>FE_Exp: 录入避坑指南与最佳实践并提交
+    FE_Exp->>BE: 提交 Experience Note 实体数据
+    BE->>DB_Graph: 异步提取实体，构建/合并关系图谱
+    
+    alt 经验推翻现有理论 (知识新陈代谢)
+        DB_Graph->>DB_Graph: 建立 Falsifies (证伪) 反向抑制边，旧节点视觉降级
+    end
+
+    alt 经验指出原 Skill 的缺陷 (Skill Mutation)
+        BE->>DB_Skill: 自动在 Sandbox 生成该 Skill 的修订草稿 (Draft Branch)
+        DB_Skill-->>BE: 草稿生成完毕
+        BE-->>FE_Board: 界面右上角推送气泡：“已生成工具库优化草稿，点击前往审批”
+    end
+    
+    FE_Board->>FE_Board: 整个项目页面平滑扭转为强只读模式
+```
+
+---
+
+### 5. 全局知识图谱漫游与溯源时序 (Quick Peek)
+
+展示用户在全局视角的网状图谱中漫游时，如何通过 Quick Peek 浮窗无缝追溯跨项目历史，同时坚守不跳转打断心流的 PA-07 契约。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant FE_Graph as 前端图谱画布
+    participant FE_Peek as 沉浸式浮窗(Quick Peek)
+    participant BE as 后端混合服务
+
+    User->>FE_Graph: 浏览全局知识图谱，发现带有“虚线”的经验节点
+    User->>FE_Graph: 发现某旧笔记节点颜色黯淡 (被证伪降级)
+    User->>FE_Graph: 点击该历史节点或关联的 Falsifies 连线
+    FE_Graph->>BE: 携带 Node ID 请求其物理原文/历史笔记上下文
+    BE-->>FE_Graph: 返回富文本数据与关联物理锚点
+    FE_Graph->>FE_Peek: 在画布中央弹出自带毛玻璃的 Quick Peek 浮窗
+    Note over User, FE_Peek: 坚决不触发全屏跳转 (严格遵守 PA-07 契约)
+    User->>FE_Peek: 在浮窗内无缝沉浸式阅读过去的复盘与理论上下文
+    User->>FE_Graph: 点击浮窗外空白遮罩处
+    FE_Peek->>FE_Peek: 浮窗淡出销毁，心流未中断，继续图谱漫游
 ```
 
 ## 三、 核心交互链路详细设计
