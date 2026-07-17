@@ -24,7 +24,7 @@ description: "用于规范和执行整个工程生命周期的分步处理（包
 | **Step 3：业务调研与反向审查** | 进行正向需求对齐与反向安全防御设计，输出决策总结报告。 | [Step 3 执行标准](./references/step3_business_research.md) |
 | **Step 4：竞品分析与决策裁决** | 从业务流与交互两维度对标竞品，推导差异化并输出决策文档。 | [Step 4 执行标准](./references/step4_competitor_analysis.md) |
 | **Step 5：业务建模与设计契约** | 定义核心业务问题与用户目标，划分 MVP 场景并设计实体 ER 关系与设计红线。 | [Step 5 执行标准](./references/step5_business_modeling.md) |
-| **Step 6：核心交互链路设计** | *(待后续生命周期演进时扩展并在此添加引用)* | |
+| **Step 6：核心交互链路设计** | 设计核心交互流程、角色互动时序与实体状态机流转。 | [Step 6 执行标准](./references/step6_interaction_design.md) |
 | **Step 7：产品原型规范** | *(待后续生命周期演进时扩展并在此添加引用)* | |
 | **Step 8：系统架构设计** | *(待后续生命周期演进时扩展并在此添加引用)* | |
 | **Step 9：数据模型** | *(待后续生命周期演进时扩展并在此添加引用)* | |
