@@ -33,7 +33,7 @@
 
 ### 2. 应用层 (Application Layer) - 用例与智能编排
 充当系统外观，协调领域对象与基础设施，对外暴露业务用例 (Use Cases)。**本层的一个核心职责是作为“智能编排器”，所有的 LangChain/LangGraph 工作流均收敛于此，以此保证核心领域层对大模型框架零依赖**。
-* **伴读与问答流编排 (LangGraph)**：定义智能体状态机，协调输入流、注入上下文并调用底层 LLM 适配器生成回复。
+* **伴读与沉淀笔记流编排 (LangGraph)**：定义智能体状态机，协调划词输入、注入上下文、调用底层 LLM 生成解答，并落盘为阅读笔记实体。
 * **Trace-to-Skill 编译流编排**：编排“拉取数据 -> 投喂 LLM 提取大纲 -> 调用领域层执行 DAG 逻辑校验 -> 经由沙箱端口写入文件”的端到端防呆流程。
 * **依赖反转与流程组装**：通过定义 Port 接口 (如 `SandboxPort`, `NoteRepository`)，利用依赖注入 (DI) 在运行时组装基础组件，协调增量建图等任务。
 
@@ -68,14 +68,14 @@ graph TD
 
     subgraph Hexagon ["系统边界 (六边形内部)"]
         subgraph AppLayer ["应用层 (Application Layer)"]
-            UC1["伴读与问答流编排"]
+            UC1["伴读与沉淀笔记流编排"]
             UC2["Trace-to-Skill 编译流"]
             UC3["归档与图谱增量流"]
         end
 
         subgraph DomainLayer ["领域层 (Domain Layer)"]
             PTO["项目与任务领域<br>(状态机, 重调度算法)"]
-            HKE["混合知识领域<br>(知识代谢, 标签对齐)"]
+            HKE["混合知识与笔记领域<br>(笔记沉淀, 知识代谢)"]
             SCS["技能提炼领域<br>(DAG 死锁校验算法)"]
         end
         
@@ -118,38 +118,45 @@ graph TD
         P_TC["TaskChain (实体)"]
         P_Task["Task (实体)"]
         
-        P_Proj --> P_TC
-        P_TC --> P_Task
+        P_Proj -->|管理| P_TC
+        P_TC -->|拆解为| P_Task
+        P_Task -->|前置依赖 DAG| P_Task
     end
 
-    subgraph KnowledgeDomain ["混合知识上下文 (Knowledge Context)"]
-        K_URN["UnifiedReadingNote (实体)"]
-        K_EN["ExperienceNote (聚合根)"]
-        K_Graph["GraphNode (实体)"]
+    subgraph KnowledgeDomain ["混合知识与笔记上下文 (Knowledge & Note Context)"]
+        K_URN["UnifiedReadingNote (笔记实体)"]
+        K_EN["ExperienceNote (经验实体)"]
+        K_SA["SourceAnchor (物理锚点)"]
+        K_Graph["GraphNode (图谱节点)"]
+        K_Tag["TagSuperNode (标签超节点)"]
         
-        K_EN --> K_Graph
-        K_URN --> K_Graph
+        K_URN -->|提取为| K_Graph
+        K_EN -->|提取为| K_Graph
+        K_URN -->|绑定| K_SA
+        K_Graph -->|认知边含证伪| K_Graph
+        K_Graph -->|聚类至| K_Tag
     end
 
     subgraph SkillDomain ["技能编译上下文 (Skill Context)"]
         S_Skill["Skill (聚合根)"]
         S_DAG["DAG Validator (领域服务)"]
         
-        S_Skill --> S_DAG
+        S_Skill -->|请求死锁校验| S_DAG
     end
 
-    %% 上下文映射 (Context Mapping) 与边界交互
+    %% 上下文映射 (Context Mapping) 与跨界边界交互
     
-    %% 项目域 -> 知识域
-    P_Proj -->|"【项目归档事件】<br>传输复盘数据"| K_EN
-    P_Task -->|"【伴读沉淀事件】<br>挂载物理锚点"| K_URN
+    %% 项目域 -> 知识域 (归属与沉淀)
+    P_Proj -->|"【项目归档事件】<br>生成复盘"| K_EN
+    P_Task -->|"【伴读动作事件】<br>沉淀笔记"| K_URN
+    P_Proj -.->|"【实体逻辑归属】"| K_URN
     
-    %% 知识域 -> 技能域
+    %% 知识域 -> 技能域 (触发与上下文)
     K_EN -->|"【知识代谢预警】<br>触发技能修正"| S_Skill
-    K_Graph -.->|"【查询请求】<br>提供 RAG 事实上下文"| S_Skill
+    K_Graph -.->|"【查询请求】<br>提供 RAG 事实依据"| S_Skill
     
-    %% 技能域 -> 项目域
-    S_Skill -->|"【编译实例化】<br>将技能展开为任务"| P_TC
+    %% 技能域 -> 项目域 (驱动执行)
+    S_Skill -->|"【编译注入事件】<br>实例化展开为任务"| P_TC
 ```
 
 ### 3. 核心领域实体关系图 (Domain ERD)
@@ -162,20 +169,20 @@ erDiagram
     "[项目域] TaskChain (任务链)" ||--o{ "[项目域] Task (任务)" : "拆解为"
     "[项目域] Task (任务)" }o--o{ "[项目域] Task (任务)" : "前置依赖 (DAG)"
 
-    %% 混合知识领域
-    "[项目域] Project (项目)" ||--o{ "[混合知识域] UnifiedReadingNote (融合笔记)" : "沉淀"
-    "[项目域] Project (项目)" ||--o| "[混合知识域] ExperienceNote (经验笔记)" : "归档时生成"
-    "[混合知识域] UnifiedReadingNote (融合笔记)" }|--|| "[混合知识域] SourceAnchor (物理锚点)" : "绑定"
+    %% 混合知识与笔记领域
+    "[项目域] Project (项目)" ||--o{ "[知识与笔记域] UnifiedReadingNote (融合笔记)" : "沉淀"
+    "[项目域] Project (项目)" ||--o| "[知识与笔记域] ExperienceNote (经验笔记)" : "归档时生成"
+    "[知识与笔记域] UnifiedReadingNote (融合笔记)" }|--|| "[知识与笔记域] SourceAnchor (物理锚点)" : "绑定"
     
     %% 图谱领域 (混合知识引擎底层)
-    "[混合知识域] UnifiedReadingNote (融合笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
-    "[混合知识域] ExperienceNote (经验笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
+    "[知识与笔记域] UnifiedReadingNote (融合笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
+    "[知识与笔记域] ExperienceNote (经验笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
     "[图谱域] GraphNode (图谱节点)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "认知关系边 (含证伪)"
     "[图谱域] GraphNode (图谱节点)" }o--|| "[图谱域] TagSuperNode (标签超节点)" : "聚类对齐至"
 
     %% 技能提炼领域
     "[技能域] Skill (技能)" ||--o{ "[项目域] TaskChain (任务链)" : "实例化注入"
-    "[混合知识域] ExperienceNote (经验笔记)" }o--o| "[技能域] Skill (技能)" : "触发 Mutation 修订草稿"
+    "[知识与笔记域] ExperienceNote (经验笔记)" }o--o| "[技能域] Skill (技能)" : "触发 Mutation 修订"
 ```
 
 ---
