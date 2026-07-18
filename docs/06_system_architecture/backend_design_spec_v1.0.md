@@ -77,14 +77,15 @@ graph TD
 
         subgraph DomainLayer ["领域层 (Domain Layer)"]
             PTO["项目与任务领域<br>(状态机, 重调度算法)"]
-            HKE["混合知识与笔记领域<br>(笔记沉淀, 知识代谢)"]
+            NTD["独立笔记领域<br>(物理锚点, File-first)"]
+            GPH["知识图谱领域<br>(异步 RAG, 知识代谢)"]
             SCS["技能提炼领域<br>(DAG 死锁校验算法)"]
         end
         
-        UC1 -->|协调| HKE
+        UC1 -->|沉淀| NTD
         UC2 -->|依赖校验| SCS
         UC3 -->|流转状态| PTO
-        UC3 -->|触发| HKE
+        UC3 -->|异步提取| GPH
         UC4 -->|按 Skill 拆解| PTO
     end
 
