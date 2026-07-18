@@ -26,10 +26,10 @@
 
 ### 1. 领域层 (Domain Layer) - 纯业务逻辑
 系统的心脏，绝对屏蔽任何外部技术实现细节（无框架依赖、无大模型依赖、无文件 I/O）。本层细分为“实体 (Entity)”与“领域服务 (Domain Service)”：
-* **实体 (Entities)**：定义 `Unified Reading Note`、`Experience Note` 与 `Skill` 等核心数据结构（基于 Pydantic 等纯数据类），包含且仅包含原子的状态校验规则。
+* **实体 (Entities)**：定义 `Unified Reading Note`、`Experience Note` 与 `Skill` 等核心数据结构。
 * **无状态领域服务 (Domain Services)**：
-  * **拓扑与调度服务**：封装有向无环图 (DAG) 拓扑排序算法以处理沙箱死锁阻断（PA-03），以及计算 Task Chain 的逾期顺延。
-  * **知识代谢服务**：封装跨实体的标签对齐与“Falsifies（被证伪）”关系衍生逻辑。
+  * **拓扑与调度服务**：封装有向无环图 (DAG) 拓扑排序算法以处理沙箱死锁阻断，以及计算逾期顺延。
+  * **跨域同步服务 (事件驱动)**：定义诸如 `NoteUpdatedEvent` 的领域事件，实现独立笔记域 (Note Domain) 与图谱域 (Graph Domain) 的完全异步解耦。
 
 ### 2. 应用层 (Application Layer) - 用例与智能编排
 充当系统外观，协调领域对象与基础设施，对外暴露业务用例 (Use Cases)。**本层的一个核心职责是作为“智能编排器”，所有的 LangChain/LangGraph 工作流均收敛于此，以此保证核心领域层对大模型框架零依赖**。
@@ -44,8 +44,8 @@
   * **职责**：作为纯技术底座，提供受限的代码执行环境与文件 I/O 安全拦截。
   * **实现机制 (PA-05 落地方案)**：实现目录越权拦截 (Chroot 机制) 确保文件操作不跃出 `projectId` 根目录。提供受严格控制的 LangChain Tool 白名单注册器，阻断一切非授权 Shell 执行。应用层的任何编译落地与 Agent 交互都必须包裹在此引擎内运行。
 * **本地存储引擎 (Local Storage Engine)**：
-  * 封装 SQLite 关系操作及向量扩展 (sqlite-vec)，对接知识检索请求。
-  * 封装底层的文件系统句柄，管理 Markdown 笔记及图片的落盘。
+  * **File-first 策略 (真理之源)**：笔记内容完全作为标准 Markdown 文件真实物理落盘，保证其 100% 的外部系统可移植性。
+  * **SQLite 缓存与图谱**：SQLite 仅作为笔记元数据的快速检索“缓存库”，同时持久化向量扩展 (sqlite-vec) 支撑的图谱网络。
 * **大模型适配器 (LLM Adapter)**：
   * 封装对外部 LLM (如 OpenAI、Ollama) 的 API 调用，进行网络请求与 Token 限流管理。
 
@@ -123,16 +123,18 @@ graph TD
         P_Task -->|前置依赖 DAG| P_Task
     end
 
-    subgraph KnowledgeDomain ["混合知识与笔记上下文 (Knowledge & Note Context)"]
+    subgraph NoteDomain ["独立笔记上下文 (Note Context)"]
         K_URN["UnifiedReadingNote (笔记实体)"]
         K_EN["ExperienceNote (经验实体)"]
         K_SA["SourceAnchor (物理锚点)"]
+        
+        K_URN -->|绑定| K_SA
+    end
+
+    subgraph GraphDomain ["知识图谱上下文 (Graph Context)"]
         K_Graph["GraphNode (图谱节点)"]
         K_Tag["TagSuperNode (标签超节点)"]
         
-        K_URN -->|提取为| K_Graph
-        K_EN -->|提取为| K_Graph
-        K_URN -->|绑定| K_SA
         K_Graph -->|认知边含证伪| K_Graph
         K_Graph -->|聚类至| K_Tag
     end
@@ -151,6 +153,10 @@ graph TD
     P_Task -->|"【伴读动作事件】<br>沉淀笔记"| K_URN
     P_Proj -.->|"【实体逻辑归属】"| K_URN
     
+    %% 笔记域 -> 图谱域 (异步事件)
+    K_URN -->|"【NoteUpdatedEvent】<br>后台异步触发提取"| K_Graph
+    K_EN -->|"【NoteUpdatedEvent】<br>后台异步触发提取"| K_Graph
+
     %% 知识域 -> 技能域 (触发与上下文)
     K_EN -->|"【知识代谢预警】<br>触发技能修正"| S_Skill
     K_Graph -.->|"【查询请求】<br>提供 RAG 事实依据"| S_Skill
@@ -169,14 +175,14 @@ erDiagram
     "[项目域] TaskChain (任务链)" ||--o{ "[项目域] Task (任务)" : "拆解为"
     "[项目域] Task (任务)" }o--o{ "[项目域] Task (任务)" : "前置依赖 (DAG)"
 
-    %% 混合知识与笔记领域
-    "[项目域] Project (项目)" ||--o{ "[知识与笔记域] UnifiedReadingNote (融合笔记)" : "沉淀"
-    "[项目域] Project (项目)" ||--o| "[知识与笔记域] ExperienceNote (经验笔记)" : "归档时生成"
-    "[知识与笔记域] UnifiedReadingNote (融合笔记)" }|--|| "[知识与笔记域] SourceAnchor (物理锚点)" : "绑定"
+    %% 独立笔记领域
+    "[项目域] Project (项目)" ||--o{ "[笔记域] UnifiedReadingNote (融合笔记)" : "沉淀"
+    "[项目域] Project (项目)" ||--o| "[笔记域] ExperienceNote (经验笔记)" : "归档时生成"
+    "[笔记域] UnifiedReadingNote (融合笔记)" }|--|| "[笔记域] SourceAnchor (物理锚点)" : "绑定"
     
-    %% 图谱领域 (混合知识引擎底层)
-    "[知识与笔记域] UnifiedReadingNote (融合笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
-    "[知识与笔记域] ExperienceNote (经验笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
+    %% 图谱领域 (异步下游消费者)
+    "[笔记域] UnifiedReadingNote (融合笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
+    "[笔记域] ExperienceNote (经验笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
     "[图谱域] GraphNode (图谱节点)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "认知关系边 (含证伪)"
     "[图谱域] GraphNode (图谱节点)" }o--|| "[图谱域] TagSuperNode (标签超节点)" : "聚类对齐至"
 
