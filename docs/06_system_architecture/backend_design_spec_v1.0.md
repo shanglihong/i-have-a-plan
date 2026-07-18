@@ -193,25 +193,52 @@ graph TD
 展示核心领域层在 SQLite 中的数据模型逻辑关联，其中特别强化了“经验反哺”与“知识代谢”的链路。
 
 ```mermaid
-erDiagram
-    %% 项目与任务领域
-    "[项目域] Project (项目)" ||--o{ "[项目域] TaskChain (任务链)" : "管理"
-    "[项目域] TaskChain (任务链)" ||--o{ "[项目域] Task (任务)" : "拆解为"
-    "[项目域] Task (任务)" }o--o{ "[项目域] Task (任务)" : "前置依赖 (DAG)"
-
-    %% 独立笔记领域
-    "[项目域] Project (项目)" ||--o{ "[笔记域] UnifiedReadingNote (融合笔记)" : "沉淀"
-    "[项目域] Project (项目)" ||--o| "[笔记域] ExperienceNote (经验笔记)" : "归档时生成"
-    "[笔记域] UnifiedReadingNote (融合笔记)" }|--|| "[笔记域] SourceAnchor (物理锚点)" : "绑定"
+classDiagram
+    direction TB
     
-    %% 图谱领域 (异步下游消费者)
-    "[笔记域] UnifiedReadingNote (融合笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
-    "[笔记域] ExperienceNote (经验笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
-    "[图谱域] GraphNode (图谱节点)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "认知关系边 (含证伪)"
-    "[图谱域] GraphNode (图谱节点)" }o--|| "[图谱域] TagSuperNode (标签超节点)" : "聚类对齐至"
+    namespace ProjectDomain {
+        class Project
+        class TaskChain
+        class Task
+    }
 
-    %% 技能提炼领域
-    "[笔记域] ExperienceNote (经验笔记)" }o--o{ "[技能域] Skill (技能)" : "提炼沉淀 / 触发修订"
+    namespace NoteDomain {
+        class UnifiedReadingNote
+        class ExperienceNote
+        class SourceAnchor
+    }
+
+    namespace GraphDomain {
+        class GraphNode
+        class TagSuperNode
+    }
+
+    namespace SkillDomain {
+        class Skill
+    }
+
+    %% 项目与任务领域内部关系
+    Project "1" *-- "*" TaskChain : 管理
+    TaskChain "1" *-- "*" Task : 拆解为
+    Task "*" --> "*" Task : 前置依赖 (DAG)
+
+    %% 跨域关联：项目 -> 笔记
+    Project "1" --> "*" UnifiedReadingNote : 沉淀
+    Project "1" --> "0..1" ExperienceNote : 归档时生成
+    
+    %% 笔记领域内部关系
+    UnifiedReadingNote "*" *-- "1" SourceAnchor : 绑定
+    
+    %% 跨域关联：笔记 -> 图谱 (异步提取)
+    UnifiedReadingNote "*" --> "*" GraphNode : 提取为
+    ExperienceNote "*" --> "*" GraphNode : 提取为
+    
+    %% 图谱领域内部关系
+    GraphNode "*" --> "*" GraphNode : 认知关系边 (含证伪)
+    GraphNode "*" --> "1" TagSuperNode : 聚类对齐至
+
+    %% 跨域关联：经验 -> 技能
+    ExperienceNote "*" --> "*" Skill : 提炼沉淀 / 触发修订
 ```
 
 ---
