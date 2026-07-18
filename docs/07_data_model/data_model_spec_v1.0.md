@@ -1,7 +1,7 @@
 # 数据模型与领域驱动设计规范 (v1.0)
 
 > [!IMPORTANT]
-> 本文档基于 DDD (领域驱动设计) 原则，依据业务模型和交互规范提取数据模型。本文档不仅定义了实体、值对象和聚合根的属性，还明确了字段在前端视图（交互展示、计算衍生）与后端（持久化、逻辑流转）中的职责边界。
+> 本文档基于 DDD (领域驱动设计) 原则，依据业务模型和交互规范提取数据模型。本文档不仅定义了领域边界，还严格区分了持久化实体对象 (DO)、上下文领域对象 (Domain Object) 与前端使用对象 (VO) 的字段边界。
 
 ---
 
@@ -21,76 +21,118 @@
 依据底层业务裁决，数据模型严格遵循以下两项全局策略：
 1. **单租户本地化 (Single Tenant & Local-First)**：本系统作为本地优先工具，底座不引入多用户（User / Account）或鉴权体系实体。所有模型数据依赖本地 SQLite 与物理文件，保持极简单用户架构。
 2. **硬删除机制 (Hard Delete)**：为追求极致轻量并释放本地磁盘空间，不采用软删除（无 `is_deleted` 字段）。当用户主动执行笔记移除或沙箱废除时，系统将直接执行物理文件连同数据库索引的硬级联删除。
-3. **持久化模型与领域模型的形态隔离 (DO vs Domain Object)**：在底层数据库持久化数据表（DO）中，实体之间仅通过主外键 ID 保持松散关联（如 `Task` 表持有 `project_id`）；但在内存运行时的上下文（Bounded Context）中，聚合根对象作为强一致性边界，直接装载具体的数据集合（如 `Project` 聚合根内存模型中直接持有完整的 `List<Task>` 任务树结构），以此承载高内聚的业务逻辑校验，避免面向数据库编程。
+3. **分层对象映射隔离 (DO vs Domain vs VO)**：
+   - **实体对象 (Data Object - DO)**：仅包含基础数据类型与主外键 ID，严格与底层持久化数据库表结构映射。
+   - **上下文对象 (Domain Object)**：继承 DO 基础属性，在内存中装载充血模型集合（如 `List<Task>`），承载核心业务逻辑。脱离数据库束缚，体现聚合根的强一致性边界。
+   - **前端使用对象 (View Object - VO / DTO)**：发送给前端渲染使用。剔除沉重的内存集合对象，附加仅供 UI 渲染的衍生字段与状态标识（如 `_ui_progress`），保障前后端彻底分离。
 
 ---
 
-## 三、 实体与数据模型详解
+## 三、 实体与分层数据模型详解
 
 ### 1. 项目与任务上下文 (Project & Task Context)
 
 #### 1.1 Project（项目 - 实体/聚合根）
 **定义**：一切学习与执行任务的最高层级承载容器，是一个具有唯一标识的独立实体。
-**持久化介质**：关系型数据库 / SQLite
 
-| 字段名 | 类型 | 领域属性 | 含义描述 | 关联关系 | 前后端使用边界 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `id` | String | 标识 (ID) | 唯一标识符 (UUID) | - | **共同**：全局主键 |
-| `title` | String | 属性 | 项目名称 | - | **共同**：展示与更新 |
-| `type` | Enum | 属性 | `READING` (阅读) / `PLAN` (计划) | - | **后端**：策略路由分发；**前端**：渲染不同工作台布局 |
-| `status` | Enum | 属性 | `INIT` / `ACTIVE` / `SUSPENDED` / `ARCHIVED` | - | **后端**：状态机校验，自动休眠判定；**前端**：页面只读锁定、悬浮重载遮罩控制 |
-| `deadline` | DateTime | 属性 | 截止时间硬约束 | - | **后端**：定时任务判定阻塞；**前端**：红色警报渲染 |
-| `assigned_agent_id` | String | 引用 | 绑定的独立进程沙箱 Agent ID | - | **后端**：通信管道路由（PA-05隔离）；**前端**：无需感知 |
-| `created_at` / `updated_at` | DateTime | 审计 | 创建与更新时间 | - | **共同**：列表排序与展示 |
-| `tasks` | Array<Task> | 领域集合 | 项目下属的所有任务树 | 强持有 `Task` | **上下文专用**：持久化 DO 无此字段，仅内存聚合，用于领域层调度 |
-| `notes` | Array<UnifiedReadingNote> | 领域集合 | 项目下挂载的笔记集合 | 强持有 `UnifiedReadingNote`| **上下文专用**：仅内存聚合，用于计算进度或批量打包提炼 |
-| `_ui_progress` | Number | 衍生属性 | 总体完成/阅读进度百分比 | - | **前端专用**：基于公式实时计算与渲染（双维度加权/任务统计），不落库持久化 |
-| `_ui_is_reloading` | Boolean | UI状态 | 是否正在触发一键重载唤醒 | - | **前端专用**：控制水波纹动画，不落库 |
+* **(1) 实体对象 (ProjectDO)** - 落库模型
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 唯一标识 (UUID) | 全局主键 |
+| `title` | String | 项目名称 | - |
+| `type` | Enum | `READING` / `PLAN` | - |
+| `status` | Enum | `INIT` / `ACTIVE` / `SUSPENDED` / `ARCHIVED` | - |
+| `deadline` | DateTime | 截止时间硬约束 | - |
+| `assigned_agent_id` | String | 绑定的沙箱 Agent ID | PA-05 隔离 |
+| `created_at` / `updated_at`| DateTime | 审计时间 | - |
+
+* **(2) 上下文对象 (ProjectDomain)** - 内存充血模型 (继承 DO)
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `tasks` | Array<TaskDomain> | 领域集合 | 内存装载下属任务树，用于领域层调度 |
+| `notes` | Array<UnifiedReadingNoteDomain> | 领域集合 | 内存装载下挂笔记集合，用于大模型提炼 |
+
+* **(3) 前端使用对象 (ProjectVO)** - 交互模型 (继承 DO 基础属性)
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| `_ui_progress` | Number | 总体阅读/执行进度 | 进度条渲染（公式实时计算） |
+| `_ui_is_reloading`| Boolean| 重载唤醒状态 | 触发水波纹动画屏蔽层 |
 
 #### 1.2 Task（任务 - 实体）
 **定义**：项目下的执行步骤或阅读章节。生命周期依赖于 Project。
 
-| 字段名 | 类型 | 领域属性 | 含义描述 | 关联关系 | 前后端使用边界 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `id` | String | 标识 (ID) | 任务唯一标识 | - | **共同** |
-| `project_id` | String | 外键/关联 | 归属的聚合根项目 | 关联 `Project` | **共同**：范围查询 |
-| `title` | String | 属性 | 任务或章节标题 | - | **共同** |
-| `status` | Enum | 属性 | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | - | **后端**：解锁级联逻辑；**前端**：卡片颜色、置灰与红光警示动效 |
-| `parent_task_id` | String | 关联 | 父级任务ID (用于大纲/任务树层级) | 外键关联 `Task` | **前端**：渲染级联折叠树；**后端**：表结构外键 |
-| `depends_on_task_ids` | Array<String>| 关联 | 前置依赖任务 ID 列表 | 关联关系表 | **后端**：表关联存储；**前端**：甘特图橡皮筋连线渲染 |
-| `sub_tasks` | Array<Task> | 领域集合 | 子任务列表 | 强持有 `Task` | **上下文专用**：由 `parent_task_id` 在内存组装成的树形集合 |
-| `depends_on_tasks` | Array<Task> | 领域引用 | 前置依赖任务对象实例 | 弱引用 `Task` | **上下文专用**：内存装载，用于图论拓扑死锁检测及级联解锁 |
-| `deadline` | DateTime | 属性 | 当前子任务截止时间 | - | **共同**：逾期逻辑校验 |
-| `_ui_is_highlighted` | Boolean | UI状态 | 追踪溯源(Trace)时的脉冲高亮状态 | - | **前端专用**：触发3次脉冲闪烁动效，不落库 |
+* **(1) 实体对象 (TaskDO)**
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 任务唯一标识 | 主键 |
+| `project_id` | String | 归属项目 ID | 关联 Project |
+| `title` | String | 任务或章节标题 | - |
+| `status` | Enum | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED`| - |
+| `parent_task_id` | String | 父级任务 ID | 外键关联自身 |
+| `deadline` | DateTime | 当前子任务截止时间 | - |
+| `depends_on_task_ids` | Array<String>| 前置依赖任务 ID 列表 | 关联关系表 |
+
+* **(2) 上下文对象 (TaskDomain)** (继承 DO)
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `sub_tasks` | Array<TaskDomain> | 领域集合 | 根据 `parent_task_id` 组装的树形子集 |
+| `depends_on_tasks`| Array<TaskDomain> | 领域引用 | 根据 `depends_on_task_ids` 组装，用于解环校验 |
+
+* **(3) 前端使用对象 (TaskVO)** (继承 DO 基础属性)
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| `_ui_is_highlighted`| Boolean| 脉冲高亮状态 | Trace-to-source 定位时触发闪烁动效 |
 
 ---
 
 ### 2. 笔记与知识上下文 (Note & Knowledge Context)
-
 > [!NOTE]
 > 该上下文遵循 **File-first (文件优先)** 存储契约。所有笔记实体内容作为 Markdown 物理落盘，数据库仅存储索引与关系。
 
 #### 2.1 UnifiedReadingNote（融合阅读笔记 - 实体/聚合根）
-**定义**：结合了用户主观感悟与 AI 伴读对话的综合笔记实体，具有独立生命周期。与 Task 解耦，直接挂载于 Project 目录下。
+**定义**：结合主观感悟与 AI 伴读对话的综合笔记实体，具有独立生命周期。
 
-| 字段名 | 类型 | 领域属性 | 含义描述 | 关联关系 | 前后端使用边界 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `id` | String | 标识 (ID) | 笔记唯一标识 | - | **共同** |
-| `project_id` | String | 外键/关联 | 归属的项目 | 关联 `Project` | **共同**：归属约束 |
-| `content_path` | String | 属性 | 物理 Markdown 文件相对路径 | - | **后端**：读写物理文件；**前端**：请求资源路径 |
-| `tags` | Array<String>| 值对象(VO)| 全局扁平标签 | 关联 `TagSuperNode`| **共同**：打标与同义词合并展示 |
-| `source_anchor` | Object | 值对象(VO)| 原文物理锚点 (包含页码、段落偏移量、首尾特征字符) | 关联文档物理切片 | **前端**：基于特征字符执行相似度计算、平滑滚动、容错精准定位；**后端**：透传保存 |
-| `_ui_is_editable`| Boolean | UI状态 | 卡片是否处于可编辑态 | - | **前端专用**：由项目是否 ARCHIVED 级联决定，控制富文本框激活，不落库 |
+* **(1) 实体对象 (UnifiedReadingNoteDO)**
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 笔记唯一标识 | 主键 |
+| `project_id` | String | 归属的项目 ID | 关联 Project |
+| `content_path` | String | 物理 MD 文件路径 | IO 定位 |
+| `tags` | Array<String>| 全局扁平标签 | 关联标签表 |
+| `source_anchor` | Object | 物理锚点(页码/偏移/特征字)| - |
+
+* **(2) 上下文对象 (UnifiedReadingNoteDomain)** (继承 DO)
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `tag_nodes` | Array<TagSuperNode> | 领域集合 | 关联的标签实体超节点集合 |
+| `content` | String | 领域属性 | 内存读取加载的真实 Markdown 文本流 |
+
+* **(3) 前端使用对象 (UnifiedReadingNoteVO)** (继承 DO 基础属性)
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| `_ui_is_editable` | Boolean | 可编辑状态 | 随项目归档状态决定，控制富文本框激活 |
 
 #### 2.2 ExperienceNote（经验笔记 - 实体/聚合根）
 **定义**：项目完结时复盘产生的实战经验实体，驱动知识进化。
 
-| 字段名 | 类型 | 领域属性 | 含义描述 | 关联关系 | 前后端使用边界 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `id` | String | 标识 (ID) | 笔记唯一标识 | - | **共同** |
-| `project_id` | String | 外键/关联 | 关联的完结项目 | 关联 `Project` | **共同** |
-| `associated_skill_id`| String | 外键(可选)| 生成该项目时使用的原版 Skill | 关联 `Skill` | **后端**：触发自动 Skill Mutation (生成草稿) |
-| `content_path` | String | 属性 | 物理 Markdown 文件路径 | - | **后端**：读写文件 |
+* **(1) 实体对象 (ExperienceNoteDO)**
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 笔记唯一标识 | 主键 |
+| `project_id` | String | 关联完结项目 ID | 关联 Project |
+| `associated_skill_id`| String | (可选) 原版技能 ID | 关联 Skill |
+| `content_path` | String | 物理 MD 文件路径 | IO 定位 |
+
+* **(2) 上下文对象 (ExperienceNoteDomain)** (继承 DO)
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `associated_skill` | SkillDomain | 领域引用 | 实例化的原版技能对象，派生变异草稿 |
+| `content` | String | 领域属性 | 内存加载的真实 Markdown 复盘文本 |
+
+* **(3) 前端使用对象 (ExperienceNoteVO)** (同 DO)
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| (无特殊衍生 UI 属性) | - | - | - |
 
 ---
 
@@ -99,40 +141,77 @@
 #### 3.1 Skill（技能模版 - 实体/聚合根）
 **定义**：由非结构化知识编译为可指导 Agent 执行的结构化任务生成模板实体。
 
-| 字段名 | 类型 | 领域属性 | 含义描述 | 关联关系 | 前后端使用边界 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `id` | String | 标识 (ID) | Skill 唯一标识 | - | **共同** |
-| `name` | String | 属性 | 技能名称 | - | **共同** |
-| `sandbox_state` | Enum | 属性 | `DRAFT` (草稿/提炼中) / `SANDBOX` (沙箱待审批) / `ACTIVE` (批准入库) | - | **后端**：控制文件从沙箱向入库区迁移的生命周期；**前端**：判断“批准入库”按钮显示 |
-| `file_path` | String | 属性 | `.md` 物理存储路径 (包含 YAML frontmatter) | - | **后端**：读取执行，动态编排解析 |
-| `_ui_has_cycle` | Boolean | UI状态 | 是否存在拓扑环路死锁 | - | **前端专用**：在沙箱编辑器画布实时计算，控制红色发光与抖动动效，禁用入库按钮 |
+* **(1) 实体对象 (SkillDO)**
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 技能唯一标识 | 主键 |
+| `name` | String | 技能名称 | - |
+| `sandbox_state` | Enum | `DRAFT` / `SANDBOX` / `ACTIVE` | 生命周期状态 |
+| `file_path` | String | 物理存储路径 (含 YAML) | IO 定位 |
 
-#### 3.2 SkillStep (步骤 - 值对象/前端临时实体)
-**定义**：Skill 在前端沙箱画布中被解析出的卡片节点，入库后被打包为 Markdown 文本，不再作为独立库表实体。
+* **(2) 上下文对象 (SkillDomain)** (继承 DO)
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `steps` | Array<SkillStepDomain>| 领域集合 | 从 MD 中解析装载的执行步骤集合 |
 
-| 字段名 | 类型 | 领域属性 | 含义描述 | 前后端使用边界 |
-| :--- | :--- | :--- | :--- | :--- |
-| `step_id` | String | 标识 (ID) | 步骤卡片本地 ID | **前端专用**：画布拖拽与连线锚点识别 |
-| `depends_on` | Array<String>| 关系 (VO) | 拓扑依赖前置步骤 | **前端专用**：本地运行拓扑排序解环算法 (PA-03 契约) |
+* **(3) 前端使用对象 (SkillVO)** (继承 DO 基础属性)
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| `_ui_has_cycle` | Boolean | 环路死锁报警状态 | 控制编辑器画布发光抖动、禁用入库按钮 |
+
+#### 3.2 SkillStep (步骤 - 实体)
+* **(1) 实体对象 (SkillStepDO)**
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `step_id` | String | 步骤本地标识 | - |
+| `depends_on` | Array<String>| 前置步骤 ID 列表 | 本地连线缓存 |
+
+* **(2) 上下文对象 (SkillStepDomain)** (继承 DO)
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `depends_on_steps`| Array<SkillStepDomain>| 领域引用 | 组装为实例，用于 PA-03 拓扑解环 |
+
+* **(3) 前端使用对象 (SkillStepVO)** (同 DO)
 
 ---
 
 ### 4. 图谱与检索上下文 (Graph & Retrieval Context)
 
 #### 4.1 GraphNode（图谱节点 - 实体/聚合根）
-**定义**：从笔记中异步抽取出来的知识实体（如方法论概念、人物、理论），由 sqlite-vec 支持密集检索。
+* **(1) 实体对象 (GraphNodeDO)**
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 节点唯一标识 | 主键 |
+| `name` | String | 实体名词 | - |
+| `source_note_id` | String | 来源物理笔记 ID | 关联 Note |
+| `is_falsified` | Boolean | 是否被经验证伪降级 | - |
 
-| 字段名 | 类型 | 领域属性 | 含义描述 | 关联关系 | 前后端使用边界 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `id` | String | 标识 (ID) | 节点标识 | - | **共同** |
-| `name` | String | 属性 | 实体名词 | - | **共同** |
-| `source_note_id` | String | 外键/关联 | 来源的物理笔记 ID | 关联 `UnifiedReadingNote` / `ExperienceNote`| **前端**：点击节点触发 Quick Peek 浮窗追溯原文；**后端**：关联查询 |
-| `is_falsified` | Boolean | 属性 | 是否已被新的实战经验证伪 (新陈代谢) | - | **后端**：检索排序降权；**前端**：渲染虚线或灰度置暗效果 (Opacity 40%) |
+* **(2) 上下文对象 (GraphNodeDomain)** (继承 DO)
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `source_note` | NoteDomain | 领域引用 | 物理笔记实例，用于漫游时 Quick Peek |
+| `related_nodes` | Array<GraphNodeDomain>| 领域集合 | 组装出的网状邻居节点 (图论邻接表) |
 
-#### 4.2 GraphEdge（图谱连线关系 - 实体/关联对象）
+* **(3) 前端使用对象 (GraphNodeVO)**
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| `_ui_opacity` | Number | 视觉透明度 | 当被证伪时，前端强制降低透明度至 40% |
 
-| 字段名 | 类型 | 领域属性 | 含义描述 | 关联关系 | 前后端使用边界 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `source_id` | String | 关联 | 起始节点 | 关联 `GraphNode` | **共同** |
-| `target_id` | String | 关联 | 目标节点 | 关联 `GraphNode` | **共同** |
-| `relation_type` | Enum | 属性 | `ASSOCIATES` (联想) / `FALSIFIES` (证伪) | - | **前端**：渲染特殊的反向抑制视觉连线（如红色波浪线或虚线） |
+#### 4.2 GraphEdge（图谱连线关系 - 实体）
+* **(1) 实体对象 (GraphEdgeDO)**
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `source_id` | String | 起始节点 ID | 关联 GraphNode |
+| `target_id` | String | 目标节点 ID | 关联 GraphNode |
+| `relation_type` | Enum | `ASSOCIATES` / `FALSIFIES` | - |
+
+* **(2) 上下文对象 (GraphEdgeDomain)** (继承 DO)
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `source` | GraphNodeDomain| 领域引用 | 起始节点实体装载 |
+| `target` | GraphNodeDomain| 领域引用 | 目标节点实体装载 |
+
+* **(3) 前端使用对象 (GraphEdgeVO)**
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| `_ui_line_style`| String | 连线视觉样式 | `FALSIFIES` 时渲染红色虚线/波浪线 |
