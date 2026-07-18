@@ -18,6 +18,8 @@
 | | **左侧边栏** | 级联折叠的文档大纲树。 |
 | | **中栏 (主阅读区)** | 顶部双维度进度条 + 居中的 PDF/Markdown 渲染容器。 |
 | | **右栏 (读思面板)** | 瀑布流式融合笔记卡片列表 + 固定的 Discuss AI 输入框。 |
+| **Global Knowledge Graph** <br/> (全局知识图谱) | **布局结构** | 全屏力导向图交互画布 (Force-directed Graph Canvas)。 |
+| | **交互组件** | 漫游浮窗 (Quick Peek Overlay)：带有毛玻璃背景的居中悬浮窗，用于无跳转溯源。 |
 
 ---
 
@@ -71,10 +73,29 @@
 | 数据类型 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- | :--- |
 | **Props** (输入) | `nodeId` | `String` | 节点标识。 |
-| | `hasCycleError` | `Boolean` | 当前节点是否死锁。若为 `true`，激活红色高斯模糊与高频抖动动效。 |
+| | `hasCycleError` | `Boolean` | 当前节点是否死锁。若为 `true`，激活红色高斯模糊与高频抖动动效，**强制禁用批准入库按钮 (PA-03)**。 |
 | | `dependencies` | `Array` | 前置节点列表。 |
-| **Emits** (输出) | `onConnectionCreate`| `Event` | 用户建立连线，触发外层画布的拓扑排序算法。 |
+| **Emits** (输出) | `onConnectionCreate`| `Event` | 用户拖拽建立连线，触发外层画布的拓扑排序算法验证。 |
 | | `onConnectionDelete`| `Event` | 断开连线，触发外层算法重新校验。 |
+
+### 5. 经验复盘与变异浮窗 (Experience & Mutation Modal)
+
+> 功能描述：归档阶段弹出的富文本无边框记录卡，用于引导用户沉淀实战复盘。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `isDrafting` | `Boolean` | 是否正在后台静默生成技能变异草稿 (Skill Mutation)。 |
+| **Emits** (输出) | `onSubmitExperience` | `Event` | 提交避坑指南，触发后台 Experience Note 实体写入与图谱增量同步。 |
+
+### 6. 知识图谱节点 (Graph Node)
+
+> 功能描述：全局知识图谱画布中的原子节点。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `nodeData` | `Object` | 包含节点标签名称及元数据。 |
+| | `isFalsified` | `Boolean` | 若该节点在最新经验中被“证伪”，则渲染为 40% Opacity 的视觉衰变态。 |
+| **Emits** (输出) | `onClickNode` | `Event` | 用户点击节点，直接向外派发 `onQuickPeek` 呈现悬浮上下文。 |
 
 ---
 
@@ -86,7 +107,9 @@
 | 实体全局状态 (State Input) | 界面视觉与交互限制 (Visual Output) |
 | :--- | :--- |
 | **Project.Status = `ACTIVE`** | 正常交互配色，所有组件处于激活态。 |
-| **Project.Status = `SUSPENDED`**| 对应工作区被**毛玻璃遮罩** (`backdrop-filter: blur`) 覆盖，底层模糊不可点击。呈现“一键唤醒”按钮，派发重载事件，渲染**水波纹扩散动效**。 |
-| **Project.Status = `ARCHIVED`** | 顶部渲染只读警告横幅。所有子组件 `isReadOnly = true`，输入框与提交按钮深度置灰；指针渲染为 `not-allowed`。 |
+| **Project.Status = `SUSPENDED`**| 对应工作区被**毛玻璃遮罩** (`backdrop-filter: blur`) 覆盖，底层模糊不可点击。呈现“一键唤醒”按钮，派发重载事件，渲染**全局水波纹扩散动效**并从 Redis 恢复会话 **(PA-04)**。 |
+| **Project.Status = `ARCHIVED`** | 顶部渲染只读警告横幅。所有子组件 `isReadOnly = true`，输入框与提交按钮深度置灰；指针渲染为 `not-allowed`。触发最后一次闲时建图。 |
 | **Task.Status = `BLOCKED`** | 任务卡片底色变更为警告红，字体加粗并闪烁。暴露悬浮的“重调度”快捷入口组件。 |
 | **Document.Status = `PARSING`** | 大纲组件渲染为**波光骨架屏 (Skeleton)**，屏蔽点击事件，直至状态就绪。 |
+| **Knowledge.State = `FALSIFIED`** | 知识新陈代谢视觉奇观：节点及连线视觉变暗（Opacity 降至 40%），被反向抑制边（虚线）连接。 |
+| **Graph.State = `QUICK_PEEK`** | 弹出带有毛玻璃背景的沉浸式居中浮窗，底层主画布高斯模糊，点击外部空白遮罩层销毁，**绝不触发全屏跳转 (PA-07)**。 |
