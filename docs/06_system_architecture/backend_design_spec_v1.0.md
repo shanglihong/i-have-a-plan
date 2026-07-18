@@ -25,16 +25,17 @@
 遵循端口与适配器模式，系统自内向外严格分为四个层级，彻底将“业务大脑”与“技术肌肉（沙箱、存储等）”剥离。
 
 ### 1. 领域层 (Domain Layer) - 纯业务逻辑
-系统的心脏，绝对屏蔽任何外部技术实现细节（无框架依赖、无文件 I/O）。
-* **项目与任务领域 (Project & Task Domain)**：封装项目状态流转规则、Task Chain 的逾期计算与拓扑重调度算法。
-* **混合知识领域 (Hybrid Knowledge Domain)**：定义 `Unified Reading Note` 与 `Experience Note` 的结构。封装标签对齐、知识新陈代谢（Falsifies 被证伪关系衍生）的业务策略规则。
-* **技能提炼领域 (Skill Domain)**：定义 Skill 模板结构。封装有向无环图 (DAG) 拓扑排序算法，专门处理卡片依赖的死锁阻断（PA-03）纯逻辑校验。
+系统的心脏，绝对屏蔽任何外部技术实现细节（无框架依赖、无大模型依赖、无文件 I/O）。本层细分为“实体 (Entity)”与“领域服务 (Domain Service)”：
+* **实体 (Entities)**：定义 `Unified Reading Note`、`Experience Note` 与 `Skill` 等核心数据结构（基于 Pydantic 等纯数据类），包含且仅包含原子的状态校验规则。
+* **无状态领域服务 (Domain Services)**：
+  * **拓扑与调度服务**：封装有向无环图 (DAG) 拓扑排序算法以处理沙箱死锁阻断（PA-03），以及计算 Task Chain 的逾期顺延。
+  * **知识代谢服务**：封装跨实体的标签对齐与“Falsifies（被证伪）”关系衍生逻辑。
 
-### 2. 应用层 (Application Layer) - 用例与流程编排
-充当系统外观，协调领域对象与基础设施，对外暴露业务用例 (Use Cases)。
-* **伴读与问答流编排**：协调输入流、注入上下文并调用大模型生成回复。
-* **Trace-to-Skill 编译流编排**：编排“拉取源数据 -> LLM 提炼 -> 领域层 DAG 校验 -> 沙箱写入”的端到端流程。
-* **项目归档与图谱建图流编排**：挂载异步队列，协调增量建图的离线运算流程。
+### 2. 应用层 (Application Layer) - 用例与智能编排
+充当系统外观，协调领域对象与基础设施，对外暴露业务用例 (Use Cases)。**本层的一个核心职责是作为“智能编排器”，所有的 LangChain/LangGraph 工作流均收敛于此，以此保证核心领域层对大模型框架零依赖**。
+* **伴读与问答流编排 (LangGraph)**：定义智能体状态机，协调输入流、注入上下文并调用底层 LLM 适配器生成回复。
+* **Trace-to-Skill 编译流编排**：编排“拉取数据 -> 投喂 LLM 提取大纲 -> 调用领域层执行 DAG 逻辑校验 -> 经由沙箱端口写入文件”的端到端防呆流程。
+* **依赖反转与流程组装**：通过定义 Port 接口 (如 `SandboxPort`, `NoteRepository`)，利用依赖注入 (DI) 在运行时组装基础组件，协调增量建图等任务。
 
 ### 3. 基础设施层 (Infrastructure Layer) - 技术支撑与被动适配器
 > **核心设计重构**：将系统安全性（沙箱隔离）与物理 I/O 作为独立的技术组件抽离，应用层仅通过接口（Port）调用。
@@ -136,6 +137,32 @@ sequenceDiagram
         Sandbox->>DB: 安全写入 skills/sandbox/draft.md
         App-->>FE: 推送提炼完成与可审批通知
     end
+```
+
+### 3. 核心领域实体关系图 (Domain ERD)
+展示核心领域层在 SQLite 中的数据模型逻辑关联，其中特别强化了“经验反哺”与“知识代谢”的链路。
+
+```mermaid
+erDiagram
+    %% 项目与任务领域
+    Project ||--o{ TaskChain : "管理"
+    TaskChain ||--o{ Task : "拆解为"
+    Task }o--o{ Task : "前置依赖 (DAG)"
+
+    %% 混合知识领域
+    Project ||--o{ UnifiedReadingNote : "沉淀"
+    Project ||--o| ExperienceNote : "归档时生成"
+    UnifiedReadingNote }|--|| SourceAnchor : "绑定物理锚点"
+    
+    %% 图谱领域 (知识引擎)
+    UnifiedReadingNote }o--o{ GraphNode : "提取为"
+    ExperienceNote }o--o{ GraphNode : "提取为"
+    GraphNode }o--o{ GraphNode : "认知关系边 (含 Falsifies 证伪)"
+    GraphNode }o--|| TagSuperNode : "聚类对齐至"
+
+    %% 技能提炼领域
+    Skill ||--o{ TaskChain : "实例化注入"
+    ExperienceNote }o--o| Skill : "触发 Mutation 修订草稿"
 ```
 
 ---
