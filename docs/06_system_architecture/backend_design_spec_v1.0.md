@@ -34,6 +34,7 @@
 ### 2. 应用层 (Application Layer) - 用例与智能编排
 充当系统外观，协调领域对象与基础设施，对外暴露业务用例 (Use Cases)。**本层的一个核心职责是作为“智能编排器”，所有的 LangChain/LangGraph 工作流均收敛于此，以此保证核心领域层对大模型框架零依赖**。
 * **伴读与沉淀笔记流编排 (LangGraph)**：定义智能体状态机，协调划词输入、注入上下文、调用底层 LLM 生成解答，并落盘为阅读笔记实体。
+* **项目初始化与任务拆解流**：当新项目启动时，编排调用指定的 `Skill`（工具脚本/提示词），通过 LLM 将其展开为具体的、带依赖关系的 `TaskChain` 并入库。
 * **Trace-to-Skill 编译流编排**：编排“拉取数据 -> 投喂 LLM 提取大纲 -> 调用领域层执行 DAG 逻辑校验 -> 经由沙箱端口写入文件”的端到端防呆流程。
 * **依赖反转与流程组装**：通过定义 Port 接口 (如 `SandboxPort`, `NoteRepository`)，利用依赖注入 (DI) 在运行时组装基础组件，协调增量建图等任务。
 
@@ -71,6 +72,7 @@ graph TD
             UC1["伴读与沉淀笔记流编排"]
             UC2["Trace-to-Skill 编译流"]
             UC3["归档与图谱增量流"]
+            UC4["项目初始化与任务拆解流"]
         end
 
         subgraph DomainLayer ["领域层 (Domain Layer)"]
@@ -83,6 +85,7 @@ graph TD
         UC2 -->|依赖校验| SCS
         UC3 -->|流转状态| PTO
         UC3 -->|触发| HKE
+        UC4 -->|按 Skill 拆解| PTO
     end
 
     subgraph DrivenAdapters ["被动适配器 (基础设施层)"]
@@ -156,11 +159,13 @@ graph TD
     K_URN -->|"【NoteUpdatedEvent】<br>后台异步触发提取"| K_Graph
     K_EN -->|"【NoteUpdatedEvent】<br>后台异步触发提取"| K_Graph
 
-    %% 知识域 -> 技能域 (触发与上下文)
-    K_EN -->|"【知识代谢预警】<br>触发技能修正"| S_Skill
+    %% 笔记域/图谱域 -> 技能域 (提炼沉淀与修正)
+    K_EN -->|"【方法论提炼事件】<br>Trace-to-Skill 沉淀"| S_Skill
+    K_EN -.->|"【知识代谢预警】<br>触发既有技能修正"| S_Skill
     K_Graph -.->|"【查询请求】<br>提供 RAG 事实依据"| S_Skill
     
-    %% 项目域 -> 技能域 (运行时调用)
+    %% 项目域 -> 技能域 (运行时调用与拆解)
+    P_Proj -.->|"【项目初始化】<br>应用 Skill 拆解生成任务树"| S_Skill
     P_Task -.->|"【运行时调度】<br>代理调用技能执行"| S_Skill
 ```
 
@@ -186,7 +191,7 @@ erDiagram
     "[图谱域] GraphNode (图谱节点)" }o--|| "[图谱域] TagSuperNode (标签超节点)" : "聚类对齐至"
 
     %% 技能提炼领域
-    "[笔记域] ExperienceNote (经验笔记)" }o--o| "[技能域] Skill (技能)" : "触发 Mutation 修订"
+    "[笔记域] ExperienceNote (经验笔记)" }o--o{ "[技能域] Skill (技能)" : "提炼沉淀 / 触发修订"
 ```
 
 ---

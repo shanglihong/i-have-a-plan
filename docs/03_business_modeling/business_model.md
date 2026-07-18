@@ -98,19 +98,26 @@
 
 ```mermaid
 erDiagram
-    PROJECT ||--o{ TASK_CHAIN : "contains"
-    PROJECT ||--o| HYBRID_KNOWLEDGE_ENGINE : "has"
-    PROJECT ||--o{ READING_NOTE : "contains"
-    PROJECT ||--o| EXPERIENCE_NOTE : "generates upon archive"
+    %% 项目与任务领域 (Project & Task Domain)
+    PROJECT ||--o{ TASK_CHAIN : "manages"
     TASK_CHAIN ||--o{ TASK : "consists of"
-    READING_NOTE }o--|| TASK : "references (chapter)"
-    READING_NOTE }o--|| HYBRID_KNOWLEDGE_ENGINE : "extracted into"
-    EXPERIENCE_NOTE }o--|| HYBRID_KNOWLEDGE_ENGINE : "extracted into"
-    EXPERIENCE_NOTE }o--o| SKILL : "triggers mutation draft for"
-    SKILL ||--o{ TASK_CHAIN : "generates (via Semantic Injection)"
+    TASK }o--o{ TASK : "depends on (DAG)"
+
+    %% 独立笔记领域 (Note Domain)
+    PROJECT ||--o{ UNIFIED_READING_NOTE : "contains (physical storage)"
+    PROJECT ||--o| EXPERIENCE_NOTE : "generates upon archive"
+    UNIFIED_READING_NOTE }|--|| SOURCE_ANCHOR : "binds to"
+
+    %% 知识图谱领域 (Graph Domain)
+    UNIFIED_READING_NOTE }o--o{ GRAPH_NODE : "extracted into (async event)"
+    EXPERIENCE_NOTE }o--o{ GRAPH_NODE : "extracted into (async event)"
+    GRAPH_NODE }o--o{ GRAPH_NODE : "falsifies/associates"
+    GRAPH_NODE }o--|| TAG_SUPER_NODE : "aligns to"
+
+    %% 技能提炼领域 (Skill Domain)
+    EXPERIENCE_NOTE }o--o{ SKILL : "extracted into / triggers mutation"
     SKILL }o--|| SANDBOX_AREA : "isolated & checked in"
-    HYBRID_KNOWLEDGE_ENGINE ||--o| VECTOR_CACHE : "contains"
-    HYBRID_KNOWLEDGE_ENGINE ||--o| ENTITY_GRAPH : "contains"
+    %% 注：Skill与Task在应用层运行时通过大模型编排调用，底层DB无强外键
 ```
 
 ### 1. 项目实体 (Project)
@@ -128,12 +135,14 @@ erDiagram
   * 在计划项目中，任务链是由 Skill 注入后拆解生成的结构化任务树。
 
 ### 3. 技能实体 (Skill)
-* **定义**：由非结构化文本中提炼出的方法论结构化模板。
-* **存储介质**：`SKILL.md` (Markdown 文本 + 头部 YAML 元数据)。
+* **定义**：由经验笔记或阅读笔记提炼出的一段可执行辅助脚本或 Prompt 工作流，作为 Agent 执行任务时的“外挂工具”。
+* **存储介质**：`SKILL.md` (Markdown 文本 + 头部 YAML 元数据)，存储在物理沙箱文件夹中。
 * **核心结构**：
   * **YAML Frontmatter**：包含 `name`, `description`, `version`, `author`, `tags`。
-  * **Markdown Body**：包含结构化的步骤指引、各步骤的依赖关系声明。
-* **状态流转**：`sandbox` (沙箱待审批) -> `active` (批准入库已激活)。
+  * **Markdown Body**：包含具体的执行 Prompt 或脚本指令流。
+* **业务规则**：
+  * **非数据库模板绑定**：Skill 在底层并非任务表的外键父级。它是应用层在“项目初始化拆解任务”或“运行时调度”时，由 LLM 动态挂载读取的工具库。
+  * **状态流转**：`sandbox` (沙箱待审批) -> `active` (批准入库已激活)。
 
 ### 4. 沙箱编辑区实体 (Sandbox Area)
 * **定义**：新编译技能入库前的物理隔离区与可视化校验编辑器。
@@ -142,24 +151,23 @@ erDiagram
   * **死锁阻断**：若校验结果中存在有向环（Cycle），则判定为“依赖死锁”，标记为不合法状态。
   * **入库门禁**：仅当合法性校验通过且用户点击“批准入库”后，Skill 状态才转为 `active` 并移出沙箱目录。
 
-### 5. 混合知识库与图谱实体 (Hybrid Knowledge Engine)
-* **定义**：结合 Dense RAG 密集向量缓存与 Graph RAG 关系的混合检索引擎。
+### 5. 知识图谱实体 (Graph Domain)
+* **定义**：独立于笔记域的下游数据消费者。它是基于 SQLite 向量扩展 (sqlite-vec) 驱动的混合检索引擎，包含 Dense RAG 向量缓存与 Graph RAG 图谱关系。
 * **存储实体**：
-  * **向量缓存 (Vector Cache)**：基于文本切片（Chunk）的密集向量索引，用于低延迟伴读问答。
-  * **实体关系图谱 (Entity Graph)**：图数据库中的实体节点与关系边。除了文本原生实体外，还引入“标签超节点 (Tag Super Node)”，用于将带有相同全局标签的跨项目笔记物理聚拢。
+  * **图谱节点 (Graph Node)**：通过监听笔记生成的领域事件，异步调用 LLM 从笔记中抽取的原子知识实体及其关系边。
+  * **标签超节点 (Tag Super Node)**：用于将带有相同全局标签的跨项目节点逻辑聚拢。
 * **生命周期与对齐机制**：
-  * 向量缓存实时写入与查询。
-  * 图谱实体仅在项目归档或用户手动触发同步时，通过后台异步批处理任务（闲时）提取并合并。
-  * **标签语义对齐 (Tag Alias)**：后台大模型在闲时自动扫描用户自由建立的扁平标签，识别语义相同的标签（如 `#AI` 与 `#人工智能`），将其在底层映射至同一超节点，并在前端提供合并提示。
-  * **知识新陈代谢 (Knowledge Metabolism)**：当后录入的复盘经验与早期的阅读笔记/理论产生认知冲突时，大模型不会删除旧节点，而是生成一条“Falsifies（证伪）”边连接二者。在图谱渲染时，新经验权重上升，被证伪的旧认知视觉变暗，检索排序自动降级，直观呈现知识迭代随时间轴的衰变。
+  * **异步事件驱动**：当笔记域发生 `NoteUpdatedEvent` 时，图谱域在闲时异步调用 LLM 进行增量建图，绝不阻塞前端的记笔记操作。
+  * **标签语义对齐 (Tag Alias)**：后台自动扫描用户标签，合并同义词节点。
+  * **知识新陈代谢 (Knowledge Metabolism)**：当新的复盘经验与旧认知冲突时，图谱生成一条“Falsifies（证伪）”边。在检索与图谱渲染时，旧认知权重自动衰减降级。
 
-### 6. 融合阅读笔记实体 (Unified Reading Note)
-* **定义**：将基于原文的主观读书感悟、高亮引用，与伴读 Agent 的客观解答探讨记录，在底层数据流进行深度整合沉淀的综合知识单元。
-* **核心属性**：`id`, `project_id`, `task_id` (关联的章节任务 ID), `source_type` (USER_HIGHLIGHT / AGENT_DISCUSS / FREE_WRITE), `tags` (全局扁平标签数组), `content` (富文本/Markdown 笔记内容), `source_anchor` (绑定的物理原文页码、偏移量及引用代码块)。
-* **业务规则**：
-  * **物理追溯 (Trace-to-Source)**：对于通过原文划词及对话转存生成的笔记，必须强制记录物理源文件的精确字符锚点。前台展示时，点击本项目的笔记，阅读容器必须平滑滚动并伴随 3 次脉冲闪烁高亮；**当点击跨历史项目的笔记时，前端必须以沉浸式浮窗 (Quick Peek) 展示原文上下文，避免强行打断当前阅读心流。**
-  * **只读级联归档**：阅读笔记的编辑权限完全级联继承于关联项目。项目状态更新为 `ARCHIVED` 时，其下属的所有笔记同步转为强只读状态（只读横幅展示，禁用保存 API）。
-  * **图谱抽取核心源**：在后台异步合并构建图数据库关系网时，笔记的内容必须与对应原文 Chunk 并行输入大模型，作为提炼实体与关系的重要事实源。
+### 6. 融合阅读笔记实体 (Note Domain)
+* **定义**：将基于原文的主观读书感悟与客观探讨记录进行整合的独立综合知识单元。它与具体的执行任务（Task）彻底解绑，仅作为数据资产物理挂载在 Project 文件夹下。
+* **核心属性**：`id`, `project_id`, `source_type`, `tags`, `content`, `source_anchor` (绑定的物理原文段落与偏移量)。
+* **业务规则 (File-first 存储)**：
+  * **真理之源**：笔记内容必须作为标准的 Markdown 文件真实物理落盘。SQLite 仅仅作为提供极速检索索引与元数据映射的“读缓存库”，保证笔记极高的跨系统（如 Obsidian、Notion）可移植性。
+  * **纯物理锚点 (SourceAnchor)**：笔记与子 Task 无关联，仅根据源文档的物理段落位置进行锚定，避免高频变更的任务调度导致底层笔记孤立。
+  * **物理追溯 (Trace-to-Source)**：前端可基于 `source_anchor` 精准实现跨项目的原文段落追溯（Quick Peek 沉浸式浮窗）及脉冲高亮定位。
 
 ### 7. 经验笔记实体 (Experience Note)
 * **定义**：在“计划项目”执行完毕或归档时，由系统引导用户复盘所产生的实战经验总结（如避坑指南、最佳实践），是实现知行闭环的关键知识单元。
