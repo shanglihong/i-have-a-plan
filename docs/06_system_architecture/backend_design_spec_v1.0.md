@@ -106,37 +106,50 @@ graph TD
     Sandbox -->|受限代理执行| DB
 ```
 
-### 2. 六边形解耦下的核心交互流转图 (Sequence Diagram)
-以技能提炼场景为例，演示基础设施层（沙箱）、应用层（流程编排）与领域层（核心业务算法）是如何分工协作的。
+### 2. 限界上下文与实体边界交互图 (Bounded Context Map)
+展示各个限界上下文（Domain）的边界划分、内部核心实体，以及跨上下文（Context Mapping）的事件流转与交互契约。
 
 ```mermaid
-sequenceDiagram
-    participant FE as 前端客户端
-    participant App as 应用层
-    participant Domain as 领域层
-    participant Sandbox as 沙箱引擎
-    participant DB as 本地存储
-    participant LLM as 大模型
+graph TD
+    %% 限界上下文 (Bounded Contexts)
     
-    %% 场景：Trace-to-Skill 提炼与沙箱隔离
-    rect rgb(245, 245, 245)
-        Note right of FE: 场景：Trace-to-Skill 提炼及沙箱防穿透写入
-        FE->>App: 发起方法论提炼请求
-        App->>DB: 拉取指定项目的阅读笔记 (脱敏)
-        DB-->>App: 返回数据
-        App->>LLM: 投喂数据，请求提炼步骤大纲
-        LLM-->>App: 返回初步提炼的步骤与依赖序列
+    subgraph ProjectDomain ["📦 项目与任务上下文 (Project Context)"]
+        P_Proj["Project (聚合根)"]
+        P_TC["TaskChain (实体)"]
+        P_Task["Task (实体)"]
         
-        %% 领域层纯逻辑校验，无 I/O
-        App->>Domain: 请求执行 DAG 拓扑排序与死锁阻断
-        Domain-->>App: 校验通过 (无环路依赖)
-        
-        %% 将危险的写操作与运行环境交给独立的沙箱引擎管控
-        App->>Sandbox: 申请通过隔离通道将 Skill 写入隔离区
-        Sandbox->>Sandbox: 校验路径 Chroot 权限，拒绝上级目录越权
-        Sandbox->>DB: 安全写入 skills/sandbox/draft.md
-        App-->>FE: 推送提炼完成与可审批通知
+        P_Proj --> P_TC
+        P_TC --> P_Task
     end
+
+    subgraph KnowledgeDomain ["🧠 混合知识上下文 (Knowledge Context)"]
+        K_URN["UnifiedReadingNote (实体)"]
+        K_EN["ExperienceNote (聚合根)"]
+        K_Graph["GraphNode (实体)"]
+        
+        K_EN --> K_Graph
+        K_URN --> K_Graph
+    end
+
+    subgraph SkillDomain ["⚙️ 技能编译上下文 (Skill Context)"]
+        S_Skill["Skill (聚合根)"]
+        S_DAG["DAG Validator (领域服务)"]
+        
+        S_Skill --> S_DAG
+    end
+
+    %% 上下文映射 (Context Mapping) 与边界交互
+    
+    %% 项目域 -> 知识域
+    P_Proj == "【项目归档事件】<br>传输复盘数据" ====> K_EN
+    P_Task == "【伴读沉淀事件】<br>挂载物理锚点" ====> K_URN
+    
+    %% 知识域 -> 技能域
+    K_EN == "【知识代谢预警】<br>触发技能修正" ====> S_Skill
+    K_Graph -. "【查询请求】<br>提供 RAG 事实上下文" .-> S_Skill
+    
+    %% 技能域 -> 项目域
+    S_Skill == "【编译实例化】<br>将技能展开为任务" ====> P_TC
 ```
 
 ### 3. 核心领域实体关系图 (Domain ERD)
@@ -145,24 +158,24 @@ sequenceDiagram
 ```mermaid
 erDiagram
     %% 项目与任务领域
-    Project ||--o{ TaskChain : "管理"
-    TaskChain ||--o{ Task : "拆解为"
-    Task }o--o{ Task : "前置依赖 (DAG)"
+    "[项目域] Project (项目)" ||--o{ "[项目域] TaskChain (任务链)" : "管理"
+    "[项目域] TaskChain (任务链)" ||--o{ "[项目域] Task (任务)" : "拆解为"
+    "[项目域] Task (任务)" }o--o{ "[项目域] Task (任务)" : "前置依赖 (DAG)"
 
     %% 混合知识领域
-    Project ||--o{ UnifiedReadingNote : "沉淀"
-    Project ||--o| ExperienceNote : "归档时生成"
-    UnifiedReadingNote }|--|| SourceAnchor : "绑定物理锚点"
+    "[项目域] Project (项目)" ||--o{ "[混合知识域] UnifiedReadingNote (融合笔记)" : "沉淀"
+    "[项目域] Project (项目)" ||--o| "[混合知识域] ExperienceNote (经验笔记)" : "归档时生成"
+    "[混合知识域] UnifiedReadingNote (融合笔记)" }|--|| "[混合知识域] SourceAnchor (物理锚点)" : "绑定"
     
-    %% 图谱领域 (知识引擎)
-    UnifiedReadingNote }o--o{ GraphNode : "提取为"
-    ExperienceNote }o--o{ GraphNode : "提取为"
-    GraphNode }o--o{ GraphNode : "认知关系边 (含 Falsifies 证伪)"
-    GraphNode }o--|| TagSuperNode : "聚类对齐至"
+    %% 图谱领域 (混合知识引擎底层)
+    "[混合知识域] UnifiedReadingNote (融合笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
+    "[混合知识域] ExperienceNote (经验笔记)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "提取为"
+    "[图谱域] GraphNode (图谱节点)" }o--o{ "[图谱域] GraphNode (图谱节点)" : "认知关系边 (含证伪)"
+    "[图谱域] GraphNode (图谱节点)" }o--|| "[图谱域] TagSuperNode (标签超节点)" : "聚类对齐至"
 
     %% 技能提炼领域
-    Skill ||--o{ TaskChain : "实例化注入"
-    ExperienceNote }o--o| Skill : "触发 Mutation 修订草稿"
+    "[技能域] Skill (技能)" ||--o{ "[项目域] TaskChain (任务链)" : "实例化注入"
+    "[混合知识域] ExperienceNote (经验笔记)" }o--o| "[技能域] Skill (技能)" : "触发 Mutation 修订草稿"
 ```
 
 ---
