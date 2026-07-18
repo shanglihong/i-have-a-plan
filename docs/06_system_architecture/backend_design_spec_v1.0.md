@@ -148,10 +148,9 @@ graph TD
 
     %% 上下文映射 (Context Mapping) 与跨界边界交互
     
-    %% 项目域 -> 知识域 (归属与沉淀)
+    %% 外部交互 / 项目域映射 (归属与沉淀)
     P_Proj -->|"【项目归档事件】<br>生成复盘"| K_EN
-    P_Task -->|"【伴读动作事件】<br>沉淀笔记"| K_URN
-    P_Proj -.->|"【实体逻辑归属】"| K_URN
+    P_Proj -.->|"【实体物理/逻辑归属】"| K_URN
     
     %% 笔记域 -> 图谱域 (异步事件)
     K_URN -->|"【NoteUpdatedEvent】<br>后台异步触发提取"| K_Graph
