@@ -87,19 +87,9 @@ graph TD
         EventBus -.->|"异步触发增量"| GPH
         EventBus -.->|"触发技能沉淀"| SCS
         
-        %% 防腐抽离：核心业务统一向下依赖 Ports
-        UC1 -.->|"依赖"| Port_LLM
-        UC2 -.->|"依赖"| Port_LLM
-        UC3 -.->|"依赖"| Port_LLM
-        
-        UC2 -.->|"依赖"| Port_Sandbox
-        UC3 -.->|"依赖"| Port_Sandbox
-        
-        UC1 -.->|"依赖"| Port_DB
-        UC4 -.->|"依赖"| Port_DB
-        GPH -.->|"图谱持久化"| Port_DB
-        
-        EventBus -.->|"委派底层通信"| Port_EventBus
+        %% 防腐抽离：核心业务统一下沉依赖接口层
+        AppLayer -.->|"端口调用 (大模型/沙箱/仓储)"| Ports
+        DomainLayer -.->|"端口调用 (事件总线/仓储)"| Ports
     end
 
     subgraph DrivenAdapters ["被动适配器 (基础设施层)"]
@@ -120,20 +110,17 @@ graph TD
         end
     end
 
-    %% 驱动流 (主动适配器 -> 应用层)
-    REST --> UC2
-    REST --> UC3
-    REST --> UC4
-    SSE --> UC1
+    %% 驱动流 (主动适配器单向驱动应用层)
+    DrivingAdapters -->|"触发业务编排"| AppLayer
     
-    %% 依赖反转: 基础设施向下实现端口 (运行时 DI)
-    Port_EventBus ===>|"DI 注入"| AsyncioBus
-    Port_LLM ===>|"DI 注入"| LLM
-    Port_Sandbox ===>|"DI 注入"| Sandbox
-    Port_DB ===>|"DI 注入"| FileStorage
-    Port_DB ===>|"DI 注入"| SQLiteDB
+    %% 基础设施实现端口 (层级映射)
+    Port_EventBus --> AsyncioBus
+    Port_LLM --> LLM
+    Port_Sandbox --> Sandbox
+    Port_DB --> FileStorage
+    Port_DB --> SQLiteDB
     
-    %% 沙箱底层 I/O (纯基础设施内部依赖)
+    %% 沙箱底层 I/O (基础设施内部依赖)
     Sandbox -.->|"受限文件 I/O"| FileStorage
     Sandbox -.->|"受限数据库查询"| SQLiteDB
 ```
