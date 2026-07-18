@@ -9,6 +9,48 @@
 > [!TIP]
 > 界面原型设计需遵循“沉浸、无干扰”的排版原则，核心页面结构约束如下。
 
+### 1. 全局视窗导航拓扑
+
+```mermaid
+graph TD
+    App[系统全局视窗容器] --> Dashboard[Dashboard 全局大盘]
+    App --> Workspace[双轨工作台]
+    App --> Graph[Global Knowledge Graph]
+    
+    subgraph Dashboard区域
+        Nav[顶部导航栏 & 全局搜索]
+        Carousel[横向最近访问卡片轮播]
+        List[阅读/计划项目双栏瀑布流]
+    end
+    Dashboard --> Nav
+    Dashboard --> Carousel
+    Dashboard --> List
+    
+    subgraph Workspace区域
+        ReadWS[阅读工作台 Reading Workspace]
+        PlanWS[计划执行台 Plan Workspace]
+    end
+    Workspace --> ReadWS
+    Workspace --> PlanWS
+    
+    ReadWS --> L1[左侧: 级联大纲树]
+    ReadWS --> C1[中栏: 双维度进度条 + PDF/MD阅读器]
+    ReadWS --> R1[右栏: 瀑布流笔记卡片 + Discuss面板]
+    
+    PlanWS --> T2[顶部: 控制栏与智能技能注入]
+    PlanWS --> C2[主栏: 骨架屏任务流 + Kanban/Gantt视图]
+    PlanWS --> R2[悬浮: 拓扑依赖重调度面板]
+
+    subgraph 图谱漫游区域
+        Canvas[全屏力导向图交互画布]
+        QuickPeek[居中沉浸式 Quick Peek 浮窗]
+    end
+    Graph --> Canvas
+    Graph --> QuickPeek
+```
+
+### 2. 页面区域组件划分
+
 | 页面模块 | 区域划分 | 核心组件与布局说明 |
 | :--- | :--- | :--- |
 | **Dashboard** <br/> (全局大盘与入口页) | **布局结构** | 顶部导航栏（含全局搜索与新建按钮） + 主内容区。 |
