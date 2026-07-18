@@ -56,9 +56,45 @@
 > [!TIP]
 > 以下规范定义了核心链路在整个“FSD 前端 ↔ 六边形后端”中的击穿路径与 Payload 数据交换契约。详细 API 字段将在 Step 10 落实。
 
-### 1. 划词写笔记与一键转存流
+### 1. 项目双轨初始化流 (Project Initialization Flow)
 
-> **控制权发起方**：前端主导，防抖后发送。
+> **控制权发起方**：前端 `ReadingProjectForm` 或 `PlanProjectForm` 提交触发。
+
+- **阅读项目路径**：
+  前端 `Features/Project` -> 提交 `multipart/form-data` (包含文件 Blob 与截止时间) ---> 后端 `Driving Adapters` -> 后端存储并触发后台切片解析 ---> 后端建立 SSE 长连接返回解析进度。
+  - **状态扭转**：前端 `OutlineTree` 根据 SSE 进度流渲染波光骨架屏，解析完毕后平滑渲染真实目录树。
+- **计划项目路径**：
+  前端 `Features/Project` -> 提交 JSON (包含 `deadline` 与 `skillId`) ---> 后端根据 Skill 编排生成任务树。
+  - **响应载荷 (Backend -> Frontend)**：返回包含根任务及子依赖的主干骨架任务树数据，驱动前端渐进式渲染。
+
+### 2. 语义技能检索流 (Semantic Skill Search Flow)
+
+> **控制权发起方**：前端 `PlanProjectForm` 输入框防抖触发。
+
+- **系统穿透路径**：
+  前端 `Features/SkillSearch` -> `Entities/Skill` (发起 REST GET) ---> 后端 `Driving Adapters` -> 后端调用向量引擎进行语义匹配。
+- **输入载荷 (Frontend -> Backend / Payload)**：`{ "query": "string (如'写论文')" }`
+- **输出响应 (Backend -> Frontend)**：`[{ "skillId": "string", "name": "string", "description": "string" }]`
+
+### 3. 启发式伴读与对话流 (Heuristic Discuss Flow)
+
+> **控制权发起方**：前端 `FloatingActionMenu` 的 `onDiscuss` 或右侧 `DiscussPanel` 触发。
+
+- **系统穿透路径**：
+  前端 `Entities/Discuss` (发起请求) ---> 后端 `Driving Adapters` -> 后端 `Application/ChatUseCase` ---> 流式 SSE 返回 ---> 前端 `MessageBubble`。
+- **输入载荷 (Frontend -> Backend / Payload)**：
+  ```json
+  {
+    "projectId": "string",
+    "query": "string",
+    "contextAnchor": "object (可选的划词上下文)"
+  }
+  ```
+- **状态扭转契约**：前端通过 SSE 接收 Chunk 推送，驱动 `MessageBubble` 的打字机动效。
+
+### 4. 划词写笔记与一键转存流
+
+> **控制权发起方**：前端主导，由 `FloatingActionMenu` (`onHighlightAndNote`) 或 `MessageBubble` (`onSaveAsNote`) 触发。
 
 - **系统穿透路径**：
   前端 `Features/Reading` -> 前端 `Entities/Note` (发起 REST POST) ---> 后端 `Driving Adapters` -> 后端 `Application Layer` -> 后端 `Infrastructure/SQLite` 落盘。
@@ -77,9 +113,9 @@
   ```
 - **输出响应 (Backend -> Frontend)**：`{ "noteId": "string", "status": "SAVED" }`
 
-### 2. Trace-to-Skill 提炼编译流
+### 5. Trace-to-Skill 提炼编译流
 
-> **控制权发起方**：前端发起指令，后端接管大模型流式处理。
+> **控制权发起方**：前端发起指令（微观单点源于 `FloatingActionMenu.onExtractSkill`，宏观源于项目视图一键触发）。
 
 - **系统穿透路径**：
   前端 `Features/Skill` -> 前端 `Entities/Skill` (建立 SSE 监听) ---> 后端 `Driving Adapters` -> 后端 `Application/TraceToSkillUseCase` (驱动大模型) ---> 流式 SSE 返回 ---> 前端 `Entities/Skill` (逐帧存入 Zustand)。
@@ -87,14 +123,15 @@
   ```json
   {
     "projectId": "string",
-    "scopeType": "enum (CHAPTER | FULL_PROJECT)"
+    "scopeType": "enum (SINGLE_NOTE | CHAPTER | FULL_PROJECT)",
+    "referenceId": "string (可选的 noteId 或 chapterId)"
   }
   ```
-- **状态扭转契约**：前端通过 SSE 驱动编译进度条渲染；编译完成后，收到终止符，前端浮窗提示成功。后端将生成的 Markdown 文件锁定在隔离区。
+- **状态扭转契约**：前端通过 SSE 驱动编译进度条渲染；编译完成后收到终止符，前端浮窗提示成功，后端将生成的 Markdown 文件锁定在沙箱隔离区。
 
-### 3. 半自动重调度计算流 (顺延)
+### 6. 半自动重调度计算流 (顺延)
 
-> **控制权发起方**：前端拖拽触发。
+> **控制权发起方**：前端拖拽或点击顺延触发。
 
 - **系统穿透路径**：
   前端 `Features/Plan` (初筛，拦截环路) -> 前端 `Entities/Task` (发起 REST) ---> 后端 `Application Layer` -> 后端 `Domain/Project` (重调度图算法计算) -> 批量事务落盘。
@@ -107,7 +144,7 @@
   ```
 - **状态扭转契约**：前端 React Query 发起 `invalidateQueries` 使任务树缓存失效，重新拉取最新数据。受影响卡片的状态从 `BLOCKED` 恢复为 `RUNNING`。
 
-### 4. 融合笔记懒加载供给流
+### 7. 融合笔记懒加载供给流
 
 > **控制权发起方**：前端滚动行为触发 (Infinite Scroll)。
 
@@ -117,7 +154,7 @@
   ```
 - **输出响应 (Backend -> Frontend)**：返回一个异构数组（混合主观笔记与 Agent 对话），但基于 Pydantic 规范化为统一的 `UnifiedNoteCard` 结构。
 
-### 5. 归档与经验沉淀流 (Experience & Mutation Flow)
+### 8. 归档与经验沉淀流 (Experience & Mutation Flow)
 
 > **控制权发起方**：前端用户点击归档并提交实战复盘。
 
@@ -131,7 +168,7 @@
 - **输出响应 (Backend -> Frontend)**：`{ "status": "ARCHIVED", "hasMutation": "boolean" }`
 - **状态扭转契约**：后端触发后台 EventBus 开启闲时图谱构建（**PA-02**）；若经验指出旧 Skill 缺陷，后端静默在 Sandbox 派生修正草稿；前端接收到响应后，所有 `Features` 组件深度置灰，进入强只读模式。
 
-### 6. 全局图谱漫游追溯流 (Quick Peek Flow)
+### 9. 全局图谱漫游追溯流 (Quick Peek Flow)
 
 > **控制权发起方**：前端无脑请求，捍卫心流。
 
