@@ -67,31 +67,31 @@
 ```mermaid
 graph TD
     %% 前端层
-    subgraph Frontend [前端客户端 (Client)]
-        UI[Vue/React UI 组件]
-        Store[状态管理 & 本地防抖计算]
+    subgraph Frontend ["前端客户端 (Client)"]
+        UI["Vue/React UI 组件"]
+        Store["状态管理 & 本地防抖计算"]
     end
 
     %% 后端 API 层
-    subgraph APILayer [接入层 (FastAPI)]
-        REST[RESTful API Router]
-        SSE[SSE Streaming Router]
+    subgraph APILayer ["接入层 (FastAPI)"]
+        REST["RESTful API Router"]
+        SSE["SSE Streaming Router"]
     end
 
     %% 核心业务模块层
-    subgraph CoreModules [核心业务模块 (DDD Core)]
-        PTO[项目与任务生命周期管理\nProject & Task Orchestration]
-        HKE[混合知识引擎\nHybrid Knowledge Engine]
-        SCS[提炼编译与沙箱\nSkill Compiler & Sandbox]
-        ACS[AI 伴读与特权沙箱\nAI Companion & Privilege Sandbox]
+    subgraph CoreModules ["核心业务模块 (DDD Core)"]
+        PTO["项目与任务生命周期管理<br>Project & Task Orchestration"]
+        HKE["混合知识引擎<br>Hybrid Knowledge Engine"]
+        SCS["提炼编译与沙箱<br>Skill Compiler & Sandbox"]
+        ACS["AI 伴读与特权沙箱<br>AI Companion & Privilege Sandbox"]
     end
 
     %% 基础设施与外部调用
-    subgraph Infra [本地基础设施 & LLM]
-        SQLite[(项目专属 SQLite\n关系数据 + 向量)]
-        FileSystem[(本地物理文件夹\nMarkdown/Assets)]
-        LocalQueue[[asyncio 本地异步队列]]
-        LLM((大模型 API\nLangChain 驱动))
+    subgraph Infra ["本地基础设施 & LLM"]
+        SQLite[("项目专属 SQLite<br>关系数据 + 向量")]
+        FileSystem[("本地物理文件夹<br>Markdown/Assets")]
+        LocalQueue[["asyncio 本地异步队列"]]
+        LLM(("大模型 API<br>LangChain 驱动"))
     end
 
     %% 连线关系
@@ -121,11 +121,14 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant FE as 前端 (Frontend)
-    participant PTO as 项目管理模块 (Orchestration)
-    participant ACS as AI 伴读模块 (AI Sandbox)
-    participant HKE as 知识引擎模块 (Knowledge Engine)
-    participant SCS as 编译沙箱模块 (Skill Compiler)
+    participant FE as 前端客户端
+    participant PTO as 项目管理模块
+    participant ACS as AI伴读模块
+    participant HKE as 知识引擎模块
+    participant SCS as 编译沙箱模块
+    participant SQLite as 本地数据库
+    participant FileSystem as 本地文件系统
+    participant LocalQueue as 异步任务队列
     
     %% 场景1：伴读与笔记
     rect rgb(240, 248, 255)
