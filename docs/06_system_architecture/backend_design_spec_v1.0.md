@@ -98,8 +98,11 @@ graph TD
     %% 依赖反转 (运行时通过接口调用)
     AppLayer -.->|"通过 Port 调用 (依赖反转)"| DrivenAdapters
     
-    %% 底层依赖
-    Sandbox -->|安全代理执行| DB
+    %% 核心执行层交互 (大模型与沙箱调用)
+    UC1 -->|组装 Prompt & 请求流式生成| LLM
+    UC2 -->|投喂 Chunk 请求结构化提取| LLM
+    UC3 -->|调用离线/云端模型建图| LLM
+    Sandbox -->|受限代理执行| DB
 ```
 
 ### 2. 六边形解耦下的核心交互流转图 (Sequence Diagram)
