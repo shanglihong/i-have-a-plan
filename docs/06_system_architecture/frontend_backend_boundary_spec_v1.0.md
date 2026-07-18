@@ -171,6 +171,28 @@ sequenceDiagram
 
 > **控制权发起方**：前端主导，由 `FloatingActionMenu` (`onHighlightAndNote`) 或 `MessageBubble` (`onSaveAsNote`) 触发。
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE_UI as FE_UI (FloatingActionMenu)
+    participant FE_Entity as FE_Entity (NoteStore)
+    participant BE_API as BE_API (FastAPI)
+    participant BE_App as BE_App (Application Layer)
+    participant BE_Infra as BE_Infra (SQLite)
+
+    User->>FE_UI: 划词并点击“高亮并记笔记”
+    FE_UI->>FE_Entity: 提交笔记保存请求
+    FE_Entity->>FE_Entity: UI 防抖与限流
+    FE_Entity->>BE_API: REST POST /notes
+    BE_API->>BE_App: 路由至实体保存用例
+    BE_App->>BE_Infra: 写入 SQLite 关系表及 Vector 缓存
+    BE_Infra-->>BE_App: 落盘成功
+    BE_App-->>BE_API: 返回 Note ID
+    BE_API-->>FE_Entity: JSON 响应
+    FE_Entity->>FE_UI: 更新 UI 状态
+```
+
 - **系统穿透路径**：
   前端 `Features/Reading` -> 前端 `Entities/Note` (发起 REST POST) ---> 后端 `Driving Adapters` -> 后端 `Application Layer` -> 后端 `Infrastructure/SQLite` 落盘。
 - **输入载荷 (Frontend -> Backend / Payload)**：
@@ -192,6 +214,33 @@ sequenceDiagram
 
 > **控制权发起方**：前端发起指令（微观单点源于 `FloatingActionMenu.onExtractSkill`，宏观源于项目视图一键触发）。
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE_UI as FE_UI (SkillButton)
+    participant FE_Entity as FE_Entity (SkillStore)
+    participant BE_API as BE_API (FastAPI)
+    participant BE_App as BE_App (TraceToSkillUseCase)
+    participant BE_Infra as BE_Infra (LLM Engine)
+
+    User->>FE_UI: 点击“提炼为技能”
+    FE_UI->>FE_Entity: 发起提炼指令
+    FE_Entity->>BE_API: 请求启动编译 (建立 SSE)
+    BE_API->>BE_App: 启动编译任务
+    loop 深度提炼分析
+        BE_App->>BE_Infra: 循环查询与结构化生成
+        BE_Infra-->>BE_App: 局部结果
+        BE_App-->>BE_API: 推送进度状态
+        BE_API-->>FE_Entity: Chunk Event
+        FE_Entity->>FE_UI: 更新进度条
+    end
+    BE_App->>BE_Infra: 锁定至物理沙箱 (skills/sandbox/)
+    BE_App-->>BE_API: 终止符
+    BE_API-->>FE_Entity: SSE Close
+    FE_Entity->>FE_UI: 提示成功并展示审批按钮
+```
+
 - **系统穿透路径**：
   前端 `Features/Skill` -> 前端 `Entities/Skill` (建立 SSE 监听) ---> 后端 `Driving Adapters` -> 后端 `Application/TraceToSkillUseCase` (驱动大模型) ---> 流式 SSE 返回 ---> 前端 `Entities/Skill` (逐帧存入 Zustand)。
 - **输入载荷 (Frontend -> Backend / Payload)**：
@@ -207,6 +256,31 @@ sequenceDiagram
 ### 6. 半自动重调度计算流 (顺延)
 
 > **控制权发起方**：前端拖拽或点击顺延触发。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE_UI as FE_UI (PlanTaskCard)
+    participant FE_Entity as FE_Entity (React Query)
+    participant BE_API as BE_API (FastAPI)
+    participant BE_App as BE_App (Project Domain)
+    participant BE_Infra as BE_Infra (SQLite)
+
+    User->>FE_UI: 拖拽卡片顺延时间
+    FE_UI->>FE_UI: 本地拦截与拓扑初筛 (防止直接死锁)
+    FE_UI->>FE_Entity: 发起重排期
+    FE_Entity->>BE_API: REST POST /tasks/reschedule
+    BE_API->>BE_App: 图算法计算依赖链
+    BE_App->>BE_Infra: 批量事务级落盘
+    BE_Infra-->>BE_App: 事务提交成功
+    BE_App-->>BE_API: 200 OK
+    BE_API-->>FE_Entity: 响应成功
+    FE_Entity->>FE_Entity: invalidateQueries() 缓存失效
+    FE_Entity->>BE_API: 自动发起后台无感知重刷
+    BE_API-->>FE_Entity: 返回最新树结构
+    FE_Entity->>FE_UI: 恢复 RUNNING 状态
+```
 
 - **系统穿透路径**：
   前端 `Features/Plan` (初筛，拦截环路) -> 前端 `Entities/Task` (发起 REST) ---> 后端 `Application Layer` -> 后端 `Domain/Project` (重调度图算法计算) -> 批量事务落盘。
@@ -232,6 +306,33 @@ sequenceDiagram
 ### 8. 归档与经验沉淀流 (Experience & Mutation Flow)
 
 > **控制权发起方**：前端用户点击归档并提交实战复盘。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE_UI as FE_UI (ExperienceModal)
+    participant FE_Entity as FE_Entity (ProjectStore)
+    participant BE_API as BE_API (FastAPI)
+    participant BE_EventBus as BE_EventBus (Daemon)
+    participant BE_Infra as BE_Infra (GraphDB & Sandbox)
+
+    User->>FE_UI: 提交实战避坑指南
+    FE_UI->>FE_Entity: 发起归档请求
+    FE_Entity->>BE_API: REST POST /projects/{id}/archive
+    BE_API->>BE_EventBus: 抛出 NoteUpdatedEvent
+    BE_API-->>FE_Entity: 返回 ARCHIVED 状态 (带变异标记)
+    FE_Entity->>FE_UI: 全局组件置灰进入强只读模式
+    
+    Note over BE_EventBus, BE_Infra: 后台异步处理 (PA-02)
+    BE_EventBus->>BE_Infra: 触发 Graph RAG 增量建图
+    alt 经验推翻旧理论
+        BE_Infra->>BE_Infra: 建立 Falsifies 证伪边
+    end
+    alt 指出旧 Skill 缺陷
+        BE_EventBus->>BE_Infra: 静默派生修订草稿至 Sandbox
+    end
+```
 
 - **输入载荷 (Frontend -> Backend / Payload)**：
   ```json
