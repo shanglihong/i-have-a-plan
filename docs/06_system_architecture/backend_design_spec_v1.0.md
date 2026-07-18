@@ -32,6 +32,12 @@
 | **3. 基础设施层 (Infrastructure Layer)** | **技术支撑底座 (被动适配器)**<br>提供具体技术实现：本地沙箱隔离机制、文件/SQLite 存储引擎、大模型适配。 | **受控调用**：仅作为被动支撑方，负责数据持久化、安全性拦截与外部通信。 |
 | **4. 接入层 (Driving Adapters)** | **通信入口 (主动适配器)**<br>依托 FastAPI 提供 RESTful API 与 SSE 流式通信推流。 | **边界转化**：负责接收前端触发，将外部数据转化为内部领域语言并驱动应用层。 |
 
+> [!NOTE]
+> **防腐接口 (Ports) 的代码放置规范 (契约编程)**
+> 遵循“务实派分层”理念，防腐接口的定义完全归属于“调用方（即六边形内部）”：
+> * **领域级接口 (Domain Ports)**：如 `RepositoryPort`（仓储接口）。定义在 **Domain 层**。允许 Domain Service 依赖这些接口执行必要的数据校验，由基础设施层负责实现和运行时注入。
+> * **应用级接口 (Application Ports)**：如 `LLMPort`（模型通信）、`SandboxPort`（沙箱隔离）。定义在 **App 层**。由业务用例 (Use Cases) 统筹调用，Domain 层对这些纯技术驱动的能力完全无感知。
+
 ---
 
 ## 三、 核心架构图解 (Architecture Diagrams)
