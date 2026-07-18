@@ -160,8 +160,8 @@ graph TD
     K_EN -->|"【知识代谢预警】<br>触发技能修正"| S_Skill
     K_Graph -.->|"【查询请求】<br>提供 RAG 事实依据"| S_Skill
     
-    %% 技能域 -> 项目域 (驱动执行)
-    S_Skill -->|"【编译注入事件】<br>实例化展开为任务"| P_TC
+    %% 项目域 -> 技能域 (运行时调用)
+    P_Task -.->|"【运行时调度】<br>代理调用技能执行"| S_Skill
 ```
 
 ### 3. 核心领域实体关系图 (Domain ERD)
@@ -186,8 +186,7 @@ erDiagram
     "[图谱域] GraphNode (图谱节点)" }o--|| "[图谱域] TagSuperNode (标签超节点)" : "聚类对齐至"
 
     %% 技能提炼领域
-    "[技能域] Skill (技能)" ||--o{ "[项目域] TaskChain (任务链)" : "实例化注入"
-    "[知识与笔记域] ExperienceNote (经验笔记)" }o--o| "[技能域] Skill (技能)" : "触发 Mutation 修订"
+    "[笔记域] ExperienceNote (经验笔记)" }o--o| "[技能域] Skill (技能)" : "触发 Mutation 修订"
 ```
 
 ---
