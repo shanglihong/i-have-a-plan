@@ -60,7 +60,7 @@
 
 ```mermaid
 graph TD
-    subgraph Driving Adapters ["主动适配器 (接入层)"]
+    subgraph DrivingAdapters ["主动适配器 (接入层)"]
         REST["REST API (FastAPI)"]
         SSE["SSE Streaming (FastAPI)"]
     end
@@ -84,7 +84,7 @@ graph TD
         UC3 -->|触发| HKE
     end
 
-    subgraph Driven Adapters ["被动适配器 (基础设施层)"]
+    subgraph DrivenAdapters ["被动适配器 (基础设施层)"]
         Sandbox["本地沙箱隔离引擎<br>(目录 Chroot, 工具白名单)"]
         DB["本地存储引擎<br>(SQLite + 本地物理文件)"]
         LLM["大模型适配器<br>(LangChain API)"]
@@ -96,7 +96,7 @@ graph TD
     SSE --> UC1
     
     %% 依赖反转 (运行时通过接口调用)
-    AppLayer -.->|"通过 Port 调用 (依赖反转)"| Driven Adapters
+    AppLayer -.->|"通过 Port 调用 (依赖反转)"| DrivenAdapters
     
     %% 底层依赖
     Sandbox -->|安全代理执行| DB
@@ -108,11 +108,11 @@ graph TD
 ```mermaid
 sequenceDiagram
     participant FE as 前端客户端
-    participant App as 应用层 (用例编排)
-    participant Domain as 领域层 (核心业务)
-    participant Sandbox as 基础设施:沙箱引擎
-    participant DB as 基础设施:本地存储
-    participant LLM as 基础设施:大模型
+    participant App as 应用层
+    participant Domain as 领域层
+    participant Sandbox as 沙箱引擎
+    participant DB as 本地存储
+    participant LLM as 大模型
     
     %% 场景：Trace-to-Skill 提炼与沙箱隔离
     rect rgb(245, 245, 245)
