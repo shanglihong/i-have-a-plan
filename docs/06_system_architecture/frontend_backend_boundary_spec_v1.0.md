@@ -60,6 +60,37 @@
 
 > **控制权发起方**：前端 `ReadingProjectForm` 或 `PlanProjectForm` 提交触发。
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE_UI as FE_UI (ProjectForm)
+    participant FE_Entity as FE_Entity (Zustand)
+    participant BE_API as BE_API (FastAPI)
+    participant BE_App as BE_App (Use Cases)
+    participant BE_Infra as BE_Infra (SQLite/Engine)
+
+    User->>FE_UI: 提交初始化表单
+    FE_UI->>FE_Entity: 触发创建动作
+    FE_Entity->>BE_API: POST 请求 (Multipart 或 JSON)
+    BE_API->>BE_App: 路由至初始化用例
+    BE_App->>BE_Infra: 实体落盘与后台处理
+    BE_Infra-->>BE_App: 就绪
+    
+    alt 阅读项目
+        BE_App-->>BE_API: 返回 Project ID
+        BE_API-->>FE_Entity: 建立 SSE 长连接
+        loop SSE 解析流推送
+            BE_API-->>FE_Entity: 实时解析进度 Chunk
+            FE_Entity->>FE_UI: 渲染 OutlineTree 波光骨架屏
+        end
+    else 计划项目
+        BE_App-->>BE_API: 返回生成的树状任务骨架
+        BE_API-->>FE_Entity: JSON 响应
+        FE_Entity->>FE_UI: 驱动主干任务渐进式渲染
+    end
+```
+
 - **阅读项目路径**：
   前端 `Features/Project` -> 提交 `multipart/form-data` (包含文件 Blob 与截止时间) ---> 后端 `Driving Adapters` -> 后端存储并触发后台切片解析 ---> 后端建立 SSE 长连接返回解析进度。
   - **状态扭转**：前端 `OutlineTree` 根据 SSE 进度流渲染波光骨架屏，解析完毕后平滑渲染真实目录树。
@@ -67,9 +98,29 @@
   前端 `Features/Project` -> 提交 JSON (包含 `deadline` 与 `skillId`) ---> 后端根据 Skill 编排生成任务树。
   - **响应载荷 (Backend -> Frontend)**：返回包含根任务及子依赖的主干骨架任务树数据，驱动前端渐进式渲染。
 
+
 ### 2. 语义技能检索流 (Semantic Skill Search Flow)
 
 > **控制权发起方**：前端 `PlanProjectForm` 输入框防抖触发。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE_UI as FE_UI (PlanProjectForm)
+    participant FE_Entity as FE_Entity (SkillStore)
+    participant BE_API as BE_API (FastAPI)
+    participant BE_Infra as BE_Infra (Vector Engine)
+
+    User->>FE_UI: 在输入框键入“写论文”
+    FE_UI->>FE_UI: 内部防抖 (例如 300ms)
+    FE_UI->>FE_Entity: 触发搜索
+    FE_Entity->>BE_API: REST GET /skills/search?query=写论文
+    BE_API->>BE_Infra: 调用密集向量查询
+    BE_Infra-->>BE_API: 召回 Top-K 结果
+    BE_API-->>FE_Entity: 返回 JSON 列表
+    FE_Entity->>FE_UI: 展现推荐 Active 技能卡片
+```
 
 - **系统穿透路径**：
   前端 `Features/SkillSearch` -> `Entities/Skill` (发起 REST GET) ---> 后端 `Driving Adapters` -> 后端调用向量引擎进行语义匹配。
@@ -79,6 +130,30 @@
 ### 3. 启发式伴读与对话流 (Heuristic Discuss Flow)
 
 > **控制权发起方**：前端 `FloatingActionMenu` 的 `onDiscuss` 或右侧 `DiscussPanel` 触发。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant FE_UI as FE_UI (Menu & Bubble)
+    participant FE_Entity as FE_Entity (DiscussStore)
+    participant BE_API as BE_API (FastAPI)
+    participant BE_App as BE_App (ChatUseCase)
+    participant BE_Infra as BE_Infra (LLM Engine)
+
+    User->>FE_UI: 点击菜单 onDiscuss 或发送消息
+    FE_UI->>FE_Entity: 提交流式请求 (携带上下文)
+    FE_Entity->>BE_API: 发起带上下文的 HTTP 请求
+    BE_API->>BE_App: 路由到 ChatUseCase
+    BE_App->>BE_Infra: 组装 Prompt 驱动大模型
+    BE_API-->>FE_Entity: 返回 EventSource 句柄
+    loop LLM Chunk 推送
+        BE_Infra-->>BE_App: 流式输出 Token
+        BE_App-->>BE_API: 转发为 SSE 格式
+        BE_API-->>FE_Entity: Chunk Event
+        FE_Entity->>FE_UI: 驱动 MessageBubble 打字机动效
+    end
+```
 
 - **系统穿透路径**：
   前端 `Entities/Discuss` (发起请求) ---> 后端 `Driving Adapters` -> 后端 `Application/ChatUseCase` ---> 流式 SSE 返回 ---> 前端 `MessageBubble`。
