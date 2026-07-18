@@ -11,6 +11,10 @@
 ### 1. 核心选型决策
 * **基础语言与应用框架**：**Python + FastAPI**
   * 完美支持异步并发与 SSE (Server-Sent Events) 流式输出，无缝接入 Python 原生 AI 生态。
+* **依赖注入与 DDD 落地 (Dependency Inversion)**：**务实派 FastAPI Depends 结合显式注入**
+  * 放弃重度注解注入框架。接入层 (Router) 直接利用 FastAPI `Depends` 拉取基础设施实现；核心领域层 (Domain) 保持绝对的 Pythonic（无任何框架依赖），通过显式参数传递完成解耦。测试时依托 `app.dependency_overrides` 替换 Mock。
+* **软件分发与网关策略**：**极简原生浏览器流 (PyInstaller + Webbrowser)**
+  * 作为单机本地化软件运行，废弃 Nginx 等独立网关。后端采用 PyInstaller 打包为可执行程序，由 FastAPI 内部直挂前端 Web 产物 (`dist`)。用户双击启动后，自动拉起系统默认浏览器展示界面，Uvicorn 统揽全局。
 * **AI 调度引擎**：**LangChain + LangGraph**
   * 用于编排复杂的伴读、提炼编译逻辑及 RAG 工作流；依托 LangGraph 支撑“人机协同沙箱 (Human-in-the-loop)”的状态流转。
 * **数据存储与持久化**：**项目制本地物理文件夹 + SQLite**
@@ -50,6 +54,7 @@ graph TD
     subgraph DrivingAdapters ["主动适配器 (接入层)"]
         REST["REST API (FastAPI)"]
         SSE["SSE Streaming (FastAPI)"]
+        UI["Web UI 挂载 (StaticFiles)"]
     end
 
     subgraph Hexagon ["系统边界 (六边形内部)"]
