@@ -42,6 +42,8 @@
 | `deadline` | DateTime | 属性 | 截止时间硬约束 | - | **后端**：定时任务判定阻塞；**前端**：红色警报渲染 |
 | `assigned_agent_id` | String | 引用 | 绑定的独立进程沙箱 Agent ID | - | **后端**：通信管道路由（PA-05隔离）；**前端**：无需感知 |
 | `created_at` / `updated_at` | DateTime | 审计 | 创建与更新时间 | - | **共同**：列表排序与展示 |
+| `tasks` | Array<Task> | 领域集合 | 项目下属的所有任务树 | 强持有 `Task` | **上下文专用**：持久化 DO 无此字段，仅内存聚合，用于领域层调度 |
+| `notes` | Array<UnifiedReadingNote> | 领域集合 | 项目下挂载的笔记集合 | 强持有 `UnifiedReadingNote`| **上下文专用**：仅内存聚合，用于计算进度或批量打包提炼 |
 | `_ui_progress` | Number | 衍生属性 | 总体完成/阅读进度百分比 | - | **前端专用**：基于公式实时计算与渲染（双维度加权/任务统计），不落库持久化 |
 | `_ui_is_reloading` | Boolean | UI状态 | 是否正在触发一键重载唤醒 | - | **前端专用**：控制水波纹动画，不落库 |
 
@@ -54,8 +56,10 @@
 | `project_id` | String | 外键/关联 | 归属的聚合根项目 | 关联 `Project` | **共同**：范围查询 |
 | `title` | String | 属性 | 任务或章节标题 | - | **共同** |
 | `status` | Enum | 属性 | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | - | **后端**：解锁级联逻辑；**前端**：卡片颜色、置灰与红光警示动效 |
-| `parent_task_id` | String | 关联 | 父级任务ID (用于大纲/任务树层级) | 关联自身 `Task` | **前端**：渲染级联折叠树；**后端**：树形结构化输出 |
-| `depends_on_task_ids` | Array<String>| 关联 | 前置依赖任务 (DAG拓扑图依赖) | 关联自身 `Task` | **后端**：拓扑解锁校验；**前端**：甘特图橡皮筋连线渲染 |
+| `parent_task_id` | String | 关联 | 父级任务ID (用于大纲/任务树层级) | 外键关联 `Task` | **前端**：渲染级联折叠树；**后端**：表结构外键 |
+| `depends_on_task_ids` | Array<String>| 关联 | 前置依赖任务 ID 列表 | 关联关系表 | **后端**：表关联存储；**前端**：甘特图橡皮筋连线渲染 |
+| `sub_tasks` | Array<Task> | 领域集合 | 子任务列表 | 强持有 `Task` | **上下文专用**：由 `parent_task_id` 在内存组装成的树形集合 |
+| `depends_on_tasks` | Array<Task> | 领域引用 | 前置依赖任务对象实例 | 弱引用 `Task` | **上下文专用**：内存装载，用于图论拓扑死锁检测及级联解锁 |
 | `deadline` | DateTime | 属性 | 当前子任务截止时间 | - | **共同**：逾期逻辑校验 |
 | `_ui_is_highlighted` | Boolean | UI状态 | 追踪溯源(Trace)时的脉冲高亮状态 | - | **前端专用**：触发3次脉冲闪烁动效，不落库 |
 
