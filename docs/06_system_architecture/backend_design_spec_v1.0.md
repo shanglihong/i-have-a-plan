@@ -22,36 +22,15 @@
 
 ## 二、 核心架构解构 (基于六边形架构)
 
-遵循端口与适配器模式，系统自内向外严格分为四个层级，彻底将“业务大脑”与“技术肌肉（沙箱、存储等）”剥离。
+> [!IMPORTANT]
+> 遵循端口与适配器模式，系统自内向外严格分为四个层级，核心目标是**彻底将“业务大脑”与“技术底座（沙箱、存储等）”剥离**。
 
-### 1. 领域层 (Domain Layer) - 纯业务逻辑
-系统的心脏，绝对屏蔽任何外部技术实现细节（无框架依赖、无大模型依赖、无文件 I/O）。本层细分为“实体 (Entity)”与“领域服务 (Domain Service)”：
-* **实体 (Entities)**：定义 `Unified Reading Note`、`Experience Note` 与 `Skill` 等核心数据结构。
-* **无状态领域服务 (Domain Services)**：
-  * **拓扑与调度服务**：封装有向无环图 (DAG) 拓扑排序算法以处理沙箱死锁阻断，以及计算逾期顺延。
-  * **跨域同步服务 (事件驱动)**：定义诸如 `NoteUpdatedEvent` 的领域事件，实现独立笔记域 (Note Domain) 与图谱域 (Graph Domain) 的完全异步解耦。
-
-### 2. 应用层 (Application Layer) - 用例与智能编排
-充当系统外观，协调领域对象与基础设施，对外暴露业务用例 (Use Cases)。**本层的一个核心职责是作为“智能编排器”，所有的 LangChain/LangGraph 工作流均收敛于此，以此保证核心领域层对大模型框架零依赖**。
-* **伴读与沉淀笔记流编排 (LangGraph)**：定义智能体状态机，协调划词输入、注入上下文、调用底层 LLM 生成解答，并落盘为阅读笔记实体。
-* **项目初始化与任务拆解流**：当新项目启动时，编排调用指定的 `Skill`（工具脚本/提示词），通过 LLM 将其展开为具体的、带依赖关系的 `TaskChain` 并入库。
-* **Trace-to-Skill 编译流编排**：编排“拉取数据 -> 投喂 LLM 提取大纲 -> 调用领域层执行 DAG 逻辑校验 -> 经由沙箱端口写入文件”的端到端防呆流程。
-* **依赖反转与流程组装**：通过定义 Port 接口 (如 `SandboxPort`, `NoteRepository`)，利用依赖注入 (DI) 在运行时组装基础组件，协调增量建图等任务。
-
-### 3. 基础设施层 (Infrastructure Layer) - 技术支撑与被动适配器
-> **核心设计重构**：将系统安全性（沙箱隔离）与物理 I/O 作为独立的技术组件抽离，应用层仅通过接口（Port）调用。
-
-* **本地沙箱隔离引擎 (Local Sandbox Engine)**：
-  * **职责**：作为纯技术底座，提供受限的代码执行环境与文件 I/O 安全拦截。
-  * **实现机制 (PA-05 落地方案)**：实现目录越权拦截 (Chroot 机制) 确保文件操作不跃出 `projectId` 根目录。提供受严格控制的 LangChain Tool 白名单注册器，阻断一切非授权 Shell 执行。应用层的任何编译落地与 Agent 交互都必须包裹在此引擎内运行。
-* **本地存储引擎 (Local Storage Engine)**：
-  * **File-first 策略 (真理之源)**：笔记内容完全作为标准 Markdown 文件真实物理落盘，保证其 100% 的外部系统可移植性。
-  * **SQLite 缓存与图谱**：SQLite 仅作为笔记元数据的快速检索“缓存库”，同时持久化向量扩展 (sqlite-vec) 支撑的图谱网络。
-* **大模型适配器 (LLM Adapter)**：
-  * 封装对外部 LLM (如 OpenAI、Ollama) 的 API 调用，进行网络请求与 Token 限流管理。
-
-### 4. 接入层 (Driving Adapters) - 主动适配器
-* **FastAPI Router**：暴露 RESTful API 响应前端拖拽与提交，暴露 SSE (Server-Sent Events) 服务提供流式对话推流。
+| 架构分层 (自内向外) | 核心定位与职责 | 设计约束与特点 |
+| :--- | :--- | :--- |
+| **1. 领域层 (Domain Layer)** | **纯业务逻辑大脑**<br>定义核心实体（如笔记、技能、任务链）与领域服务（如拓扑排序、跨域事件）。 | **最严格约束**：绝对屏蔽框架、LLM 和物理 I/O，保持最内层业务纯粹性。 |
+| **2. 应用层 (Application Layer)** | **业务外观与智能中枢**<br>作为工作流编排器，收敛所有的 LangGraph Agent 交互与业务用例协调。 | **依赖反转**：通过接口 (Port) 调用基础设施，不对底层组件进行硬编码。 |
+| **3. 基础设施层 (Infrastructure Layer)** | **技术支撑底座 (被动适配器)**<br>提供具体技术实现：本地沙箱隔离机制、文件/SQLite 存储引擎、大模型适配。 | **受控调用**：仅作为被动支撑方，负责数据持久化、安全性拦截与外部通信。 |
+| **4. 接入层 (Driving Adapters)** | **通信入口 (主动适配器)**<br>依托 FastAPI 提供 RESTful API 与 SSE 流式通信推流。 | **边界转化**：负责接收前端触发，将外部数据转化为内部领域语言并驱动应用层。 |
 
 ---
 
@@ -76,38 +55,59 @@ graph TD
         end
 
         subgraph DomainLayer ["领域层 (Domain Layer)"]
-            PTO["项目与任务领域<br>(状态机, 重调度算法)"]
             NTD["独立笔记领域<br>(物理锚点, File-first)"]
-            GPH["知识图谱领域<br>(异步 RAG, 知识代谢)"]
             SCS["技能提炼领域<br>(DAG 死锁校验算法)"]
+            PTO["项目与任务领域<br>(状态机, 重调度算法)"]
+            GPH["知识图谱领域<br>(异步 RAG, 知识代谢)"]
+            
+            EventBus(("领域事件总线<br>(Domain Event Bus)"))
         end
         
-        UC1 -->|沉淀| NTD
-        UC2 -->|依赖校验| SCS
-        UC3 -->|流转状态| PTO
-        UC3 -->|异步提取| GPH
-        UC4 -->|按 Skill 拆解| PTO
+        %% 应用层调用领域层
+        UC1 -->|"沉淀"| NTD
+        UC2 -->|"依赖校验"| SCS
+        UC3 -->|"流转状态"| PTO
+        UC4 -->|"按 Skill 拆解"| PTO
+        
+        %% 领域事件流转
+        NTD -.->|"发布 NoteUpdatedEvent"| EventBus
+        PTO -.->|"发布 ProjectArchivedEvent"| EventBus
+        EventBus -.->|"异步触发图谱增量"| GPH
+        EventBus -.->|"触发经验/技能沉淀"| SCS
     end
 
     subgraph DrivenAdapters ["被动适配器 (基础设施层)"]
-        Sandbox["本地沙箱隔离引擎<br>(目录 Chroot, 工具白名单)"]
-        DB["本地存储引擎<br>(SQLite + 本地物理文件)"]
-        LLM["大模型适配器<br>(LangChain API)"]
+        subgraph AIAdapter ["大模型适配器 (LLM)"]
+            LLM["大模型通信接口<br>(LangChain API)"]
+        end
+        subgraph SandboxAdapter ["安全隔离适配器 (Sandbox)"]
+            Sandbox["本地沙箱引擎<br>(目录 Chroot, 工具白名单)"]
+        end
+        subgraph StorageAdapter ["存储适配器 (Storage)"]
+            FileStorage["本地物理文件存储<br>(Markdown File-first)"]
+        end
+        subgraph CacheAdapter ["持久化与缓存适配器 (Cache/DB)"]
+            SQLiteDB["SQLite 数据库<br>(元数据检索与向量图谱)"]
+        end
     end
 
-    %% 驱动流
+    %% 驱动流 (主动适配器 -> 应用层)
     REST --> UC2
     REST --> UC3
+    REST --> UC4
     SSE --> UC1
     
-    %% 依赖反转 (运行时通过接口调用)
-    AppLayer -.->|"通过 Port 调用 (依赖反转)"| DrivenAdapters
+    %% 核心执行层交互 (应用层 -> 被动适配器，依赖反转)
+    UC1 -.->|"组装 Prompt & 请求推流"| LLM
+    UC2 -.->|"投喂 Chunk 结构化提取"| LLM
+    UC3 -.->|"调用模型离线建图"| LLM
     
-    %% 核心执行层交互 (大模型与沙箱调用)
-    UC1 -->|组装 Prompt & 请求流式生成| LLM
-    UC2 -->|投喂 Chunk 请求结构化提取| LLM
-    UC3 -->|调用离线/云端模型建图| LLM
-    Sandbox -->|受限代理执行| DB
+    UC2 -.->|"沙箱受限写文件"| Sandbox
+    UC3 -.->|"沙箱执行归档脚本"| Sandbox
+    
+    %% 沙箱底层 I/O
+    Sandbox -.->|"受限文件 I/O"| FileStorage
+    Sandbox -.->|"受限数据库查询"| SQLiteDB
 ```
 
 ### 2. 限界上下文与实体边界交互图 (Bounded Context Map)
