@@ -8,7 +8,7 @@
 本步骤需要输出两份独立的规范文档：
 
 ### 1. 前端原型设计需求与交互规范
-* **产出路径**：`docs/06_system_architecture/frontend_design_spec_v*.md`
+* **产出路径**：`docs/06_system_architecture/frontend_ux_design_spec_v*.md`
 * **核心内容**：
   * **核心页面布局与线框结构**：根据前期确定的业务场景，定义系统全局与各核心工作区的页面结构分布（如导航、侧边栏、主视区等）。
   * **核心 UI 组件规格与交互**：提取高频复用的 UI 组件，定义其视觉要求与交互动效。
