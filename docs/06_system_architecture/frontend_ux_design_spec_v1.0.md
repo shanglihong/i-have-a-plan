@@ -153,7 +153,73 @@ graph TD
 | **Emits** (输出) | `onStatusChange` | `Event` | 用户标记任务完成，触发后台状态更新与后续依赖项自动解锁。 |
 | | `onReschedule` | `Event` | 呼出悬浮面板，提供基于拓扑排序的“一键顺延”或“甘特图手动微调”。 |
 
+### 8. 阅读项目初始化表单 (ReadingProjectForm)
+
+> 功能描述：阅读项目专属的初始化入口，强制关联文档上传与沙箱伴读 Agent 的绑定。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `isLoading` | `Boolean` | 是否处于文档上传与初步解析阶段。 |
+| **Emits** (输出) | `onSubmit` | `Event` | 提交包含文档文件与阅读截止时间的表单，触发系统静默绑定沙箱伴读 Agent。 |
+| | `onUploadError` | `Event` | 文件格式不支持或超大时抛出异常，驱动 UI 红色边框告警。 |
+
+### 9. 计划项目初始化表单 (PlanProjectForm)
+
+> 功能描述：计划项目专属的初始化入口，通过智能检索一键注入技能模板并生成任务树。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `recommendedSkills`| `Array` | 根据项目名称自动语义匹配的候选 Active 技能卡片列表。 |
+| | `isInjecting` | `Boolean` | 骨架屏任务树渐进式分层渲染的过渡状态。 |
+| **Emits** (输出) | `onSkillSearch` | `Event` | 用户手动输入技能关键词时触发的语义防抖检索。 |
+| | `onSubmit` | `Event` | 提交包含截止时间与关联 Skill ID 的请求，启动计划执行流程。 |
+
+### 10. 文本阅读器核心组件 (DocumentReader)
+
+> 功能描述：渲染 PDF/Markdown 内容的核心视口，专注于高亮展现与物理锚点的无缝定位（不负责耗时的文件解析）。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `chunks` | `Array` | 后端预处理完毕的结构化文本切片数组。 |
+| | `anchorMap` | `Map` | 物理锚点映射表（页码、特征字符与 DOM 节点的绑定）。 |
+| **Emits** (输出) | `onTextSelect` | `Event` | 用户鼠标划选文本结束时触发，抛出坐标系以驱动外层悬浮菜单渲染。 |
+| | `onTraceToSource`| `Event` | 监听外部溯源指令，内部执行平滑滚动 (Smooth Scroll) 并触发 3 次脉冲闪烁 (Pulse Highlight)。 |
+
+### 11. 级联大纲树 (OutlineTree)
+
+> 功能描述：渲染文档章节骨架的树状导航器，通过内部状态接管实现解析期间与就绪期间的无缝过渡。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `status` | `Enum` | `PARSING` (骨架屏波光动效) ｜ `READY` (真实树状数据渲染)。 |
+| | `treeData` | `Array` | 具备父子层级关系的目录结构数据。 |
+| | `currentChapterId` | `String` | 当前阅读器所处的活动章节，驱动侧边栏对应节点高亮选中。 |
+| **Emits** (输出) | `onChapterClick` | `Event` | 点击某章节，触发大纲树内联展开及通知阅读器主干组件滚动跳转。 |
+
+### 12. 伴读消息气泡 (MessageBubble)
+
+> 功能描述：细粒度的对话气泡组件，承载 AI 提问与上下文渲染，内聚“保存笔记”动效。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `messageData` | `Object` | 包含富文本、预提炼思考题或常规聊天的结构化对象。 |
+| | `isAi` | `Boolean` | 判断消息发送方，决定气泡排版左/右对齐与颜色。 |
+| **Emits** (输出) | `onSaveAsNote` | `Event` | 点击“存为笔记”，抛出自身 DOM 坐标及数据上下文，驱动父级引发抛物线粒子特效。 |
+
+### 13. 划词悬浮操作菜单 (FloatingActionMenu)
+
+> 功能描述：响应阅读器文本划选动作的极简悬浮层，用于捕捉瞬时灵感或触发单点技能编译。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `selectionPosition`| `Object` | {x, y} 坐标系，用于在划选内容正上方挂载浮动菜单。 |
+| | `selectedText` | `String` | 被划选的高亮本文内容。 |
+| **Emits** (输出) | `onHighlightAndNote`| `Event` | 选择“高亮并记笔记”，通知中栏面板滑出并携带引用文本新建卡片。 |
+| | `onDiscuss` | `Event` | 选择“Discuss”，展开右侧对话栏并将引用注入对话框。 |
+| | `onExtractSkill` | `Event` | 选择“提炼为技能”，触发后台 L1 微观单点 Trace-to-Skill 编译流。 |
+
 ---
+
 
 ## 三、 状态响应与视觉映射机制 (State & Visual Mapping)
 
