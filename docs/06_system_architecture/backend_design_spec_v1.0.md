@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > 本文档基于 [《前后端功能边界与通信协议规范》](./frontend_backend_boundary_spec_v1.0.md) 以及 [《系统业务建模》](../03_business_modeling/business_model.md) 编写。
-> **架构核心基调**：摒弃传统中心化 SaaS Web 服务架构，系统以**本地化独立软件包 (Local-First Software Package)** 的形态运行。后端服务作为本地引擎嵌入，在保障极简分发与数据隐私的前提下，承载复杂的 AI 工作流与核心业务模型。
+> **架构核心基调**：摒弃传统中心化 SaaS Web 服务架构，系统以**本地化独立软件包 (Local-First Software Package)** 的形态运行。根据最新技术裁决，后端遵循**六边形架构 (Hexagonal Architecture)** 与**领域驱动设计 (DDD)** 规范，将纯业务逻辑与底层技术支撑（如隔离沙箱、存储机制）严格物理解耦。
 
 ## 一、 系统架构定位与技术栈选型
 
@@ -10,171 +10,140 @@
 
 ### 1. 核心选型决策
 * **基础语言与应用框架**：**Python + FastAPI**
-  * 完美支持异步并发与 SSE (Server-Sent Events) 流式输出，并无缝接入 Python 丰富的原生 AI 生态。
+  * 完美支持异步并发与 SSE (Server-Sent Events) 流式输出，无缝接入 Python 原生 AI 生态。
 * **AI 调度引擎**：**LangChain + LangGraph**
   * 用于编排复杂的伴读、提炼编译逻辑及 RAG 工作流；依托 LangGraph 支撑“人机协同沙箱 (Human-in-the-loop)”的状态流转。
 * **数据存储与持久化**：**项目制本地物理文件夹 + SQLite**
-  * 所有业务实体（笔记、图谱节点、配置）存放在独立的物理 `.sqlite` 数据库文件中，放置于用户指定的 Project 文件夹下，数据迁移仅需操作系统层面的文件夹拷贝。
-* **任务调度**：**Python 内置异步队列 (`asyncio`)**
+  * 抛弃中心化数据库，所有业务实体（笔记、图谱节点、配置）存放在独立的物理 `.sqlite` 文件中，落于对应的 Project 文件夹下，实现极简数据迁移。
+* **异步守护队列**：**Python 内置异步队列 (`asyncio`)**
   * 无须部署 RabbitMQ 等外部中间件，直接在后台守护进程中处理闲时构建任务。
 
 ---
 
-## 二、 核心业务逻辑架构分解 (Business Logical Architecture)
+## 二、 核心架构解构 (基于六边形架构)
 
-结合业务建模，后端按照**领域驱动设计 (DDD)** 的思想划分为以下四大核心业务模块，各模块内部封闭其状态流转逻辑。
+遵循端口与适配器模式，系统自内向外严格分为四个层级，彻底将“业务大脑”与“技术肌肉（沙箱、存储等）”剥离。
 
-### 1. 项目与任务生命周期管理模块 (Project & Task Orchestration)
-> **业务职责**：管理“阅读项目”与“计划项目”的容器生命周期，维护任务状态机。
+### 1. 领域层 (Domain Layer) - 纯业务逻辑
+系统的心脏，绝对屏蔽任何外部技术实现细节（无框架依赖、无文件 I/O）。
+* **项目与任务领域 (Project & Task Domain)**：封装项目状态流转规则、Task Chain 的逾期计算与拓扑重调度算法。
+* **混合知识领域 (Hybrid Knowledge Domain)**：定义 `Unified Reading Note` 与 `Experience Note` 的结构。封装标签对齐、知识新陈代谢（Falsifies 被证伪关系衍生）的业务策略规则。
+* **技能提炼领域 (Skill Domain)**：定义 Skill 模板结构。封装有向无环图 (DAG) 拓扑排序算法，专门处理卡片依赖的死锁阻断（PA-03）纯逻辑校验。
 
-* **容器隔离与挂载**：根据前端传入的 `projectId`，动态挂载本地对应的项目文件夹。所有后续的 CRUD 读写操作均限定在此文件夹上下文中。
-* **任务依赖链状态机**：维护 `PENDING -> RUNNING -> COMPLETED` 的单向流转。特别提供**半自动重调度算法引擎**：当逾期或顺延指令触发时，递归计算任务依赖链（Task Chain），更新受影响的后继任务 Deadline，并以事务方式批量落盘。
-* **超时休眠守护 (PA-04)**：后台监控会话心跳。若检测到 24 小时无交互，主动释放 LLM 会话资源与上下文内存，将未完成的 Task Chain 断点状态序列化至 SQLite 中。再次唤醒时执行反序列化重载。
+### 2. 应用层 (Application Layer) - 用例与流程编排
+充当系统外观，协调领域对象与基础设施，对外暴露业务用例 (Use Cases)。
+* **伴读与问答流编排**：协调输入流、注入上下文并调用大模型生成回复。
+* **Trace-to-Skill 编译流编排**：编排“拉取源数据 -> LLM 提炼 -> 领域层 DAG 校验 -> 沙箱写入”的端到端流程。
+* **项目归档与图谱建图流编排**：挂载异步队列，协调增量建图的离线运算流程。
 
-### 2. 混合知识引擎模块 (Hybrid Knowledge Engine)
-> **业务职责**：收口管理“输入态”的阅读笔记与“输出态”的经验笔记，构建双擎知识网络。
+### 3. 基础设施层 (Infrastructure Layer) - 技术支撑与被动适配器
+> **核心设计重构**：将系统安全性（沙箱隔离）与物理 I/O 作为独立的技术组件抽离，应用层仅通过接口（Port）调用。
 
-* **融合笔记底座**：提供统一的底层数据结构，将来自用户划词的“主观高亮”与伴读 Agent 的“客观问答”统一为 `Unified Reading Note`。写入时强制绑定物理原文锚点（`source_anchor`），以支持前端的 Quick Peek 追溯。
-* **Dense RAG 即时检索**：处理高频即时问答。基于文档切片构建向量数据（如使用 sqlite-vec 轻量扩展），支撑伴读 Agent 的即时上下文检索。
-* **Graph RAG 闲时后台构建 (PA-02)**：
-  * **增量抽取**：监听笔记与复盘数据的落盘事件，推入本地低频任务队列。利用闲置 CPU 周期，调用大模型提取实体关系，写入 SQLite 模拟的图谱表中。
-  * **标签对齐与知识代谢**：定时任务扫描离散标签并对齐为超节点（Super Node）；若捕获到冲突的经验笔记，则向早期理论笔记插入“被证伪 (Falsifies)”关系边，自动降权。
+* **本地沙箱隔离引擎 (Local Sandbox Engine)**：
+  * **职责**：作为纯技术底座，提供受限的代码执行环境与文件 I/O 安全拦截。
+  * **实现机制 (PA-05 落地方案)**：实现目录越权拦截 (Chroot 机制) 确保文件操作不跃出 `projectId` 根目录。提供受严格控制的 LangChain Tool 白名单注册器，阻断一切非授权 Shell 执行。应用层的任何编译落地与 Agent 交互都必须包裹在此引擎内运行。
+* **本地存储引擎 (Local Storage Engine)**：
+  * 封装 SQLite 关系操作及向量扩展 (sqlite-vec)，对接知识检索请求。
+  * 封装底层的文件系统句柄，管理 Markdown 笔记及图片的落盘。
+* **大模型适配器 (LLM Adapter)**：
+  * 封装对外部 LLM (如 OpenAI、Ollama) 的 API 调用，进行网络请求与 Token 限流管理。
 
-### 3. Trace-to-Skill 提炼编译与沙箱模块 (Skill Compiler & Sandbox)
-> **业务职责**：负责方法论的结构化提炼，以及保障知行转换的逻辑合法性。
-
-* **三级漏斗提炼管道**：基于 LangChain 封装提取链路，接收宏观文本片段后，分步骤提取出 `SKILL.md` (含 YAML 元数据与任务步骤)。
-* **依赖死锁阻断 (PA-03)**：接收沙箱编辑器的卡片连线数据，在后端利用有向无环图 (DAG) 算法执行**拓扑排序校验**。若发现环路（Cycle），立即抛出阻断异常，拒绝落盘至激活库。
-* **经验驱动进化 (Skill Mutation)**：当【混合知识引擎】收到归档项目时提交的 `Experience Note`，且该经验指出了既有 Skill 的缺陷时，本模块自动在 `skills/sandbox/` 物理目录派生修订分支（Draft Branch），待用户审批迭代。
-
-### 4. AI 伴读调度与特权沙箱模块 (AI Companion & Privilege Sandbox)
-> **业务职责**：管控 LLM 交互行为，严守本地安全性红线。
-
-* **SSE 流式分发中心**：通过 FastAPI `StreamingResponse` 与 LangChain `CallbackHandler`，将大模型的实时 Token 流转封装为标准 Server-Sent Events，驱动前端打字机渲染。
-* **强制降权沙箱隔离 (PA-05)**：
-  * **应用层工具白名单**：初始化 Agent 时，仅注入极少数安全的 Tool（如“阅读当前章节”、“查询特定节点”），**绝对禁用**如 `os.system` 或任意外部网络请求工具。
-  * **目录越权拦截 (Chroot)**：拦截所有文件读写动作，在 Python 层进行路径规范化 (Path Normalization)。凡是超出当前挂载 `projectId` 文件夹树路径的操作，直接抛出非法越权错误。
+### 4. 接入层 (Driving Adapters) - 主动适配器
+* **FastAPI Router**：暴露 RESTful API 响应前端拖拽与提交，暴露 SSE (Server-Sent Events) 服务提供流式对话推流。
 
 ---
 
 ## 三、 核心架构图解 (Architecture Diagrams)
 
-为了更直观地呈现后端系统的结构边界与协作机制，以下提供“静态架构全局图”与“核心动态交互流转图”。
-
-### 1. 系统全局架构图 (Static Architecture)
-展示了前端、FastAPI 接入层、核心四大业务模块，以及与本地文件系统、大模型的层级调用关系。
+### 1. 六边形系统全局架构图 (Hexagonal Architecture)
+展示内外层的解耦关系，突出业务逻辑（核心域）与技术基础设施（沙箱、存储）的物理抽离。
 
 ```mermaid
 graph TD
-    %% 前端层
-    subgraph Frontend ["前端客户端 (Client)"]
-        UI["Vue/React UI 组件"]
-        Store["状态管理 & 本地防抖计算"]
+    subgraph Driving Adapters ["主动适配器 (接入层)"]
+        REST["REST API (FastAPI)"]
+        SSE["SSE Streaming (FastAPI)"]
     end
 
-    %% 后端 API 层
-    subgraph APILayer ["接入层 (FastAPI)"]
-        REST["RESTful API Router"]
-        SSE["SSE Streaming Router"]
+    subgraph Hexagon ["系统边界 (六边形内部)"]
+        subgraph AppLayer ["应用层 (Application Layer)"]
+            UC1["伴读与问答流编排"]
+            UC2["Trace-to-Skill 编译流"]
+            UC3["归档与图谱增量流"]
+        end
+
+        subgraph DomainLayer ["领域层 (Domain Layer)"]
+            PTO["项目与任务领域<br>(状态机, 重调度算法)"]
+            HKE["混合知识领域<br>(知识代谢, 标签对齐)"]
+            SCS["技能提炼领域<br>(DAG 死锁校验算法)"]
+        end
+        
+        UC1 -->|协调| HKE
+        UC2 -->|依赖校验| SCS
+        UC3 -->|流转状态| PTO
+        UC3 -->|触发| HKE
     end
 
-    %% 核心业务模块层
-    subgraph CoreModules ["核心业务模块 (DDD Core)"]
-        PTO["项目与任务生命周期管理<br>Project & Task Orchestration"]
-        HKE["混合知识引擎<br>Hybrid Knowledge Engine"]
-        SCS["提炼编译与沙箱<br>Skill Compiler & Sandbox"]
-        ACS["AI 伴读与特权沙箱<br>AI Companion & Privilege Sandbox"]
+    subgraph Driven Adapters ["被动适配器 (基础设施层)"]
+        Sandbox["本地沙箱隔离引擎<br>(目录 Chroot, 工具白名单)"]
+        DB["本地存储引擎<br>(SQLite + 本地物理文件)"]
+        LLM["大模型适配器<br>(LangChain API)"]
     end
 
-    %% 基础设施与外部调用
-    subgraph Infra ["本地基础设施 & LLM"]
-        SQLite[("项目专属 SQLite<br>关系数据 + 向量")]
-        FileSystem[("本地物理文件夹<br>Markdown/Assets")]
-        LocalQueue[["asyncio 本地异步队列"]]
-        LLM(("大模型 API<br>LangChain 驱动"))
-    end
-
-    %% 连线关系
-    UI -->|HTTP POST/GET| REST
-    UI -->|SSE Connection| SSE
-    REST --> PTO
-    REST --> HKE
-    REST --> SCS
-    SSE <-->|长连接推流| ACS
-    SSE <-->|编译进度推流| SCS
-
-    PTO -->|状态 CRUD| SQLite
-    HKE -->|笔记与图谱 CRUD| SQLite
-    HKE -->|发布任务| LocalQueue
-    SCS -->|读写草稿| FileSystem
-    ACS -->|严格受限读取| FileSystem
+    %% 驱动流
+    REST --> UC2
+    REST --> UC3
+    SSE --> UC1
     
-    HKE -->|知识提取| LLM
-    SCS -->|逻辑编译| LLM
-    ACS -->|对话推理| LLM
+    %% 依赖反转 (运行时通过接口调用)
+    AppLayer -.->|"通过 Port 调用 (依赖反转)"| Driven Adapters
     
-    LocalQueue -.->|后台闲时消费| HKE
+    %% 底层依赖
+    Sandbox -->|安全代理执行| DB
 ```
 
-### 2. 模块动态交互流转图 (Dynamic Interaction Flow)
-展示在系统最核心的“学习->提炼->实战复盘”生命周期中，四大业务模块是如何协同工作的。
+### 2. 六边形解耦下的核心交互流转图 (Sequence Diagram)
+以技能提炼场景为例，演示基础设施层（沙箱）、应用层（流程编排）与领域层（核心业务算法）是如何分工协作的。
 
 ```mermaid
 sequenceDiagram
     participant FE as 前端客户端
-    participant PTO as 项目管理模块
-    participant ACS as AI伴读模块
-    participant HKE as 知识引擎模块
-    participant SCS as 编译沙箱模块
-    participant SQLite as 本地数据库
-    participant FileSystem as 本地文件系统
-    participant LocalQueue as 异步任务队列
+    participant App as 应用层 (用例编排)
+    participant Domain as 领域层 (核心业务)
+    participant Sandbox as 基础设施:沙箱引擎
+    participant DB as 基础设施:本地存储
+    participant LLM as 基础设施:大模型
     
-    %% 场景1：伴读与笔记
-    rect rgb(240, 248, 255)
-        Note right of FE: 场景一：沉浸阅读与笔记沉淀
-        FE->>ACS: 划词提问 (SSE流)
-        ACS-->>FE: 流式返回解答
-        FE->>HKE: 提取高亮与解答，请求一键落盘
-        HKE->>SQLite: 存储 Unified Reading Note (含源锚点)
-    end
-    
-    %% 场景2：技能提炼
+    %% 场景：Trace-to-Skill 提炼与沙箱隔离
     rect rgb(245, 245, 245)
-        Note right of FE: 场景二：Trace-to-Skill 提炼编译
-        FE->>SCS: 发起当前书籍方法论提炼
-        SCS->>HKE: 拉取书籍相关笔记与重点 Chunk
-        HKE-->>SCS: 返回脱敏结构化数据
-        SCS->>SCS: LangChain 管道提炼生成任务步骤
-        SCS->>SCS: 执行 DAG 拓扑排序死锁校验
-        SCS->>FileSystem: 写入物理隔离区 skills/sandbox/
-        SCS-->>FE: 推送编译完成通知
-    end
-
-    %% 场景3：项目归档与经验反哺
-    rect rgb(255, 250, 240)
-        Note right of FE: 场景三：计划项目归档与经验闭环
-        FE->>PTO: 提交归档请求与复盘 (Experience Note)
-        PTO->>HKE: 录入经验笔记实体
-        HKE->>LocalQueue: 挂载异步闲时 Graph RAG 增量建图任务
-        opt 知识代谢检测
-            HKE->>SCS: 检测到旧认知缺陷，触发 Skill Mutation 预警
-            SCS->>FileSystem: 自动生成修订版 Skill 草稿等待审批
-        end
-        PTO-->>FE: 归档成功
+        Note right of FE: 场景：Trace-to-Skill 提炼及沙箱防穿透写入
+        FE->>App: 发起方法论提炼请求
+        App->>DB: 拉取指定项目的阅读笔记 (脱敏)
+        DB-->>App: 返回数据
+        App->>LLM: 投喂数据，请求提炼步骤大纲
+        LLM-->>App: 返回初步提炼的步骤与依赖序列
+        
+        %% 领域层纯逻辑校验，无 I/O
+        App->>Domain: 请求执行 DAG 拓扑排序与死锁阻断
+        Domain-->>App: 校验通过 (无环路依赖)
+        
+        %% 将危险的写操作与运行环境交给独立的沙箱引擎管控
+        App->>Sandbox: 申请通过隔离通道将 Skill 写入隔离区
+        Sandbox->>Sandbox: 校验路径 Chroot 权限，拒绝上级目录越权
+        Sandbox->>DB: 安全写入 skills/sandbox/draft.md
+        App-->>FE: 推送提炼完成与可审批通知
     end
 ```
 
 ---
 
-## 四、 对齐核心 I/O 流的职责交互矩阵
+## 四、 对齐核心 I/O 流的职责映射
 
-基于上述业务模块划分，后端如何响应前端触发的核心链路：
+基于解耦后的架构，后端在响应前端触发的核心链路时的层级流转如下：
 
-| 交互核心流 | 控制权边界 | 后端业务流转路径 |
-| :--- | :--- | :--- |
-| **划词写笔记与一键转存** | 前端防抖，调用 REST API | `混合知识引擎` 接收 Payload -> 落盘至 SQLite 融合笔记表 -> 触发轻量级事件给异步守护队列。 |
-| **Trace-to-Skill 编译流** | 前端发起，后端推流 SSE | `提炼编译模块` 挂载 LangChain 提取管线 -> 流式输出进度 -> 生成 `SKILL.md` 至沙箱 -> 返回 `skillId`。 |
-| **半自动重调度计算流** | 前端拖拽，触发 REST API | `生命周期管理模块` 读取任务依赖拓扑 -> 递归计算影响面 -> 批量更新 SQLite -> 返回新 Deadline 集合。 |
-| **归档与经验沉淀流** | 前端提交复盘文本 | `混合知识引擎` 落盘经验实体 -> 推入图谱更新队列；`提炼编译模块` 若侦测到缺陷 -> 在沙箱生成 Skill 派生草稿。 |
-| **全局图谱漫游追溯** | 前端点击节点查询 | `混合知识引擎` 依据 `nodeId` 联合查询 SQLite 中的实体及物理上下文锚点 -> 返回组装数据供前端渲染 Quick Peek 浮窗。 |
+| 交互核心流 | 架构层级流转路径 (Layer Flow) |
+| :--- | :--- |
+| **划词写笔记与一键转存** | `接入层` 鉴权 -> `应用层` 编排入库逻辑 -> `领域层` 校验笔记实体与锚点合法性 -> `本地存储引擎` 执行 SQLite 落盘。 |
+| **Trace-to-Skill 编译流** | `接入层` SSE 建立 -> `应用层` 协调大模型抽取与推流 -> `领域层` 进行步骤 DAG 排序 -> `沙箱引擎` 拦截非法 I/O 后安全落盘。 |
+| **半自动重调度计算流** | `接入层` REST 接收拖拽 -> `应用层` 发起重排 -> `领域层` 拓扑遍历计算出所有受影响的任务链新 Deadline -> `存储引擎` 事务落盘。 |
+| **归档与经验沉淀流** | `接入层` 接收复盘 -> `应用层` 挂载异步任务 -> `领域层` 检测认知缺陷产生 Mutation -> `沙箱引擎` 安全生成修改草稿。 |
