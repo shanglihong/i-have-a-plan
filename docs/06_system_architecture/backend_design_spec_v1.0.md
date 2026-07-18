@@ -113,12 +113,8 @@ graph TD
     %% 驱动流 (主动适配器单向驱动应用层)
     DrivingAdapters -->|"触发业务编排"| AppLayer
     
-    %% 基础设施实现端口 (层级映射)
-    Port_EventBus --> AsyncioBus
-    Port_LLM --> LLM
-    Port_Sandbox --> Sandbox
-    Port_DB --> FileStorage
-    Port_DB --> SQLiteDB
+    %% 基础设施向下实现端口 (保证架构图的绝对垂直排版)
+    Ports -.->|"适配器底层实现"| DrivenAdapters
     
     %% 沙箱底层 I/O (基础设施内部依赖)
     Sandbox -.->|"受限文件 I/O"| FileStorage
@@ -189,52 +185,51 @@ graph TD
 展示核心领域层在 SQLite 中的数据模型逻辑关联，其中特别强化了“经验反哺”与“知识代谢”的链路。
 
 ```mermaid
-classDiagram
-    direction TB
-    
-    namespace 项目与任务领域_ProjectDomain {
-        class Project_项目
-        class TaskChain_任务链
-        class Task_任务
-    }
+graph TD
+    %% 领域划分与核心实体
+    subgraph ProjectDomain ["项目与任务领域 (Project Domain)"]
+        Project["Project<br>(项目)"]
+        TaskChain["TaskChain<br>(任务链)"]
+        Task["Task<br>(任务)"]
+    end
 
-    namespace 独立笔记领域_NoteDomain {
-        class UnifiedReadingNote_融合笔记
-        class ExperienceNote_经验笔记
-        class SourceAnchor_物理锚点
-    }
+    subgraph NoteDomain ["独立笔记领域 (Note Domain)"]
+        UnifiedReadingNote["UnifiedReadingNote<br>(融合笔记)"]
+        ExperienceNote["ExperienceNote<br>(经验笔记)"]
+        SourceAnchor["SourceAnchor<br>(物理锚点)"]
+    end
 
-    namespace 知识图谱领域_GraphDomain {
-        class GraphNode_图谱节点
-        class TagSuperNode_标签超节点
-    }
+    subgraph GraphDomain ["知识图谱领域 (Graph Domain)"]
+        GraphNode["GraphNode<br>(图谱节点)"]
+        TagSuperNode["TagSuperNode<br>(标签超节点)"]
+    end
 
-    namespace 技能提炼领域_SkillDomain {
-        class Skill_技能
-    }
+    subgraph SkillDomain ["技能提炼领域 (Skill Domain)"]
+        Skill["Skill<br>(技能)"]
+    end
 
     %% 项目与任务领域内部关系
-    Project_项目 "1" *-- "*" TaskChain_任务链 : 管理
-    TaskChain_任务链 "1" *-- "*" Task_任务 : 拆解为
-    Task_任务 "*" --> "*" Task_任务 : 前置依赖 (DAG)
+    Project -->|"1:N 管理"| TaskChain
+    TaskChain -->|"1:N 拆解为"| Task
+    Task -->|"N:N 前置依赖 (DAG)"| Task
 
     %% 跨域关联：项目 -> 笔记
-    Project_项目 "1" --> "*" UnifiedReadingNote_融合笔记 : 沉淀
-    Project_项目 "1" --> "0..1" ExperienceNote_经验笔记 : 归档时生成
+    Project -->|"1:N 沉淀"| UnifiedReadingNote
+    Project -.->|"1:0..1 归档时生成"| ExperienceNote
     
     %% 笔记领域内部关系
-    UnifiedReadingNote_融合笔记 "*" *-- "1" SourceAnchor_物理锚点 : 绑定
+    UnifiedReadingNote -->|"N:1 绑定"| SourceAnchor
     
     %% 跨域关联：笔记 -> 图谱 (异步提取)
-    UnifiedReadingNote_融合笔记 "*" --> "*" GraphNode_图谱节点 : 提取为
-    ExperienceNote_经验笔记 "*" --> "*" GraphNode_图谱节点 : 提取为
+    UnifiedReadingNote -.->|"异步提取 (N:N)"| GraphNode
+    ExperienceNote -.->|"异步提取 (N:N)"| GraphNode
     
     %% 图谱领域内部关系
-    GraphNode_图谱节点 "*" --> "*" GraphNode_图谱节点 : 认知关系边 (含证伪)
-    GraphNode_图谱节点 "*" --> "1" TagSuperNode_标签超节点 : 聚类对齐至
+    GraphNode -->|"N:N 认知关系边 (含证伪)"| GraphNode
+    GraphNode -->|"N:1 聚类对齐至"| TagSuperNode
 
     %% 跨域关联：经验 -> 技能
-    ExperienceNote_经验笔记 "*" --> "*" Skill_技能 : 提炼沉淀 / 触发修订
+    ExperienceNote -.->|"提炼沉淀 / 触发修订 (N:N)"| Skill
 ```
 
 ---
