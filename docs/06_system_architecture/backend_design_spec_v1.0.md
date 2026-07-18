@@ -113,7 +113,7 @@ graph TD
 graph TD
     %% 限界上下文 (Bounded Contexts)
     
-    subgraph ProjectDomain ["📦 项目与任务上下文 (Project Context)"]
+    subgraph ProjectDomain ["项目与任务上下文 (Project Context)"]
         P_Proj["Project (聚合根)"]
         P_TC["TaskChain (实体)"]
         P_Task["Task (实体)"]
@@ -122,7 +122,7 @@ graph TD
         P_TC --> P_Task
     end
 
-    subgraph KnowledgeDomain ["🧠 混合知识上下文 (Knowledge Context)"]
+    subgraph KnowledgeDomain ["混合知识上下文 (Knowledge Context)"]
         K_URN["UnifiedReadingNote (实体)"]
         K_EN["ExperienceNote (聚合根)"]
         K_Graph["GraphNode (实体)"]
@@ -131,7 +131,7 @@ graph TD
         K_URN --> K_Graph
     end
 
-    subgraph SkillDomain ["⚙️ 技能编译上下文 (Skill Context)"]
+    subgraph SkillDomain ["技能编译上下文 (Skill Context)"]
         S_Skill["Skill (聚合根)"]
         S_DAG["DAG Validator (领域服务)"]
         
@@ -141,15 +141,15 @@ graph TD
     %% 上下文映射 (Context Mapping) 与边界交互
     
     %% 项目域 -> 知识域
-    P_Proj == "【项目归档事件】<br>传输复盘数据" ====> K_EN
-    P_Task == "【伴读沉淀事件】<br>挂载物理锚点" ====> K_URN
+    P_Proj -->|"【项目归档事件】<br>传输复盘数据"| K_EN
+    P_Task -->|"【伴读沉淀事件】<br>挂载物理锚点"| K_URN
     
     %% 知识域 -> 技能域
-    K_EN == "【知识代谢预警】<br>触发技能修正" ====> S_Skill
-    K_Graph -. "【查询请求】<br>提供 RAG 事实上下文" .-> S_Skill
+    K_EN -->|"【知识代谢预警】<br>触发技能修正"| S_Skill
+    K_Graph -.->|"【查询请求】<br>提供 RAG 事实上下文"| S_Skill
     
     %% 技能域 -> 项目域
-    S_Skill == "【编译实例化】<br>将技能展开为任务" ====> P_TC
+    S_Skill -->|"【编译实例化】<br>将技能展开为任务"| P_TC
 ```
 
 ### 3. 核心领域实体关系图 (Domain ERD)
