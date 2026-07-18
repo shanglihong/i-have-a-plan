@@ -65,11 +65,10 @@ graph TD
             SCS["技能提炼领域<br>(DAG 死锁校验算法)"]
             PTO["项目与任务领域<br>(状态机, 重调度算法)"]
             GPH["知识图谱领域<br>(异步 RAG, 知识代谢)"]
-            
-            EventBus(("领域事件总线<br>(Domain Event Bus)"))
         end
         
         subgraph Ports ["防腐接口层 (Ports)"]
+            Port_EventBus(("EventBus Port<br>(事件总线接口)"))
             Port_LLM["LLM Port<br>(大模型接口)"]
             Port_Sandbox["Sandbox Port<br>(安全沙箱接口)"]
             Port_DB["Repository Port<br>(仓储接口)"]
@@ -81,7 +80,7 @@ graph TD
         UC3 -->|"流转状态"| PTO
         UC4 -->|"按 Skill 拆解"| PTO
         
-        %% 应用层依赖端口 (DIP)
+        %% 应用层/领域层依赖端口 (DIP)
         UC1 -.->|"接口依赖"| Port_LLM
         UC2 -.->|"接口依赖"| Port_LLM
         UC3 -.->|"接口依赖"| Port_LLM
@@ -89,15 +88,19 @@ graph TD
         UC3 -.->|"接口依赖"| Port_Sandbox
         UC1 -.->|"接口依赖"| Port_DB
         UC4 -.->|"接口依赖"| Port_DB
+        GPH -.->|"接口依赖 (图谱持久化)"| Port_DB
         
         %% 领域事件流转
-        NTD -.->|"发布 NoteUpdatedEvent"| EventBus
-        PTO -.->|"发布 ProjectArchivedEvent"| EventBus
-        EventBus -.->|"异步触发图谱增量"| GPH
-        EventBus -.->|"触发经验/技能沉淀"| SCS
+        NTD -.->|"发布 NoteUpdatedEvent"| Port_EventBus
+        PTO -.->|"发布 ProjectArchivedEvent"| Port_EventBus
+        Port_EventBus -.->|"异步触发图谱增量"| GPH
+        Port_EventBus -.->|"触发经验/技能沉淀"| SCS
     end
 
     subgraph DrivenAdapters ["被动适配器 (基础设施层)"]
+        subgraph EventBusAdapter ["事件总线适配器 (EventBus)"]
+            AsyncioBus["后台异步任务队列<br>(asyncio task)"]
+        end
         subgraph AIAdapter ["大模型适配器 (LLM)"]
             LLM["大模型通信接口<br>(LangChain API)"]
         end
@@ -119,6 +122,7 @@ graph TD
     SSE --> UC1
     
     %% 依赖反转: 基础设施实现端口 (运行时 DI)
+    Port_EventBus -.->|"适配器实现 (DI 注入)"| AsyncioBus
     Port_LLM -.->|"适配器实现 (DI 注入)"| LLM
     Port_Sandbox -.->|"适配器实现 (DI 注入)"| Sandbox
     Port_DB -.->|"适配器实现 (DI 注入)"| FileStorage
@@ -196,49 +200,49 @@ graph TD
 classDiagram
     direction TB
     
-    namespace ProjectDomain {
-        class Project
-        class TaskChain
-        class Task
+    namespace 项目与任务领域_ProjectDomain {
+        class Project_项目
+        class TaskChain_任务链
+        class Task_任务
     }
 
-    namespace NoteDomain {
-        class UnifiedReadingNote
-        class ExperienceNote
-        class SourceAnchor
+    namespace 独立笔记领域_NoteDomain {
+        class UnifiedReadingNote_融合笔记
+        class ExperienceNote_经验笔记
+        class SourceAnchor_物理锚点
     }
 
-    namespace GraphDomain {
-        class GraphNode
-        class TagSuperNode
+    namespace 知识图谱领域_GraphDomain {
+        class GraphNode_图谱节点
+        class TagSuperNode_标签超节点
     }
 
-    namespace SkillDomain {
-        class Skill
+    namespace 技能提炼领域_SkillDomain {
+        class Skill_技能
     }
 
     %% 项目与任务领域内部关系
-    Project "1" *-- "*" TaskChain : 管理
-    TaskChain "1" *-- "*" Task : 拆解为
-    Task "*" --> "*" Task : 前置依赖 (DAG)
+    Project_项目 "1" *-- "*" TaskChain_任务链 : 管理
+    TaskChain_任务链 "1" *-- "*" Task_任务 : 拆解为
+    Task_任务 "*" --> "*" Task_任务 : 前置依赖 (DAG)
 
     %% 跨域关联：项目 -> 笔记
-    Project "1" --> "*" UnifiedReadingNote : 沉淀
-    Project "1" --> "0..1" ExperienceNote : 归档时生成
+    Project_项目 "1" --> "*" UnifiedReadingNote_融合笔记 : 沉淀
+    Project_项目 "1" --> "0..1" ExperienceNote_经验笔记 : 归档时生成
     
     %% 笔记领域内部关系
-    UnifiedReadingNote "*" *-- "1" SourceAnchor : 绑定
+    UnifiedReadingNote_融合笔记 "*" *-- "1" SourceAnchor_物理锚点 : 绑定
     
     %% 跨域关联：笔记 -> 图谱 (异步提取)
-    UnifiedReadingNote "*" --> "*" GraphNode : 提取为
-    ExperienceNote "*" --> "*" GraphNode : 提取为
+    UnifiedReadingNote_融合笔记 "*" --> "*" GraphNode_图谱节点 : 提取为
+    ExperienceNote_经验笔记 "*" --> "*" GraphNode_图谱节点 : 提取为
     
     %% 图谱领域内部关系
-    GraphNode "*" --> "*" GraphNode : 认知关系边 (含证伪)
-    GraphNode "*" --> "1" TagSuperNode : 聚类对齐至
+    GraphNode_图谱节点 "*" --> "*" GraphNode_图谱节点 : 认知关系边 (含证伪)
+    GraphNode_图谱节点 "*" --> "1" TagSuperNode_标签超节点 : 聚类对齐至
 
     %% 跨域关联：经验 -> 技能
-    ExperienceNote "*" --> "*" Skill : 提炼沉淀 / 触发修订
+    ExperienceNote_经验笔记 "*" --> "*" Skill_技能 : 提炼沉淀 / 触发修订
 ```
 
 ---
