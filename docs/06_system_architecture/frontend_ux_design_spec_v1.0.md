@@ -235,3 +235,38 @@ graph TD
 | **Document.Status = `PARSING`** | 大纲组件渲染为**波光骨架屏 (Skeleton)**，屏蔽点击事件，直至状态就绪。 |
 | **Knowledge.State = `FALSIFIED`** | 知识新陈代谢视觉奇观：节点及连线视觉变暗（Opacity 降至 40%），被反向抑制边（虚线）连接。 |
 | **Graph.State = `QUICK_PEEK`** | 弹出带有毛玻璃背景的沉浸式居中浮窗，底层主画布高斯模糊，点击外部空白遮罩层销毁，**绝不触发全屏跳转 (PA-07)**。 |
+
+---
+
+## 四、 全局异常与错误反馈交互规范 (Error Handling & Feedback)
+
+> [!IMPORTANT]
+> 前端必须统筹处理基于 RFC 7807 规范返回的业务错误。绝不能将冰冷的 JSON 或原始报错直接抛给用户。所有的异常处理均需遵循“分级响应、精准定位、提供出路”的设计原则。
+
+### 1. 错误展现形式分级策略 (Error Presentation Hierarchy)
+
+根据错误的严重程度与用户介入的必要性，前端组件需进行分级渲染：
+
+| 错误级别 | 适用场景 (基于 RFC 7807 特征) | 交互展现形式 (UI Pattern) | 交互行为约束 |
+| :--- | :--- | :--- | :--- |
+| **轻量级警示 (Toast)** | 常规业务阻断、临时网络波动。<br/>(例: `status: 400`, 简单的 `detail` 提示) | **顶部悬浮消息条 (Message Toast)** | 自动消失 (通常 3-5 秒)。内容直接映射 RFC 7807 的 `title` 或 `detail`。禁止遮挡主操作区。 |
+| **局部表单校验 (Inline)** | 表单字段输入不合法。<br/>(例: `extension_fields.invalid_params` 存在) | **表单域内联红字提示 (Inline Validation)** | 精确追踪到具体的 Input 组件，输入框变红并抖动，文字提示附着在组件下方。 |
+| **强干预阻塞 (Modal)** | 需要用户明确决策、支付升级、严重越权。<br/>(例: `status: 403`, `extension_fields.upgrade_url` 存在) | **居中模态对话框 (Dialog/Modal)** | 必须包含清晰的行动号召 (Call to Action)。提供“取消”和“去处理”的主次按钮组合，背景采用高斯模糊遮罩。 |
+| **局部破坏性异常 (Skeleton/Empty)** | 某一区块数据加载彻底失败，但页面主框架仍可用。<br/>(例: 瀑布流某页拉取失败) | **局部空状态/错误重试占位图 (Empty State)** | 在该区块渲染柔和的插画及“点击重试”按钮，**切忌白屏或引发全局崩溃**。 |
+
+### 2. 核心业务错误场景交互映射
+
+针对特定业务场景，前端需拦截特定的 `type` 或 `extension_fields` 并执行专属 UI 动效：
+
+*   **沙箱拓扑死锁 (`type: ".../topology-cycle"`)**：
+    *   **拦截行为**：禁止使用常规 Toast。
+    *   **UI 映射**：解析 `extension_fields.cycle_path`，在沙箱画布中将相关死锁节点高亮标红，连线变成红色虚线并触发**高频抖动动效 (Shake)**，右下角弹出包含详细死锁路径的警示气泡。
+*   **配额耗尽要求升级 (`type: ".../quota-exceeded"`)**：
+    *   **拦截行为**：拦截后直接呼出付费转化 Modal。
+    *   **UI 映射**：展示精致的插画与当前的配额数据 (`extension_fields.current_quota`)，主按钮直达 `extension_fields.upgrade_url`。
+
+### 3. 未知或系统级异常兜底 (Fallback Mechanism)
+
+对于 `500 Internal Server Error` 或是网络断开导致未返回规范化 JSON 的情况：
+*   **UI 降级**：统一展示“服务器正在打盹，请稍后重试”等拟人化友好文案，绝不直接展示 `Uncaught Promise Rejection`。
+*   **调试支持**：在提示的次级文本中，提供一键复制 `TraceID` 的隐性入口，便于用户报障反馈。
