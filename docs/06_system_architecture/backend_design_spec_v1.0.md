@@ -63,11 +63,26 @@ graph TD
             EventBus(("领域事件总线<br>(Domain Event Bus)"))
         end
         
+        subgraph Ports ["防腐接口层 (Ports)"]
+            Port_LLM["LLM Port<br>(大模型接口)"]
+            Port_Sandbox["Sandbox Port<br>(安全沙箱接口)"]
+            Port_DB["Repository Port<br>(仓储接口)"]
+        end
+        
         %% 应用层调用领域层
         UC1 -->|"沉淀"| NTD
         UC2 -->|"依赖校验"| SCS
         UC3 -->|"流转状态"| PTO
         UC4 -->|"按 Skill 拆解"| PTO
+        
+        %% 应用层依赖端口 (DIP)
+        UC1 -.->|"接口依赖"| Port_LLM
+        UC2 -.->|"接口依赖"| Port_LLM
+        UC3 -.->|"接口依赖"| Port_LLM
+        UC2 -.->|"接口依赖"| Port_Sandbox
+        UC3 -.->|"接口依赖"| Port_Sandbox
+        UC1 -.->|"接口依赖"| Port_DB
+        UC4 -.->|"接口依赖"| Port_DB
         
         %% 领域事件流转
         NTD -.->|"发布 NoteUpdatedEvent"| EventBus
@@ -97,15 +112,13 @@ graph TD
     REST --> UC4
     SSE --> UC1
     
-    %% 核心执行层交互 (应用层 -> 被动适配器，依赖反转)
-    UC1 -.->|"组装 Prompt & 请求推流"| LLM
-    UC2 -.->|"投喂 Chunk 结构化提取"| LLM
-    UC3 -.->|"调用模型离线建图"| LLM
+    %% 依赖反转: 基础设施实现端口 (运行时 DI)
+    Port_LLM -.->|"适配器实现 (DI 注入)"| LLM
+    Port_Sandbox -.->|"适配器实现 (DI 注入)"| Sandbox
+    Port_DB -.->|"适配器实现 (DI 注入)"| FileStorage
+    Port_DB -.->|"适配器实现 (DI 注入)"| SQLiteDB
     
-    UC2 -.->|"沙箱受限写文件"| Sandbox
-    UC3 -.->|"沙箱执行归档脚本"| Sandbox
-    
-    %% 沙箱底层 I/O
+    %% 沙箱底层 I/O (纯基础设施内部依赖)
     Sandbox -.->|"受限文件 I/O"| FileStorage
     Sandbox -.->|"受限数据库查询"| SQLiteDB
 ```
