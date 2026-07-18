@@ -20,6 +20,8 @@
 | | **右栏 (读思面板)** | 瀑布流式融合笔记卡片列表 + 固定的 Discuss AI 输入框。 |
 | **Global Knowledge Graph** <br/> (全局知识图谱) | **布局结构** | 全屏力导向图交互画布 (Force-directed Graph Canvas)。 |
 | | **交互组件** | 漫游浮窗 (Quick Peek Overlay)：带有毛玻璃背景的居中悬浮窗，用于无跳转溯源。 |
+| **Plan Workspace** <br/> (计划项目执行台) | **布局结构** | 顶部控制栏（含智能技能注入入口） + 核心任务视图（看板 Kanban 或 甘特图 Gantt）。 |
+| | **任务流视图** | 注入技能时采用分层渐进式骨架屏渲染任务树；支持连带依赖拖拽排期。 |
 
 ---
 
@@ -96,6 +98,18 @@
 | **Props** (输入) | `nodeData` | `Object` | 包含节点标签名称及元数据。 |
 | | `isFalsified` | `Boolean` | 若该节点在最新经验中被“证伪”，则渲染为 40% Opacity 的视觉衰变态。 |
 | **Emits** (输出) | `onClickNode` | `Event` | 用户点击节点，直接向外派发 `onQuickPeek` 呈现悬浮上下文。 |
+
+### 7. 计划执行任务卡片 (Plan Task Card)
+
+> 功能描述：承载计划项目中的原子执行步骤，支持状态扭转与异常重调度。
+
+| 数据类型 | 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Props** (输入) | `taskId` | `String` | 任务实体唯一标识。 |
+| | `status` | `Enum` | `PENDING`, `RUNNING`, `COMPLETED`, `BLOCKED` (逾期异常状态)。 |
+| | `deadline` | `Timestamp`| 任务截止时间。若逾期且未完成，卡片底色及时间字体标红闪烁。 |
+| **Emits** (输出) | `onStatusChange` | `Event` | 用户标记任务完成，触发后台状态更新与后续依赖项自动解锁。 |
+| | `onReschedule` | `Event` | 呼出悬浮面板，提供基于拓扑排序的“一键顺延”或“甘特图手动微调”。 |
 
 ---
 
