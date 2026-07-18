@@ -65,6 +65,7 @@ graph TD
             SCS["技能提炼领域<br>(DAG 死锁校验算法)"]
             PTO["项目与任务领域<br>(状态机, 重调度算法)"]
             GPH["知识图谱领域<br>(异步 RAG, 知识代谢)"]
+            EventBus(("领域内部事件分发"))
         end
         
         subgraph Ports ["防腐接口层 (Ports)"]
@@ -74,27 +75,31 @@ graph TD
             Port_DB["Repository Port<br>(仓储接口)"]
         end
         
-        %% 应用层调用领域层
+        %% 应用层业务编排 (向下调用领域层)
         UC1 -->|"沉淀"| NTD
         UC2 -->|"依赖校验"| SCS
         UC3 -->|"流转状态"| PTO
         UC4 -->|"按 Skill 拆解"| PTO
         
-        %% 应用层/领域层依赖端口 (DIP)
-        UC1 -.->|"接口依赖"| Port_LLM
-        UC2 -.->|"接口依赖"| Port_LLM
-        UC3 -.->|"接口依赖"| Port_LLM
-        UC2 -.->|"接口依赖"| Port_Sandbox
-        UC3 -.->|"接口依赖"| Port_Sandbox
-        UC1 -.->|"接口依赖"| Port_DB
-        UC4 -.->|"接口依赖"| Port_DB
-        GPH -.->|"接口依赖 (图谱持久化)"| Port_DB
+        %% 领域事件流转 (内部解耦分发)
+        NTD -.->|"NoteUpdated"| EventBus
+        PTO -.->|"ProjectArchived"| EventBus
+        EventBus -.->|"异步触发增量"| GPH
+        EventBus -.->|"触发技能沉淀"| SCS
         
-        %% 领域事件流转
-        NTD -.->|"发布 NoteUpdatedEvent"| Port_EventBus
-        PTO -.->|"发布 ProjectArchivedEvent"| Port_EventBus
-        Port_EventBus -.->|"异步触发图谱增量"| GPH
-        Port_EventBus -.->|"触发经验/技能沉淀"| SCS
+        %% 防腐抽离：核心业务统一向下依赖 Ports
+        UC1 -.->|"依赖"| Port_LLM
+        UC2 -.->|"依赖"| Port_LLM
+        UC3 -.->|"依赖"| Port_LLM
+        
+        UC2 -.->|"依赖"| Port_Sandbox
+        UC3 -.->|"依赖"| Port_Sandbox
+        
+        UC1 -.->|"依赖"| Port_DB
+        UC4 -.->|"依赖"| Port_DB
+        GPH -.->|"图谱持久化"| Port_DB
+        
+        EventBus -.->|"委派底层通信"| Port_EventBus
     end
 
     subgraph DrivenAdapters ["被动适配器 (基础设施层)"]
@@ -121,12 +126,12 @@ graph TD
     REST --> UC4
     SSE --> UC1
     
-    %% 依赖反转: 基础设施实现端口 (运行时 DI)
-    Port_EventBus -.->|"适配器实现 (DI 注入)"| AsyncioBus
-    Port_LLM -.->|"适配器实现 (DI 注入)"| LLM
-    Port_Sandbox -.->|"适配器实现 (DI 注入)"| Sandbox
-    Port_DB -.->|"适配器实现 (DI 注入)"| FileStorage
-    Port_DB -.->|"适配器实现 (DI 注入)"| SQLiteDB
+    %% 依赖反转: 基础设施向下实现端口 (运行时 DI)
+    Port_EventBus ===>|"DI 注入"| AsyncioBus
+    Port_LLM ===>|"DI 注入"| LLM
+    Port_Sandbox ===>|"DI 注入"| Sandbox
+    Port_DB ===>|"DI 注入"| FileStorage
+    Port_DB ===>|"DI 注入"| SQLiteDB
     
     %% 沙箱底层 I/O (纯基础设施内部依赖)
     Sandbox -.->|"受限文件 I/O"| FileStorage
