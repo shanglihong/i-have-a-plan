@@ -5,7 +5,8 @@ import { ZoomIn, ZoomOut, Maximize2, X } from "lucide-react"
 import {
   MOCK_GRAPH_NODES,
   MOCK_GRAPH_EDGES,
-} from "../../shared/mock/data"
+} from "../../mock"
+
 
 // ─── Global Graph Page ──────────────────────────────────────────────────────────────
 
@@ -16,9 +17,10 @@ export default function GlobalGraphPage() {
   const [dragging, setDragging] = useState<string | null>(null)
   const [positions, setPositions] = useState(() =>
     Object.fromEntries(
-      MOCK_GRAPH_NODES.map((n) => [n.id, { x: n.x, y: n.y }]),
+      MOCK_GRAPH_NODES.map((n: any) => [n.id, { x: n.x, y: n.y }]),
     ),
   )
+
   const [zoom, setZoom] = useState(1)
   const canvasRef = useRef<HTMLDivElement>(null)
   const dragOffset = useRef({ dx: 0, dy: 0 })
@@ -49,8 +51,9 @@ export default function GlobalGraphPage() {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!dragging) return
-    setPositions((p) => ({
+    setPositions((p: any) => ({
       ...p,
+
       [dragging]: {
         x: (e.clientX - dragOffset.current.dx) / zoom,
         y: (e.clientY - dragOffset.current.dy) / zoom,
@@ -162,11 +165,12 @@ export default function GlobalGraphPage() {
               </feMerge>
             </filter>
           </defs>
-          {MOCK_GRAPH_EDGES.map((edge, i) => {
+          {MOCK_GRAPH_EDGES.map((edge: any, i: number) => {
             const s = positions[edge.source]
             const t = positions[edge.target]
-            const sNode = MOCK_GRAPH_NODES.find((n) => n.id === edge.source)
-            const tNode = MOCK_GRAPH_NODES.find((n) => n.id === edge.target)
+            const sNode = MOCK_GRAPH_NODES.find((n: any) => n.id === edge.source)
+            const tNode = MOCK_GRAPH_NODES.find((n: any) => n.id === edge.target)
+
             const isFalsified = sNode?.is_falsified || tNode?.is_falsified
             return (
               <line
@@ -187,9 +191,10 @@ export default function GlobalGraphPage() {
           })}
         </svg>
 
-        {MOCK_GRAPH_NODES.map((node) => {
+        {MOCK_GRAPH_NODES.map((node: any) => {
           const pos = positions[node.id]
           const color = typeColors[node.type] || "#94a3b8"
+
           return (
             <motion.div
               key={node.id}
@@ -286,7 +291,7 @@ export default function GlobalGraphPage() {
                     ? "梯度消失问题（Vanishing Gradient Problem）是早期深层神经网络训练中的核心挑战。当使用 Sigmoid 等饱和激活函数时，反向传播过程中梯度信号会随层数增加而指数衰减，导致浅层网络几乎无法学习。该问题已基本被 ReLU 激活函数与残差连接（ResNet）所解决，在现代网络架构中已不再是主要瓶颈。"
                     : peekNode.label === "RNN时序建模"
                       ? "RNN（循环神经网络）曾是序列数据处理的主流方法，通过隐藏状态在时间步之间传递信息。然而其顺序计算特性导致无法并行化，且存在长距离依赖问题。随着 Transformer 架构于 2017 年提出，RNN 在 NLP 领域的主导地位已基本被取代。"
-                      : `关于 ${peekNode.label} 的知识节点。这个概念来源于「深度学习基础理论精读」项目的第三章笔记提炼，与 ${MOCK_GRAPH_EDGES.filter((e) => e.source === peekNode.id || e.target === peekNode.id).length} 个相关概念存在直接依赖关系。`}
+                      : `关于 ${peekNode.label} 的知识节点。这个概念来源于「深度学习基础理论精读」项目的第三章笔记提炼，与 ${MOCK_GRAPH_EDGES.filter((e: any) => e.source === peekNode.id || e.target === peekNode.id).length} 个相关概念存在直接依赖关系。`}
                 </p>
               </div>
 
@@ -295,15 +300,16 @@ export default function GlobalGraphPage() {
                   关联节点：
                 </span>
                 {MOCK_GRAPH_EDGES.filter(
-                  (e) =>
+                  (e: any) =>
                     e.source === peekNode.id || e.target === peekNode.id,
                 )
                   .slice(0, 4)
-                  .map((e, i) => {
+                  .map((e: any, i: number) => {
                     const otherId =
                       e.source === peekNode.id ? e.target : e.source
-                    const other = MOCK_GRAPH_NODES.find((n) => n.id === otherId)
+                    const other = MOCK_GRAPH_NODES.find((n: any) => n.id === otherId)
                     return other ? (
+
                       <button
                         key={i}
                         onClick={() => setPeekNode(other)}

@@ -179,14 +179,15 @@ export default function PlanWorkspacePage() {
                     {col.label}
                   </span>
                   <span className="text-xs text-slate-400 bg-white/10 px-2 py-0.5 rounded-full font-mono font-medium ml-auto">
-                    {tasks.filter((t) => t.status === col.id).length}
+                    {tasks.filter((t: any) => t.status === col.id).length}
                   </span>
                 </div>
 
                 <div className="space-y-3">
                   {tasks
-                    .filter((t) => t.status === col.id)
-                    .map((task) => (
+                    .filter((t: any) => t.status === col.id)
+                    .map((task: any) => (
+
                       <motion.div
                         key={task.id}
                         layout
@@ -300,8 +301,9 @@ export default function PlanWorkspacePage() {
               </span>
             </div>
             <div className="space-y-3">
-              {tasks.map((task) => {
+              {tasks.map((task: any) => {
                 const start = parseInt(task.deadline.split("-")[2]) - 3
+
                 const width = 3 + task.level * 2
                 const offset = start - 8
                 return (

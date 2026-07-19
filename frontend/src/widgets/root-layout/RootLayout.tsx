@@ -21,7 +21,8 @@ import {
 } from "lucide-react"
 
 import { CategoryTreeDrawer } from "./CategoryTreeDrawer"
-import { MOCK_PROJECTS } from "../../shared/mock/data"
+import { MOCK_PROJECTS } from "../../mock"
+
 
 // ─── Breadcrumb Data Contract ─────────────────────────────────────────────────
 

@@ -7,7 +7,8 @@ import {
   ChevronsRight,
 } from "lucide-react"
 
-import { MOCK_SANDBOX_NODES } from "../../shared/mock/data"
+import { MOCK_SANDBOX_NODES } from "../../mock"
+
 import { StatusBadge } from "../../shared/ui"
 
 // ─── Skill Sandbox Page ─────────────────────────────────────────────────────────────

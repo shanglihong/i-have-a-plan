@@ -34,7 +34,8 @@ import {
   MOCK_READING_INITIAL_MESSAGES,
   MOCK_READING_NOTES_FALLBACK,
   MOCK_READING_AI_REPLY,
-} from "../../shared/mock/data"
+} from "../../mock"
+
 
 // ─── Reading Workspace Page ────────────────────────────────────────────────────────
 
