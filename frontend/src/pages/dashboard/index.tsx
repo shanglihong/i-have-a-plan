@@ -9,7 +9,6 @@ import {
   Network,
   Cpu,
   Plus,
-  ChevronRight,
   X,
   Bookmark,
   Archive,
@@ -259,15 +258,7 @@ export default function DashboardPage() {
 
       {/* Recent projects carousel */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-medium text-slate-300">最近访问</h2>
-          <button
-            onClick={() => setFilter("ALL")}
-            className="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer"
-          >
-            查看全部 <ChevronRight size={12} />
-          </button>
-        </div>
+        <h2 className="text-sm font-medium text-slate-300 mb-3">最近访问</h2>
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {recent.map((p) => (
             <motion.div
@@ -284,9 +275,8 @@ export default function DashboardPage() {
             >
               <div className="flex items-center justify-between mb-2">
                 <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                    p.type === "READING" ? COLOR_MAP.cyan.bg : COLOR_MAP.violet.bg
-                  }`}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center ${p.type === "READING" ? COLOR_MAP.cyan.bg : COLOR_MAP.violet.bg
+                    }`}
                 >
                   {p.type === "READING" ? (
                     <BookOpen size={13} className={COLOR_MAP.cyan.text} />
@@ -318,11 +308,10 @@ export default function DashboardPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-2.5 py-1 text-xs rounded-md transition-all cursor-pointer ${
-                  filter === f
+                className={`px-2.5 py-1 text-xs rounded-md transition-all cursor-pointer ${filter === f
                     ? "bg-cyan-500/20 text-cyan-300 ring-1 ring-cyan-500/40"
                     : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                }`}
+                  }`}
               >
                 {f === "ALL" ? "全部" : f === "READING" ? "阅读" : "计划"}
               </button>
@@ -337,9 +326,8 @@ export default function DashboardPage() {
               layout
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className={`glass rounded-xl p-4 relative overflow-hidden cursor-pointer hover:ring-1 hover:ring-white/12 transition-all group ${
-                p.status === "ARCHIVED" ? "opacity-60" : ""
-              }`}
+              className={`glass rounded-xl p-4 relative overflow-hidden cursor-pointer hover:ring-1 hover:ring-white/12 transition-all group ${p.status === "ARCHIVED" ? "opacity-60" : ""
+                }`}
               onClick={() => {
                 if (p.status !== "SUSPENDED") {
                   navigate(
@@ -366,18 +354,16 @@ export default function DashboardPage() {
               )}
 
               <div
-                className={`flex items-start justify-between gap-2 ${
-                  p.status === "ARCHIVED" ? "mt-5" : ""
-                }`}
+                className={`flex items-start justify-between gap-2 ${p.status === "ARCHIVED" ? "mt-5" : ""
+                  }`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                     <div
-                      className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${
-                        p.type === "READING"
+                      className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${p.type === "READING"
                           ? COLOR_MAP.cyan.bg
                           : COLOR_MAP.violet.bg
-                      }`}
+                        }`}
                     >
                       {p.type === "READING" ? (
                         <BookOpen size={12} className={COLOR_MAP.cyan.text} />
@@ -516,11 +502,10 @@ export default function DashboardPage() {
                           setCreateType(t.type);
                           setFormError(null);
                         }}
-                        className={`p-3.5 rounded-xl ring-1 transition-all cursor-pointer group ${
-                          isSelected
+                        className={`p-3.5 rounded-xl ring-1 transition-all cursor-pointer group ${isSelected
                             ? `${themeStyle.ring} bg-white/10`
                             : "ring-white/10 hover:ring-white/20 bg-white/5"
-                        }`}
+                          }`}
                       >
                         <div
                           className={`w-8 h-8 rounded-lg ${themeStyle.bg} flex items-center justify-center mb-2.5`}
@@ -598,11 +583,10 @@ export default function DashboardPage() {
                       <div className="space-y-2">
                         <div
                           onClick={() => setSelectedSkillId("")}
-                          className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${
-                            selectedSkillId === ""
+                          className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${selectedSkillId === ""
                               ? "border-violet-500/60 bg-violet-500/15 text-slate-200"
                               : "border-slate-700/80 hover:border-slate-600 bg-slate-900/40 text-slate-400"
-                          }`}
+                            }`}
                         >
                           <span className="font-medium">无 (从零创建自订任务树)</span>
                           <span className="text-[11px] text-slate-400">零前置模版</span>
@@ -614,11 +598,10 @@ export default function DashboardPage() {
                             <div
                               key={sk.id}
                               onClick={() => setSelectedSkillId(sk.id)}
-                              className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${
-                                isSel
+                              className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${isSel
                                   ? "border-violet-500/60 bg-violet-500/15 text-slate-200"
                                   : "border-slate-700/80 hover:border-slate-600 bg-slate-900/40 text-slate-400"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center gap-2">
                                 <Sparkles size={13} className="text-violet-400" />
@@ -649,11 +632,10 @@ export default function DashboardPage() {
                   <button
                     type="submit"
                     disabled={createProjectMutation.isPending}
-                    className={`flex-1 py-2 text-sm rounded-lg font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      createType === "READING"
+                    className={`flex-1 py-2 text-sm rounded-lg font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${createType === "READING"
                         ? "text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 ring-1 ring-cyan-500/40"
                         : "text-violet-300 bg-violet-500/20 hover:bg-violet-500/30 ring-1 ring-violet-500/40"
-                    } ${createProjectMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+                      } ${createProjectMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {createProjectMutation.isPending ? (
                       "创建中..."
