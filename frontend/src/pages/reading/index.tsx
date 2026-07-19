@@ -12,24 +12,18 @@ import {
 import {
   ChevronRight,
   X,
-  Send,
   Bookmark,
-  Plus,
   Circle,
   CheckCircle2,
   Sparkles,
-  Target,
   MessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
-  PanelRightClose,
   PanelRightOpen,
   BookOpen,
-  Search,
   Copy,
   Check,
   Clock,
-  Quote,
   Lightbulb,
 } from "lucide-react"
 
@@ -79,7 +73,6 @@ export default function ReadingWorkspacePage() {
   const [streaming, setStreaming] = useState(false)
   const [showBubble, setShowBubble] = useState(false)
   const readerRef = useRef<HTMLDivElement>(null)
-  const chatRef = useRef<HTMLDivElement>(null)
 
   const [isLaptopOrSmaller, setIsLaptopOrSmaller] = useState(false)
 
@@ -114,11 +107,7 @@ export default function ReadingWorkspacePage() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [setFloatingMenu])
 
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight
-    }
-  }, [messages, streaming])
+
 
   const { data: notesData } = useQuery({
     queryKey: ["project-notes", id],
@@ -277,12 +266,7 @@ export default function ReadingWorkspacePage() {
     setTimeout(() => setCopiedCode(false), 2000)
   }
 
-  const filteredNotes = notes.filter(
-    (n: any) =>
-      n.content?.toLowerCase().includes(noteSearch.toLowerCase()) ||
-      n.quote?.toLowerCase().includes(noteSearch.toLowerCase()) ||
-      n.anchor?.toLowerCase().includes(noteSearch.toLowerCase()),
-  )
+
 
   return (
     <div className="h-full flex overflow-hidden bg-[#090D16] text-slate-100 font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -298,25 +282,24 @@ export default function ReadingWorkspacePage() {
           >
             <div className="w-[250px] h-full flex flex-col">
               {/* Sidebar Header */}
-              <div className="p-4 border-b border-slate-800/80 bg-[#090D16]/50">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <BookOpen size={15} className="text-cyan-400" />
-                    <span className="text-xs font-semibold text-slate-200 tracking-wide">
-                      章节目录
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setOutlineOpen(false)}
-                    aria-label="收起目录"
-                    className="text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-slate-800/60 transition-colors cursor-pointer"
-                  >
-                    <PanelLeftClose size={15} />
-                  </button>
+              <div className="h-12 px-4 border-b border-slate-800/80 bg-[#090D16]/50 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <BookOpen size={15} className="text-cyan-400" />
+                  <span className="text-xs font-semibold text-slate-200 tracking-wide">
+                    章节目录
+                  </span>
                 </div>
+                <button
+                  onClick={() => setOutlineOpen(false)}
+                  aria-label="收起目录"
+                  className="text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-slate-800/60 transition-colors cursor-pointer"
+                >
+                  <PanelLeftClose size={15} />
+                </button>
+              </div>
 
-                {/* Progress Overview */}
-                <div className="space-y-2.5 pt-1">
+              {/* Progress Overview */}
+              <div className="space-y-2.5 px-4 py-3 border-b border-slate-800/60">
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
                       <span>阅读进度</span>
@@ -336,7 +319,7 @@ export default function ReadingWorkspacePage() {
                     <ProgressBar value={82} color="violet" />
                   </div>
                 </div>
-              </div>
+
 
               {/* Chapters Tree Nav */}
               <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1 scrollbar-thin scrollbar-thumb-slate-800">
@@ -346,12 +329,12 @@ export default function ReadingWorkspacePage() {
                     <button
                       key={ch.id}
                       onClick={() => setActiveChapter(ch.id)}
-                      className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition-all flex items-center gap-2.5 cursor-pointer font-medium
+                      className={`w-full text-left rounded-lg text-xs transition-all flex items-center gap-2.5 cursor-pointer font-medium border
+                        ${ch.level === 1 ? "pl-7 pr-3 py-2 text-[11px]" : "px-3 py-2.5"}
                         ${isCurrent
-                          ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm shadow-cyan-950/50"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent"
-                        }
-                        ${ch.level === 1 ? "ml-3 text-[11px] py-2" : ""}`}
+                          ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border-cyan-500/30 shadow-sm shadow-cyan-950/50"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-transparent"
+                        }`}
                     >
                       {ch.done ? (
                         <CheckCircle2
@@ -512,7 +495,7 @@ export default function ReadingWorkspacePage() {
           <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
             <span className="text-cyan-400 font-mono">3.1</span> 链式法则的核心微积分推导
           </h2>
-          <p className="text-[15px] leading-[1.8] text-slate-300 mb-5">
+          <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
             设一个典型的多层前馈神经网络可以抽象为复合函数{" "}
             <code className="text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded font-mono text-xs font-semibold">
               L = f(g(h(x)))
@@ -572,7 +555,7 @@ export default function ReadingWorkspacePage() {
             </div>
           </div>
 
-          <p className="text-[15px] leading-[1.8] text-slate-300 mb-5">
+          <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
             假设每层 Sigmoid 激活函数的局部导数均取最大值 0.25，对于一个 10 层的深层网络，第 1 层接收到的残差更新信号强度仅为：
           </p>
 
@@ -590,7 +573,7 @@ export default function ReadingWorkspacePage() {
             以及 ResNet 残差连接，现代深度模型已成功支撑上千层网络的稳定收敛。
           </p>
 
-          <div className="h-24" />
+          <div className="h-16" />
         </article>
       </div>
 
@@ -619,7 +602,7 @@ export default function ReadingWorkspacePage() {
                     handleDiscussSelection("请帮我归纳梯度消失的核心成因与解决方案")
                     setShowBubble(false)
                   }}
-                  className="mt-2.5 px-3 py-1.5 2xl:px-3.5 2xl:py-2 text-xs 2xl:text-xs font-semibold text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                  className="mt-2.5 px-3 py-1.5 2xl:px-3.5 2xl:py-2 text-xs font-semibold text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 rounded-lg transition-all cursor-pointer flex items-center gap-1"
                 >
                   生成技能卡片 →
                 </button>
@@ -635,6 +618,18 @@ export default function ReadingWorkspacePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 伴读栏未展开时的快捷浮动入口 - 定位于 center column 内 */}
+      {!discussOpen && (
+        <button
+          onClick={handleOpenDiscuss}
+          aria-label="打开伴读与笔记栏"
+          title="展开伴读与笔记栏"
+          className="absolute right-4 top-[52px] z-20 p-2.5 bg-[#0F172A]/90 hover:bg-slate-800 border border-cyan-500/30 hover:border-cyan-500/60 rounded-xl text-cyan-300 hover:text-cyan-200 transition-all cursor-pointer shadow-xl backdrop-blur-md group"
+        >
+          <MessageSquare size={16} className="group-hover:scale-110 transition-transform" />
+        </button>
+      )}
     </div>
 
       {/* ──────────────── Right Notes & AI Copilot Sidebar Component ──────────────── */}
@@ -658,17 +653,6 @@ export default function ReadingWorkspacePage() {
         onTraceNote={traceNote}
         onCreateNote={(data) => createNoteMutation.mutate(data)}
       />
-
-      {!discussOpen && (
-        <button
-          onClick={handleOpenDiscuss}
-          aria-label="打开伴读与笔记栏"
-          title="展开伴读与笔记栏"
-          className="absolute right-4 top-14 z-10 p-2.5 bg-[#0F172A]/90 hover:bg-slate-800 border border-cyan-500/30 hover:border-cyan-500/60 rounded-xl text-cyan-300 hover:text-cyan-200 transition-all cursor-pointer shadow-xl backdrop-blur-md group"
-        >
-          <MessageSquare size={16} className="group-hover:scale-110 transition-transform" />
-        </button>
-      )}
     </div>
   )
 }

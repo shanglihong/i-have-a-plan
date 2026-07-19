@@ -163,7 +163,7 @@ export function CompanionDrawer({
             onMouseDown={startResizing}
             onDoubleClick={() => setCustomWidth(null)}
             title="按住左右拖动调节宽度，双击复位默认宽度"
-            className={`absolute left-0 top-0 bottom-0 w-2.5 hover:w-3 z-30 cursor-col-resize group flex items-center justify-center transition-all ${
+            className={`absolute left-0 top-0 bottom-0 w-1.5 hover:w-2 z-30 cursor-col-resize group flex items-center justify-center transition-all ${
               isResizing ? "bg-cyan-500/40" : "hover:bg-cyan-500/20"
             }`}
           >
@@ -172,9 +172,9 @@ export function CompanionDrawer({
             </div>
           </div>
 
-          <div className="w-full h-full flex flex-col transition-all duration-200 pl-1">
+          <div className="w-full h-full flex flex-col transition-all duration-200 pl-2">
             {/* ── Header Bar & Animated Tab Selector ── */}
-            <div className="p-2.5 2xl:p-4 border-b border-slate-800/80 flex items-center justify-between bg-[#090D16]/60 backdrop-blur-md">
+            <div className="h-12 px-3 border-b border-slate-800/80 flex items-center justify-between bg-[#090D16]/60 backdrop-blur-md shrink-0">
               <div className="flex relative bg-slate-950/80 p-1 rounded-xl border border-slate-800/90 shadow-inner">
                 {/* Sliding Pill Indicator */}
                 <motion.div
@@ -255,8 +255,8 @@ export function CompanionDrawer({
                           <div
                             className={`group relative rounded-2xl px-3.5 py-2.5 text-xs 2xl:text-sm leading-relaxed ${
                               isUser
-                                ? "bg-gradient-to-r from-cyan-600/30 to-blue-600/20 text-cyan-100 border border-cyan-500/40 rounded-tr-xs shadow-md"
-                                : "bg-[#111827] border border-slate-800 text-slate-200 rounded-tl-xs shadow-md"
+                                ? "bg-gradient-to-r from-cyan-600/30 to-blue-600/20 text-cyan-100 border border-cyan-500/40 rounded-tr-sm shadow-md"
+                                : "bg-[#111827] border border-slate-800 text-slate-200 rounded-tl-sm shadow-md"
                             }`}
                           >
                             <div
@@ -275,7 +275,7 @@ export function CompanionDrawer({
 
                             {/* Message Hover Actions (AI Assistant only) */}
                             {!isUser && msg.done && (
-                              <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex items-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                              <div className="mt-2 pt-1.5 border-t border-slate-800/60 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => copyMessageContent(msg.content, index)}
                                   className="text-[10px] 2xl:text-[11px] text-slate-400 hover:text-cyan-300 flex items-center gap-1 hover:bg-slate-800/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer"

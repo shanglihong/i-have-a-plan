@@ -121,7 +121,7 @@ export function CategoryTreeDrawer({
           {/* 内部固定 240px 容器，防止抽屉拉伸过度时文字挤压抖动 */}
           <div className="w-[240px] h-full flex flex-col shrink-0">
             {/* Drawer Header */}
-            <div className="px-3.5 py-3 border-b border-white/10 bg-slate-900/40 backdrop-blur-sm flex items-center justify-between shrink-0">
+            <div className="px-3.5 h-13 border-b border-white/10 bg-slate-900/40 backdrop-blur-sm flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                   <Layers size={15} />
