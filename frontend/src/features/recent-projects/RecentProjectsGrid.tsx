@@ -26,8 +26,8 @@ export function RecentProjectsGrid({
             最近访问项目
           </h2>
         </div>
-        <span className="text-[11px] text-slate-400 font-mono bg-white/5 border border-white/5 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-          <Layers size={10} className="text-cyan-400" />
+        <span className="text-xs text-slate-400 font-mono bg-white/5 border border-white/5 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+          <Layers size={11} className="text-cyan-400 shrink-0" />
           最近更新 ({recentProjects.length})
         </span>
       </div>

@@ -26,7 +26,7 @@ export function PresetSkillSelector({
     <div>
       <label className="text-xs text-slate-300 mb-1.5 block font-medium flex items-center justify-between">
         <span>可选技能模板注入 (skill_id)</span>
-        <span className="text-[11px] text-slate-400 font-normal">
+        <span className="text-xs text-slate-400 font-normal">
           可选从零开始或注入标准技能
         </span>
       </label>
@@ -40,7 +40,7 @@ export function PresetSkillSelector({
           }`}
         >
           <span className="font-medium">无 (从零创建自订任务树)</span>
-          <span className="text-[11px] text-slate-400">零前置模版</span>
+          <span className="text-xs text-slate-400">零前置模版</span>
         </div>
 
         {PRESET_SKILLS.map((sk) => {
@@ -61,7 +61,7 @@ export function PresetSkillSelector({
                   {sk.title}
                 </span>
               </div>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-xs text-slate-400">
                 {sk.nodesCount} 个节点 · {sk.category}
               </span>
             </div>

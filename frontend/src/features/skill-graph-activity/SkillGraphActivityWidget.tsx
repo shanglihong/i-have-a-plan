@@ -18,7 +18,7 @@ export function SkillGraphActivityWidget() {
             技能引擎与图谱
           </h3>
         </div>
-        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono font-medium flex items-center gap-1">
+        <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-mono font-medium flex items-center gap-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           {isLoading ? "请求中" : "活跃中"}
         </span>
@@ -42,16 +42,16 @@ export function SkillGraphActivityWidget() {
                     {sk.title}
                   </p>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1 font-normal">
+                <p className="text-xs text-slate-400 mt-1 font-normal">
                   已关联 {sk.nodesCount} 个节点 · {sk.status === "DEPLOYED" ? "图谱已部署" : "进行中"}
                 </p>
               </div>
               <button
                 onClick={() => navigate(sk.sandboxUrl || sk.graphUrl || "/graph")}
-                className="px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/25 transition-all duration-200 cursor-pointer shrink-0 flex items-center gap-1"
+                className="px-2.5 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/25 transition-all duration-200 cursor-pointer shrink-0 flex items-center gap-1"
               >
                 <span>{sk.sandboxUrl ? "沙箱" : "图谱"}</span>
-                <ExternalLink size={10} />
+                <ExternalLink size={11} />
               </button>
             </div>
           ))

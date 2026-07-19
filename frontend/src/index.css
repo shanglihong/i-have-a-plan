@@ -37,6 +37,7 @@
   --border: rgba(255, 255, 255, 0.10);
   --ring: rgba(34, 211, 238, 0.4);
   --radius: 8px;
+  --app-font-scale: 1;
 }
 
 * {
@@ -45,6 +46,26 @@
 
 html {
   scroll-behavior: smooth;
+  font-size: calc(16px * var(--app-font-scale));
+}
+
+/* 响应式大屏幕字体基准自适应 (2K / 4K / 超宽显示器) */
+@media (min-width: 1536px) {
+  html {
+    font-size: calc(17px * var(--app-font-scale));
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: calc(17.5px * var(--app-font-scale));
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: calc(18.5px * var(--app-font-scale));
+  }
 }
 
 body {

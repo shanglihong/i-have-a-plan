@@ -316,7 +316,7 @@ const ToastCard: React.FC<ToastCardProps> = ({ toastItem }) => {
 
         {/* Technical Details Code Block (if provided) */}
         {toastItem.details && (
-          <div className="mt-2 text-[11px] font-mono bg-black/40 border border-white/10 px-2.5 py-1.5 rounded-lg text-slate-300 break-all max-h-24 overflow-y-auto select-all">
+          <div className="mt-2 text-xs font-mono bg-black/40 border border-white/10 px-2.5 py-1.5 rounded-lg text-slate-300 break-all max-h-24 overflow-y-auto select-all">
             {toastItem.details}
           </div>
         )}

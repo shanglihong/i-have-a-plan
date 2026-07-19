@@ -63,21 +63,21 @@ export function DashboardStatsGrid() {
                 <IconComp size={19} className={colorStyle.text} />
               </div>
               <span
-                className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded-full border border-white/10 ${colorStyle.bg} ${colorStyle.text} flex items-center gap-0.5`}
+                className={`text-xs font-mono font-medium px-2 py-0.5 rounded-full border border-white/10 ${colorStyle.bg} ${colorStyle.text} flex items-center gap-0.5`}
               >
                 <span>{isLoading ? "加载中..." : stat?.badge || "--"}</span>
-                <ArrowUpRight size={10} />
+                <ArrowUpRight size={11} />
               </span>
             </div>
 
             <div className="relative z-10">
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-100 leading-none font-mono tracking-tight">
+                <span className="text-2xl 2xl:text-3xl font-black text-slate-100 leading-none font-mono tracking-tight">
                   {isLoading ? "--" : stat?.value ?? 0}
                 </span>
-                <span className="text-xs font-semibold text-slate-300">{config.label}</span>
+                <span className="text-xs 2xl:text-sm font-semibold text-slate-200">{config.label}</span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate mt-1.5 font-normal">
+              <p className="text-xs text-slate-400 truncate mt-1.5 font-normal">
                 {isLoading ? "数据请求中..." : stat?.desc || ""}
               </p>
             </div>

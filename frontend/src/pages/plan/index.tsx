@@ -205,7 +205,7 @@ export default function PlanWorkspacePage() {
                             <div className="relative">
                               <button
                                 onClick={() => setRescheduleTask(task.id)}
-                                className="text-[11px] text-red-300 bg-red-500/20 hover:bg-red-500/30 px-2 py-1 rounded-md border border-red-500/40 transition-all flex items-center gap-1 cursor-pointer font-medium"
+                                className="text-xs text-red-300 bg-red-500/20 hover:bg-red-500/30 px-2 py-1 rounded-md border border-red-500/40 transition-all flex items-center gap-1 cursor-pointer font-medium"
                               >
                                 <RefreshCw size={10} /> 重调度
                               </button>

@@ -44,7 +44,7 @@ export default function DashboardPage() {
             <h1 className="text-xl font-black text-slate-100 tracking-tight">
               知识工作台
             </h1>
-            <span className="text-[10px] font-mono font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/25 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+            <span className="text-xs font-mono font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/25 px-2.5 py-0.5 rounded-full flex items-center gap-1">
               <Sparkles size={11} className="text-cyan-400" />
               v1.0 研发双轨
             </span>

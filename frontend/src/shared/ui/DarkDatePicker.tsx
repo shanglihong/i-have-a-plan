@@ -105,21 +105,21 @@ export function DarkDatePicker({
         <button
           type="button"
           onClick={() => handleQuickAdd(7)}
-          className="px-2 py-0.5 text-[11px] rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/8 transition-all cursor-pointer"
+          className="px-2 py-0.5 text-xs rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/8 transition-all cursor-pointer"
         >
           +1周后
         </button>
         <button
           type="button"
           onClick={() => handleQuickAdd(30)}
-          className="px-2 py-0.5 text-[11px] rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/8 transition-all cursor-pointer"
+          className="px-2 py-0.5 text-xs rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/8 transition-all cursor-pointer"
         >
           +1个月后
         </button>
         <button
           type="button"
           onClick={() => handleQuickAdd(90)}
-          className="px-2 py-0.5 text-[11px] rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/8 transition-all cursor-pointer"
+          className="px-2 py-0.5 text-xs rounded bg-white/5 hover:bg-white/10 text-slate-300 border border-white/8 transition-all cursor-pointer"
         >
           +3个月后
         </button>
@@ -169,7 +169,7 @@ export function DarkDatePicker({
               </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-slate-500 font-medium mb-2">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-500 font-medium mb-2">
               <span>日</span>
               <span>一</span>
               <span>二</span>

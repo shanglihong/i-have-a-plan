@@ -60,7 +60,7 @@ export function ProjectTypeSelector({
             <p className="text-xs font-medium text-slate-200 mb-1">
               {t.label}
             </p>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-400 leading-relaxed">
               {t.desc}
             </p>
           </div>

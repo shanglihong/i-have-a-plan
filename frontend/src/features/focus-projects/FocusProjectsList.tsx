@@ -26,7 +26,7 @@ export function FocusProjectsList({ projects }: FocusProjectsListProps) {
             重点关注项目
           </h2>
         </div>
-        <span className="text-[11px] text-slate-400 font-normal">
+        <span className="text-xs text-slate-400 font-normal">
           需处理阻塞、恢复进度或生成技能
         </span>
       </div>
@@ -68,7 +68,7 @@ export function FocusProjectsList({ projects }: FocusProjectsListProps) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
                         isSuspended
                           ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
                           : isHighProgress

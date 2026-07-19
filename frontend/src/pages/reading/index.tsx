@@ -302,7 +302,7 @@ export default function ReadingWorkspacePage() {
               {/* Progress Overview */}
               <div className="space-y-2.5 px-4 py-3 border-b border-slate-800/60">
                 <div>
-                  <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
+                  <div className="flex justify-between text-xs text-slate-400 mb-1 font-medium">
                     <span>阅读进度</span>
                     <span className="font-mono text-cyan-400 font-semibold">
                       {Math.round(scrollProgress)}%
@@ -311,7 +311,7 @@ export default function ReadingWorkspacePage() {
                   <ProgressBar value={scrollProgress} color="cyan" />
                 </div>
                 <div>
-                  <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
+                  <div className="flex justify-between text-xs text-slate-400 mb-1 font-medium">
                     <span>精读卡片理解</span>
                     <span className="font-mono text-violet-400 font-semibold">
                       82%
@@ -331,7 +331,7 @@ export default function ReadingWorkspacePage() {
                       key={ch.id}
                       onClick={() => setActiveChapter(ch.id)}
                       className={`w-full text-left rounded-lg text-xs transition-all flex items-center gap-2.5 cursor-pointer font-medium border
-                        ${ch.level === 1 ? "pl-7 pr-3 py-2 text-[11px]" : "px-3 py-2.5"}
+                        ${ch.level === 1 ? "pl-7 pr-3 py-2 text-xs" : "px-3 py-2.5"}
                         ${isCurrent
                           ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border-cyan-500/30 shadow-sm shadow-cyan-950/50"
                           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-transparent"
@@ -359,7 +359,7 @@ export default function ReadingWorkspacePage() {
                 })}
               </nav>
 
-              <div className="p-3 border-t border-slate-800/80 bg-[#090D16]/30 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+              <div className="p-3 border-t border-slate-800/80 bg-[#090D16]/30 text-xs text-slate-500 flex items-center justify-between font-mono">
                 <span>共 5 章 12 节</span>
                 <span className="text-emerald-400/80">已完成 60%</span>
               </div>
@@ -399,7 +399,7 @@ export default function ReadingWorkspacePage() {
 
           {/* Reading Stats & Status Badge */}
           <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
-            <div className="hidden md:flex items-center gap-1.5 font-mono text-[11px] bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-full text-slate-300">
+            <div className="hidden md:flex items-center gap-1.5 font-mono text-xs bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-full text-slate-300">
               <Clock size={12} className="text-cyan-400" />
               <span>预计 ~24 min</span>
             </div>
@@ -479,12 +479,12 @@ export default function ReadingWorkspacePage() {
                 第三章：反向传播算法及其微积分推导
               </h1>
               <p className="text-xs text-slate-400 font-mono">
-                发布时间：2026-07-19 · 阅读难度：高级 · 核心考点：链式法则、梯度衰减
+                发布时间：2026-07-19 · 阅读难度：高级 · 考点：链式法则、梯度衰减
               </p>
             </div>
 
             {/* Paragraph 1 */}
-            <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+            <p className="text-base leading-[1.8] text-slate-300 mb-6">
               反向传播（Backpropagation）是训练人工神经网络的核心算法，由 Rumelhart、Hinton 和 Williams 于 1986 年系统性地提出。其本质在于借助微积分中的
               <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 mx-1 rounded font-medium">
                 链式求导法则 (Chain Rule)
@@ -496,7 +496,7 @@ export default function ReadingWorkspacePage() {
             <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
               <span className="text-cyan-400 font-mono">3.1</span> 链式法则的核心微积分推导
             </h2>
-            <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+            <p className="text-base leading-[1.8] text-slate-300 mb-6">
               设一个典型的多层前馈神经网络可以抽象为复合函数{" "}
               <code className="text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded font-mono text-xs font-semibold">
                 L = f(g(h(x)))
@@ -556,7 +556,7 @@ export default function ReadingWorkspacePage() {
               </div>
             </div>
 
-            <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+            <p className="text-base leading-[1.8] text-slate-300 mb-6">
               假设每层 Sigmoid 激活函数的局部导数均取最大值 0.25，对于一个 10 层的深层网络，第 1 层接收到的残差更新信号强度仅为：
             </p>
 
@@ -568,7 +568,7 @@ export default function ReadingWorkspacePage() {
             <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
               <span className="text-cyan-400 font-mono">3.3</span> Batch Normalization 与 ResNet 现代解法
             </h2>
-            <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+            <p className="text-base leading-[1.8] text-slate-300 mb-6">
               批量归一化（Batch Normalization）通过将每一隐藏层的输入分布强制拉回到均值为 0、方差为 1 的标准正态分布区间，从而完美避开了 Sigmoid 的两端饱和区。配合
               <span className="text-cyan-300 font-medium mx-1">ReLU (Rectified Linear Unit)</span>
               以及 ResNet 残差连接，现代深度模型已成功支撑上千层网络的稳定收敛。

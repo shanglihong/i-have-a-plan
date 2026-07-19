@@ -24,7 +24,7 @@ export function KnowledgeInsightsWidget() {
             最新笔记金句提炼
           </h3>
         </div>
-        <span className="text-[10px] text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full font-mono font-medium">
+        <span className="text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full font-mono font-medium">
           {isLoading ? "加载中" : `${notes.length} 篇精选`}
         </span>
       </div>
@@ -43,7 +43,7 @@ export function KnowledgeInsightsWidget() {
               <p className="text-xs text-slate-300 italic leading-relaxed font-normal group-hover:text-slate-100 transition-colors">
                 “{note.quote || note.content}”
               </p>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1.5 border-t border-white/5">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-mono pt-1.5 border-t border-white/5">
                 <span className="text-cyan-400 font-medium flex items-center gap-1">
                   <BookmarkCheck size={11} />
                   {note.anchor}

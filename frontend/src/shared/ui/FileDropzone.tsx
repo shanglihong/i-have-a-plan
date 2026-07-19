@@ -57,7 +57,7 @@ export function FileDropzone({
           <p className="text-xs font-medium text-slate-200">
             点击或拖拽上传 PDF / MD 文档
           </p>
-          <p className="text-[11px] text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             支持 {accept} 格式，最大不超过 {maxSizeMB}MB
           </p>
         </div>
@@ -71,7 +71,7 @@ export function FileDropzone({
               <p className="font-medium text-slate-200 truncate">
                 {selectedFile.name}
               </p>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-slate-400">
                 {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
               </p>
             </div>

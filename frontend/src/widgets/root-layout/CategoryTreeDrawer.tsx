@@ -169,7 +169,7 @@ export function CategoryTreeDrawer({
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setTypeFilter("ALL")}
-                  className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-all cursor-pointer text-center ${
+                  className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer text-center ${
                     typeFilter === "ALL"
                       ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
                       : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
@@ -179,24 +179,24 @@ export function CategoryTreeDrawer({
                 </button>
                 <button
                   onClick={() => setTypeFilter("READING")}
-                  className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     typeFilter === "READING"
                       ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
                       : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
                   }`}
                 >
-                  <BookOpen size={10} />
+                  <BookOpen size={11} />
                   <span>阅读</span>
                 </button>
                 <button
                   onClick={() => setTypeFilter("PLAN")}
-                  className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     typeFilter === "PLAN"
                       ? "bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-xs font-semibold"
                       : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
                   }`}
                 >
-                  <ListChecks size={10} />
+                  <ListChecks size={11} />
                   <span>计划</span>
                 </button>
               </div>
@@ -218,7 +218,7 @@ export function CategoryTreeDrawer({
                   </span>
                   <button
                     onClick={handleResetFilters}
-                    className="text-[11px] text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer font-medium mt-1 transition-colors"
+                    className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer font-medium mt-1 transition-colors"
                   >
                     重置搜索与筛选
                   </button>
@@ -251,7 +251,7 @@ export function CategoryTreeDrawer({
                             {category}
                           </span>
                         </div>
-                        <span className="text-[10px] font-mono font-medium text-slate-400 bg-white/5 border border-white/5 px-1.5 py-0.5 rounded-full shrink-0 group-hover:border-white/10 group-hover:text-slate-300 transition-all">
+                        <span className="text-xs font-mono font-medium text-slate-400 bg-white/5 border border-white/5 px-1.5 py-0.5 rounded-full shrink-0 group-hover:border-white/10 group-hover:text-slate-300 transition-all">
                           {catProjects.length}
                         </span>
                       </button>
@@ -280,7 +280,7 @@ export function CategoryTreeDrawer({
                                   onClick={() => navigate(targetPath)}
                                   role="treeitem"
                                   aria-selected={isActive}
-                                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[11px] transition-all cursor-pointer text-left group active:scale-[0.99] ${
+                                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-all cursor-pointer text-left group active:scale-[0.99] ${
                                     isActive
                                       ? p.type === "READING"
                                         ? "bg-cyan-500/15 text-cyan-200 font-semibold border border-cyan-500/30 shadow-xs shadow-cyan-950/40"
@@ -335,7 +335,7 @@ export function CategoryTreeDrawer({
             </div>
 
             {/* Footer Summary & Action Bar */}
-            <div className="px-3 py-2 border-t border-white/10 bg-slate-950/40 flex items-center justify-between shrink-0 text-[10px] text-slate-400 select-none">
+            <div className="px-3 py-2 border-t border-white/10 bg-slate-950/40 flex items-center justify-between shrink-0 text-xs text-slate-400 select-none">
               <span className="font-mono">
                 {categoryGroups.length} 分类 / {totalFilteredProjects} 项目
               </span>

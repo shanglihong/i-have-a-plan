@@ -242,7 +242,7 @@ export default function SkillSandboxPage() {
                 {n.title}
               </span>
               {n.deps.length > 0 && (
-                <span className="text-[11px] text-slate-400 font-mono">
+                <span className="text-xs text-slate-400 font-mono">
                   {n.deps.length} 前置
                 </span>
               )}

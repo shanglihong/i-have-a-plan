@@ -18,10 +18,12 @@ import {
   Settings,
   ChevronRight,
   FolderTree,
+  Type,
 } from "lucide-react"
 
 import { CategoryTreeDrawer } from "./CategoryTreeDrawer"
 import { MOCK_PROJECTS } from "../../mock"
+import { useFontScale } from "../../shared/hooks/useFontScale"
 
 
 // ─── Breadcrumb Data Contract ─────────────────────────────────────────────────
@@ -38,16 +40,20 @@ export default function RootLayout() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchVal, setSearchVal] = useState("")
   const [notifOpen, setNotifOpen] = useState(false)
+  const [fontScaleOpen, setFontScaleOpen] = useState(false)
 
   const location = useLocation()
+  const { scaleLevel, currentOption, options, setScaleLevel } = useFontScale()
 
   const notifRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const fontScaleRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // 点击外部自动收起通知与搜索框
+  // 点击外部自动收起通知、字号菜单与搜索框
   useClickOutside(notifRef, () => setNotifOpen(false), notifOpen)
   useClickOutside(searchRef, () => setSearchOpen(false), searchOpen)
+  useClickOutside(fontScaleRef, () => setFontScaleOpen(false), fontScaleOpen)
 
   // 全局快捷键 Cmd+K / Ctrl+K & Esc 支持
   useEffect(() => {
@@ -178,7 +184,7 @@ export default function RootLayout() {
                   />
                 )}
                 <Icon size={18} className="shrink-0" />
-                <span className="text-[10px] font-medium leading-none tracking-tight">{item.label}</span>
+                <span className="text-xs font-medium leading-none tracking-tight">{item.label}</span>
               </button>
             )
           }
@@ -205,7 +211,7 @@ export default function RootLayout() {
                     />
                   )}
                   <Icon size={18} className="shrink-0" />
-                  <span className="text-[10px] font-medium leading-none tracking-tight">{item.label}</span>
+                  <span className="text-xs font-medium leading-none tracking-tight">{item.label}</span>
                 </>
               )}
             </NavLink>
@@ -329,10 +335,73 @@ export default function RootLayout() {
                   >
                     <Search size={15} className="group-hover:text-slate-200 transition-colors" />
                     <span className="hidden md:inline-block text-slate-400 text-xs">搜索…</span>
-                    <kbd className="hidden sm:inline-flex items-center gap-0.5 text-[10px] bg-white/10 border border-white/10 text-slate-300 px-1.5 py-0.5 rounded font-mono font-medium shadow-sm">
+                    <kbd className="hidden sm:inline-flex items-center gap-0.5 text-xs bg-white/10 border border-white/10 text-slate-300 px-1.5 py-0.5 rounded font-mono font-medium shadow-sm">
                       ⌘K
                     </kbd>
                   </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Font Scale Selector Dropdown */}
+            <div className="relative" ref={fontScaleRef}>
+              <button
+                onClick={() => setFontScaleOpen((o) => !o)}
+                aria-label="调节全局字号缩放"
+                title={`当前字号等级: ${currentOption.label} (${Math.round(currentOption.scale * 100)}%)`}
+                className="h-9 px-2 flex items-center gap-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/10 transition-all cursor-pointer text-xs group border border-transparent hover:border-white/10"
+              >
+                <Type size={15} className="text-slate-400 group-hover:text-cyan-400 transition-colors shrink-0" />
+                <span className="hidden lg:inline-block text-slate-300 text-xs font-medium">
+                  {currentOption.label}
+                </span>
+              </button>
+              <AnimatePresence>
+                {fontScaleOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-11 w-56 bg-[#111827] border border-slate-700/80 rounded-xl shadow-2xl p-2 z-50"
+                  >
+                    <div className="px-2.5 py-1.5 border-b border-slate-800 mb-1">
+                      <p className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                        <Type size={14} className="text-cyan-400" /> 全局字号自适应
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">针对高分辨率与大屏幕视距优化</p>
+                    </div>
+                    <div className="space-y-0.5">
+                      {options.map((opt) => {
+                        const isSelected = scaleLevel === opt.key;
+                        return (
+                          <button
+                            key={opt.key}
+                            onClick={() => {
+                              setScaleLevel(opt.key);
+                              setFontScaleOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
+                              isSelected
+                                ? "bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/30"
+                                : "text-slate-300 hover:bg-white/5 hover:text-slate-100"
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span>{opt.label}</span>
+                                {opt.key === "comfortable" && (
+                                  <span className="text-xs bg-cyan-500/20 text-cyan-300 px-1 py-0.2 rounded font-mono">推荐大屏</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-slate-400 font-normal">{opt.description}</div>
+                            </div>
+                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0 ml-1" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>
@@ -358,7 +427,7 @@ export default function RootLayout() {
                   >
                     <div className="flex items-center justify-between mb-2 px-1 pb-2 border-b border-slate-800">
                       <p className="text-xs text-slate-300 font-semibold">通知中心</p>
-                      <span className="text-[10px] text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded font-mono">3 未读</span>
+                      <span className="text-xs text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded font-mono">3 未读</span>
                     </div>
                     {[
                       {
@@ -392,7 +461,7 @@ export default function RootLayout() {
                           <p className="text-xs text-slate-200 leading-snug">
                             {n.msg}
                           </p>
-                          <p className="text-[10px] text-slate-400 mt-1">
+                          <p className="text-xs text-slate-400 mt-1">
                             {n.time}
                           </p>
                         </div>

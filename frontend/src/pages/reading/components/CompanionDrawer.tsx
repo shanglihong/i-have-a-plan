@@ -244,8 +244,8 @@ export function CompanionDrawer({
                         <div className={`flex flex-col max-w-[88%] 2xl:max-w-[90%] ${isUser ? "items-end" : "items-start"}`}>
                           {/* Quote Box */}
                           {msg.quote && (
-                            <div className="mb-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-[11px] 2xl:text-xs text-emerald-300 flex items-center gap-1.5 italic shadow-sm">
-                              <Quote size={11} className="shrink-0 text-emerald-400" />
+                            <div className="mb-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs 2xl:text-sm text-emerald-300 flex items-center gap-1.5 italic shadow-sm">
+                              <Quote size={12} className="shrink-0 text-emerald-400" />
                               <span className="truncate">{msg.quote}</span>
                             </div>
                           )}
@@ -276,7 +276,7 @@ export function CompanionDrawer({
                               <div className="mt-2 pt-1.5 border-t border-slate-800/60 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => copyMessageContent(msg.content, index)}
-                                  className="text-[10px] 2xl:text-[11px] text-slate-400 hover:text-cyan-300 flex items-center gap-1 hover:bg-slate-800/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                                  className="text-xs 2xl:text-xs text-slate-400 hover:text-cyan-300 flex items-center gap-1 hover:bg-slate-800/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
                                   title="复制此回答"
                                 >
                                   {copiedIndex === index ? (
@@ -294,7 +294,7 @@ export function CompanionDrawer({
 
                                 <button
                                   onClick={() => saveMessageAsNote(msg, index)}
-                                  className="text-[10px] 2xl:text-[11px] text-slate-400 hover:text-emerald-300 flex items-center gap-1 hover:bg-slate-800/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                                  className="text-xs 2xl:text-xs text-slate-400 hover:text-emerald-300 flex items-center gap-1 hover:bg-slate-800/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
                                   title="保存此回答为笔记"
                                 >
                                   {noteSavedIndex === index ? (
@@ -325,7 +325,7 @@ export function CompanionDrawer({
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="px-3 py-1.5 bg-emerald-950/40 border-t border-emerald-500/40 flex items-center justify-between text-[11px] 2xl:text-xs text-emerald-300"
+                      className="px-3 py-1.5 bg-emerald-950/40 border-t border-emerald-500/40 flex items-center justify-between text-xs 2xl:text-xs text-emerald-300"
                     >
                       <div className="flex items-center gap-1.5 min-w-0 pr-2">
                         <Quote size={12} className="shrink-0 text-emerald-400" />
@@ -346,21 +346,21 @@ export function CompanionDrawer({
                 <div className="px-2.5 2xl:px-4 py-1.5 border-t border-slate-800/60 bg-[#0C111D]/90 flex gap-1.5 overflow-x-auto scrollbar-none">
                   <button
                     onClick={() => onSendMessage("请用简单比喻解释链式法则的核心思想？")}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
                   >
                     <Lightbulb size={11} className="text-amber-400" />
                     <span>链式法则比喻</span>
                   </button>
                   <button
                     onClick={() => onSendMessage("梯度消失现象的深层根源及公式推导是怎样的？")}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
                   >
                     <Zap size={11} className="text-cyan-400" />
                     <span>梯度消失剖析</span>
                   </button>
                   <button
                     onClick={() => onSendMessage("ResNet 残差网络如何解决深层梯度衰减问题？")}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
                   >
                     <BookOpen size={11} className="text-violet-400" />
                     <span>ResNet残差机制</span>
@@ -423,12 +423,12 @@ export function CompanionDrawer({
                           <Target size={12} className="text-cyan-400 group-hover:scale-110 transition-transform" />
                           <span>{note.anchor}</span>
                         </button>
-                        <span className="text-[10px] text-slate-500 font-mono">{note.createdAt}</span>
+                        <span className="text-xs text-slate-500 font-mono">{note.createdAt}</span>
                       </div>
 
                       {/* Quote Container if present */}
                       {note.quote && (
-                        <blockquote className="text-[11px] 2xl:text-xs text-emerald-300 bg-emerald-950/30 px-2.5 py-1.5 rounded-xl mb-2 italic leading-relaxed border-l-2 border-emerald-500/60 font-sans">
+                        <blockquote className="text-xs 2xl:text-xs text-emerald-300 bg-emerald-950/30 px-2.5 py-1.5 rounded-xl mb-2 italic leading-relaxed border-l-2 border-emerald-500/60 font-sans">
                           "{note.quote}"
                         </blockquote>
                       )}
