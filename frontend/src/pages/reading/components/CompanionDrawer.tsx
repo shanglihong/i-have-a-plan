@@ -13,9 +13,11 @@ import {
   Bot,
   Copy,
   Check,
+  Zap,
+  Lightbulb,
+  BookOpen,
   GripVertical,
 } from "lucide-react"
-
 
 export interface MessageItem {
   role: string
@@ -251,8 +253,8 @@ export function CompanionDrawer({
                           {/* Message Content Bubble */}
                           <div
                             className={`group relative rounded-2xl px-3.5 py-2.5 text-xs 2xl:text-sm leading-relaxed ${isUser
-                                ? "bg-gradient-to-r from-cyan-600/30 to-blue-600/20 text-cyan-100 border border-cyan-500/40 rounded-tr-sm shadow-md"
-                                : "bg-[#111827] border border-slate-800 text-slate-200 rounded-tl-sm shadow-md"
+                              ? "bg-gradient-to-r from-cyan-600/30 to-blue-600/20 text-cyan-100 border border-cyan-500/40 rounded-tr-sm shadow-md"
+                              : "bg-[#111827] border border-slate-800 text-slate-200 rounded-tl-sm shadow-md"
                               }`}
                           >
                             <div
@@ -340,6 +342,30 @@ export function CompanionDrawer({
                   )}
                 </AnimatePresence>
 
+                {/* Quick Prompts Bar (No Emoji, Vector Icons Only) */}
+                <div className="px-2.5 2xl:px-4 py-1.5 border-t border-slate-800/60 bg-[#0C111D]/90 flex gap-1.5 overflow-x-auto scrollbar-none">
+                  <button
+                    onClick={() => onSendMessage("请用简单比喻解释链式法则的核心思想？")}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
+                  >
+                    <Lightbulb size={11} className="text-amber-400" />
+                    <span>链式法则比喻</span>
+                  </button>
+                  <button
+                    onClick={() => onSendMessage("梯度消失现象的深层根源及公式推导是怎样的？")}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
+                  >
+                    <Zap size={11} className="text-cyan-400" />
+                    <span>梯度消失剖析</span>
+                  </button>
+                  <button
+                    onClick={() => onSendMessage("ResNet 残差网络如何解决深层梯度衰减问题？")}
+                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
+                  >
+                    <BookOpen size={11} className="text-violet-400" />
+                    <span>ResNet残差机制</span>
+                  </button>
+                </div>
 
                 {/* Message Input Container */}
                 <div className="p-2.5 2xl:p-4 border-t border-slate-800/80 bg-[#090D16]">
