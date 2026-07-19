@@ -1,7 +1,7 @@
 import { Outlet, NavLink } from "react-router-dom"
 import { useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useClickOutside } from "../shared/hooks/useClickOutside"
+import { useClickOutside } from "../../shared/hooks/useClickOutside"
 import {
   LayoutDashboard,
   BookOpen,
@@ -18,7 +18,7 @@ import {
   Settings,
 } from "lucide-react"
 
-// ─── Navigation Layout ────────────────────────────────────────────────────────
+// ─── Navigation Layout Widget ──────────────────────────────────────────────────
 
 export default function RootLayout() {
   const [searchOpen, setSearchOpen] = useState(false)

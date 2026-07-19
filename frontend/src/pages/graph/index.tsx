@@ -59,9 +59,10 @@ import {
 import { 
   MOCK_PROJECTS, MOCK_NOTES, MOCK_TASKS, 
   MOCK_GRAPH_NODES, MOCK_GRAPH_EDGES, MOCK_SANDBOX_NODES 
-} from "../mock/data";
+} from "../../shared/mock/data";
 
-import { StatusBadge, ProgressBar, SuspendedOverlay } from "../shared/ui";
+import { StatusBadge, ProgressBar } from "../../shared/ui";
+import { SuspendedOverlay } from "../../features";
 
 
 // ─── Global Graph ──────────────────────────────────────────────────────────────

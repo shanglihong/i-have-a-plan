@@ -1,11 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import App from './app/App'
 import './index.css'
 
 async function enableMocking() {
   if (import.meta.env.DEV) {
-    const { worker } = await import('./mock/browser')
+    const { worker } = await import('./shared/mock/browser')
     return worker.start({ onUnhandledRequest: 'bypass' })
   }
 }
