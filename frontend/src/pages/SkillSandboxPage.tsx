@@ -61,7 +61,7 @@ import {
   MOCK_GRAPH_NODES, MOCK_GRAPH_EDGES, MOCK_SANDBOX_NODES 
 } from "../mock/data";
 
-import { StatusBadge, ProgressBar, SuspendedOverlay } from "../components/shared";
+import { StatusBadge, ProgressBar, SuspendedOverlay } from "../shared/ui";
 
 
 // ─── Skill Sandbox ─────────────────────────────────────────────────────────────

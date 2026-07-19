@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { api } from '../api'
+import { api } from '../shared/api'
 
 // ─── Mock skill data (GET /api/skills/:id — [未开发，需 Mock]) ────────────────
 

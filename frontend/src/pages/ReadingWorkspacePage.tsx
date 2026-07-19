@@ -10,8 +10,8 @@ import {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api";
-import { useLayoutStore, useFocusStore, useFloatingMenuStore } from "../store";
+import { api } from "../shared/api";
+import { useLayoutStore, useFocusStore, useFloatingMenuStore } from "../shared/store";
 
 import {
   LayoutDashboard,
@@ -55,7 +55,7 @@ import {
   Maximize2,
 } from "lucide-react";
 
-import { StatusBadge, ProgressBar, SuspendedOverlay } from "../components/shared";
+import { StatusBadge, ProgressBar, SuspendedOverlay } from "../shared/ui";
 
 // ─── Reading Workspace ────────────────────────────────────────────────────────
 

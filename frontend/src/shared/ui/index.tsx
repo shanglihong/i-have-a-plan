@@ -1,61 +1,8 @@
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Outlet,
-  NavLink,
-  useNavigate,
-  Navigate,
-} from "react-router-dom";
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  LayoutDashboard,
-  BookOpen,
-  ListChecks,
-  Network,
-  Cpu,
-  Search,
-  Bell,
-  Plus,
-  ChevronRight,
-  ChevronDown,
-  X,
-  Send,
-  Bookmark,
-  Zap,
-  Archive,
-  Play,
-  MoreHorizontal,
-  GitBranch,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-  Layers,
-  FileText,
-  MessageSquare,
-  Sparkles,
-  Target,
-  Map,
-  Settings,
-  TrendingUp,
-  Circle,
-  Minus,
-  ChevronsRight,
-  Lock,
-  Unlock,
-  RefreshCw,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-} from "lucide-react";
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { Unlock } from "lucide-react"
 
-// ─── Shared Components ───────────────────────────────────────────────────────
+// ─── Shared UI Dumb Components ───────────────────────────────────────────────
 
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -91,33 +38,33 @@ export function StatusBadge({ status }: { status: string }) {
       label: "待解锁",
       cls: "bg-slate-500/15 text-slate-500 ring-1 ring-slate-500/20",
     },
-  };
+  }
   const { label, cls } = map[status] || {
     label: status,
     cls: "bg-slate-700 text-slate-400",
-  };
+  }
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium font-mono ${cls}`}
     >
       {label}
     </span>
-  );
+  )
 }
 
 export function ProgressBar({
   value,
   color = "cyan",
 }: {
-  value: number;
-  color?: string;
+  value: number
+  color?: string
 }) {
   const colors: Record<string, string> = {
     cyan: "bg-cyan-400",
     emerald: "bg-emerald-400",
     amber: "bg-amber-400",
     violet: "bg-violet-400",
-  };
+  }
   return (
     <div className="h-1 bg-white/5 rounded-full overflow-hidden">
       <motion.div
@@ -127,22 +74,22 @@ export function ProgressBar({
         transition={{ duration: 0.8, ease: "easeOut" }}
       />
     </div>
-  );
+  )
 }
 
 export function SuspendedOverlay({
   onResume,
 }: {
-  onResume: () => void;
+  onResume: () => void
 }) {
-  const [ripple, setRipple] = useState(false);
+  const [ripple, setRipple] = useState(false)
   const handleResume = () => {
-    setRipple(true);
+    setRipple(true)
     setTimeout(() => {
-      setRipple(false);
-      onResume();
-    }, 900);
-  };
+      setRipple(false)
+      onResume()
+    }, 900)
+  }
   return (
     <div className="absolute inset-0 z-20 backdrop-blur-sm bg-[#0a0e1a]/70 flex items-center justify-center rounded-lg overflow-hidden">
       {ripple && (
@@ -163,6 +110,5 @@ export function SuspendedOverlay({
         </button>
       </div>
     </div>
-  );
+  )
 }
-

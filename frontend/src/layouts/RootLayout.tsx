@@ -1,18 +1,7 @@
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Outlet,
-  NavLink,
-  useNavigate,
-  Navigate,
-} from "react-router-dom";
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Outlet, NavLink } from "react-router-dom"
+import { useState, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { useClickOutside } from "../shared/hooks/useClickOutside"
 import {
   LayoutDashboard,
   BookOpen,
@@ -21,46 +10,25 @@ import {
   Cpu,
   Search,
   Bell,
-  Plus,
-  ChevronRight,
-  ChevronDown,
   X,
-  Send,
-  Bookmark,
-  Zap,
-  Archive,
-  Play,
-  MoreHorizontal,
-  GitBranch,
   AlertTriangle,
   CheckCircle2,
-  Clock,
-  ArrowRight,
   Layers,
-  FileText,
-  MessageSquare,
   Sparkles,
-  Target,
-  Map,
   Settings,
-  TrendingUp,
-  Circle,
-  Minus,
-  ChevronsRight,
-  Lock,
-  Unlock,
-  RefreshCw,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-} from "lucide-react";
+} from "lucide-react"
 
 // ─── Navigation Layout ────────────────────────────────────────────────────────
 
 export default function RootLayout() {
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchVal, setSearchVal] = useState("");
-  const [notifOpen, setNotifOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchVal, setSearchVal] = useState("")
+  const [notifOpen, setNotifOpen] = useState(false)
+
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  // 点击弹窗外部自动收起通知
+  useClickOutside(notifRef, () => setNotifOpen(false), notifOpen)
 
   const navItems = [
     { to: "/dashboard", icon: LayoutDashboard, label: "大盘" },
@@ -68,7 +36,7 @@ export default function RootLayout() {
     { to: "/project/plan/2", icon: ListChecks, label: "计划" },
     { to: "/graph", icon: Network, label: "图谱" },
     { to: "/skills/sandbox/skill-1", icon: Cpu, label: "沙箱" },
-  ];
+  ]
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0a0e1a]">
@@ -85,7 +53,10 @@ export default function RootLayout() {
             to={to}
             className={({ isActive }) =>
               `w-10 h-10 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all group relative
-            ${isActive ? "bg-cyan-500/15 text-cyan-400" : "text-slate-600 hover:text-slate-300 hover:bg-white/5"}`
+            ${isActive
+                ? "bg-cyan-500/15 text-cyan-400"
+                : "text-slate-600 hover:text-slate-300 hover:bg-white/5"
+              }`
             }
           >
             {({ isActive }) => (
@@ -94,9 +65,7 @@ export default function RootLayout() {
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-cyan-400 rounded-r-full -ml-[1px]" />
                 )}
                 <Icon size={16} />
-                <span className="text-[8px] font-medium">
-                  {label}
-                </span>
+                <span className="text-[8px] font-medium">{label}</span>
               </>
             )}
           </NavLink>
@@ -111,7 +80,7 @@ export default function RootLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="h-12 flex items-center px-4 gap-3 border-b border-white/5 bg-[#0d1320]/80 backdrop-blur-sm shrink-0">
+        <header className="h-12 flex items-center px-4 gap-3 border-b border-white/5 bg-[#0d1320]/80 backdrop-blur-sm shrink-0 relative z-30">
           <div className="flex-1" />
 
           {/* Search */}
@@ -123,10 +92,7 @@ export default function RootLayout() {
                 exit={{ width: 120, opacity: 0 }}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white/5 ring-1 ring-white/10 rounded-lg"
               >
-                <Search
-                  size={13}
-                  className="text-slate-500 shrink-0"
-                />
+                <Search size={13} className="text-slate-500 shrink-0" />
                 <input
                   autoFocus
                   value={searchVal}
@@ -149,9 +115,10 @@ export default function RootLayout() {
           </AnimatePresence>
 
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setNotifOpen((o) => !o)}
+              aria-label="查看通知"
               className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-all relative"
             >
               <Bell size={15} />
@@ -164,29 +131,27 @@ export default function RootLayout() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.96 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-10 w-72 glass rounded-xl shadow-2xl p-3 z-50"
+                  className="absolute right-0 top-10 w-80 bg-[#111827]/95 backdrop-blur-xl border border-slate-800 rounded-xl shadow-2xl p-3 z-50"
                 >
-                  <p className="text-xs text-slate-500 mb-2 px-1">
-                    通知
-                  </p>
+                  <p className="text-xs text-slate-400 font-medium mb-2 px-1">通知</p>
                   {[
                     {
                       icon: Sparkles,
                       msg: "「深度学习」技能编译完成，点击前往沙箱审批",
                       time: "刚刚",
-                      color: "cyan",
+                      iconColor: "text-cyan-400",
                     },
                     {
                       icon: AlertTriangle,
                       msg: "任务「基线模型训练」已逾期 8 天",
                       time: "1小时前",
-                      color: "amber",
+                      iconColor: "text-amber-400",
                     },
                     {
                       icon: CheckCircle2,
                       msg: "《人类简史》图谱构建完成，新增 12 个节点",
                       time: "昨天",
-                      color: "emerald",
+                      iconColor: "text-emerald-400",
                     },
                   ].map((n, i) => (
                     <div
@@ -195,13 +160,13 @@ export default function RootLayout() {
                     >
                       <n.icon
                         size={14}
-                        className={`text-${n.color}-400 mt-0.5 shrink-0`}
+                        className={`${n.iconColor} mt-0.5 shrink-0`}
                       />
                       <div>
                         <p className="text-xs text-slate-300 leading-snug">
                           {n.msg}
                         </p>
-                        <p className="text-[10px] text-slate-600 mt-0.5">
+                        <p className="text-[10px] text-slate-500 mt-0.5">
                           {n.time}
                         </p>
                       </div>
@@ -214,7 +179,7 @@ export default function RootLayout() {
 
           {/* Avatar */}
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-400 to-blue-500 flex items-center justify-center text-[11px] font-bold text-white cursor-pointer">
-            K
+            U
           </div>
         </header>
 
@@ -224,6 +189,5 @@ export default function RootLayout() {
         </main>
       </div>
     </div>
-  );
+  )
 }
-

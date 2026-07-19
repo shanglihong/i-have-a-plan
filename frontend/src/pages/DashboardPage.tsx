@@ -14,7 +14,7 @@ import {
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../api";
+import { api } from "../shared/api";
 import {
   LayoutDashboard,
   BookOpen,
@@ -57,7 +57,7 @@ import {
   Maximize2,
 } from "lucide-react";
 
-import { StatusBadge, ProgressBar, SuspendedOverlay } from "../components/shared";
+import { StatusBadge, ProgressBar, SuspendedOverlay } from "../shared/ui";
 
 
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
