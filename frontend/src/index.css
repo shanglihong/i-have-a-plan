@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 
 @theme inline {
@@ -22,20 +22,20 @@
 }
 
 :root {
-  --background: #0a0e1a;
-  --foreground: #e8edf5;
+  --background: #090d16;
+  --foreground: #f1f5f9;
   --card: #111827;
-  --card-foreground: #e8edf5;
+  --card-foreground: #f1f5f9;
   --primary: #22d3ee;
-  --primary-foreground: #0a0e1a;
+  --primary-foreground: #090d16;
   --secondary: #1a2235;
-  --secondary-foreground: #94a3b8;
-  --muted: #151d2e;
-  --muted-foreground: #64748b;
+  --secondary-foreground: #cbd5e1;
+  --muted: #131b2e;
+  --muted-foreground: #94a3b8;
   --accent: #06b6d4;
-  --accent-foreground: #0a0e1a;
-  --border: rgba(255,255,255,0.07);
-  --ring: #22d3ee;
+  --accent-foreground: #090d16;
+  --border: rgba(255, 255, 255, 0.10);
+  --ring: rgba(34, 211, 238, 0.4);
   --radius: 8px;
 }
 
@@ -53,6 +53,11 @@ body {
   font-family: 'Inter', 'SF Pro Text', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   margin: 0;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
 }
 
 /* Hide scrollbars by default, show on hover */
@@ -112,10 +117,10 @@ body {
   animation: shake 0.4s ease-in-out;
 }
 
-/* Breath animation for overdue tasks */
+/* Breath animation for overdue tasks - subtle pulse without heavy distraction */
 @keyframes breathe {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { opacity: 0.75; }
 }
 .animate-breathe {
   animation: breathe 2s ease-in-out infinite;
@@ -169,3 +174,16 @@ body {
 .font-mono {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
+
+/* Color scheme dark & Native DatePicker styling */
+input[type="date"], input[type="datetime-local"] {
+  color-scheme: dark;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(1);
+}
+
