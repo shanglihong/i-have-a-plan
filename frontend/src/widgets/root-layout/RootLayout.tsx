@@ -17,7 +17,11 @@ import {
   Sparkles,
   Settings,
   ChevronRight,
+  FolderTree,
 } from "lucide-react"
+
+import { CategoryTreeDrawer } from "./CategoryTreeDrawer"
+import { MOCK_PROJECTS } from "../../shared/mock/data"
 
 // ─── Breadcrumb Data Contract ─────────────────────────────────────────────────
 
@@ -63,12 +67,13 @@ export default function RootLayout() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [searchOpen, searchVal])
 
+  const [treeDrawerOpen, setTreeDrawerOpen] = useState(true)
+
   const navItems = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "大盘" },
-    { to: "/project/read/1", icon: BookOpen, label: "阅读" },
-    { to: "/project/plan/2", icon: ListChecks, label: "计划" },
-    { to: "/graph", icon: Network, label: "图谱" },
-    { to: "/skills/sandbox/skill-1", icon: Cpu, label: "沙箱" },
+    { type: "link", to: "/dashboard", icon: LayoutDashboard, label: "大盘" },
+    { type: "tree-toggle", icon: FolderTree, label: "项目库" },
+    { type: "link", to: "/graph", icon: Network, label: "图谱" },
+    { type: "link", to: "/skills/sandbox/skill-1", icon: Cpu, label: "沙箱" },
   ]
 
   // 根据当前路径生成多级面包屑指示
@@ -84,18 +89,18 @@ export default function RootLayout() {
       const match = path.match(/\/project\/read\/(.+)/)
       const id = match ? match[1] : ""
       return [
-        { label: "项目", icon: Layers },
-        { label: "方案阅读", href: id ? `/project/read/${id}` : "/project/read/1", icon: BookOpen },
-        ...(id ? [{ label: `方案详情 #${id}` }] : []),
+        { label: "项目库", icon: Layers },
+        { label: "阅读项目", href: id ? `/project/read/${id}` : "/project/read/1", icon: BookOpen },
+        ...(id ? [{ label: `项目详情 #${id}` }] : []),
       ]
     }
     if (path.startsWith("/project/plan")) {
       const match = path.match(/\/project\/plan\/(.+)/)
       const id = match ? match[1] : ""
       return [
-        { label: "项目", icon: Layers },
+        { label: "项目库", icon: Layers },
         { label: "执行计划", href: id ? `/project/plan/${id}` : "/project/plan/2", icon: ListChecks },
-        ...(id ? [{ label: `计划执行 #${id}` }] : []),
+        ...(id ? [{ label: `计划详情 #${id}` }] : []),
       ]
     }
     if (path.startsWith("/graph")) {
@@ -123,7 +128,7 @@ export default function RootLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#090d16] text-slate-100">
-      {/* Sidebar Navigation */}
+      {/* Primary Activity Bar Navigation (w-16) */}
       <aside className="w-16 flex flex-col items-center py-4 gap-1.5 border-r border-white/10 bg-[#0c111d] shrink-0 z-40 select-none">
         {/* Logo */}
         <div 
@@ -133,33 +138,62 @@ export default function RootLayout() {
           <Layers size={20} className="text-slate-950 font-bold" />
         </div>
 
-        {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            aria-label={label}
-            className={({ isActive }) =>
-              `w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all group relative cursor-pointer
-            ${isActive
-                ? "bg-cyan-500/20 text-cyan-300 font-semibold"
-                : "text-slate-400 hover:text-slate-100 hover:bg-white/10"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && (
+        {navItems.map((item) => {
+          const Icon = item.icon
+          if (item.type === "tree-toggle") {
+            const isTreeActive = treeDrawerOpen || location.pathname.startsWith("/project/")
+            return (
+              <button
+                key={item.label}
+                onClick={() => setTreeDrawerOpen((prev) => !prev)}
+                aria-label={item.label}
+                title={treeDrawerOpen ? "收起项目类别树" : "展开项目类别树"}
+                className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all group relative cursor-pointer
+                ${isTreeActive
+                    ? "bg-cyan-500/20 text-cyan-300 font-semibold"
+                    : "text-slate-400 hover:text-slate-100 hover:bg-white/10"
+                  }`}
+              >
+                {isTreeActive && (
                   <motion.div 
                     layoutId="activeNavIndicator"
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cyan-400 rounded-r-full -ml-[1px]" 
                   />
                 )}
                 <Icon size={18} className="shrink-0" />
-                <span className="text-[10px] font-medium leading-none tracking-tight">{label}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
+                <span className="text-[10px] font-medium leading-none tracking-tight">{item.label}</span>
+              </button>
+            )
+          }
+
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to!}
+              aria-label={item.label}
+              className={({ isActive }) =>
+                `w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all group relative cursor-pointer
+              ${isActive
+                  ? "bg-cyan-500/20 text-cyan-300 font-semibold"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-white/10"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeNavIndicator"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cyan-400 rounded-r-full -ml-[1px]" 
+                    />
+                  )}
+                  <Icon size={18} className="shrink-0" />
+                  <span className="text-[10px] font-medium leading-none tracking-tight">{item.label}</span>
+                </>
+              )}
+            </NavLink>
+          )
+        })}
 
         <div className="flex-1" />
         <button 
@@ -169,6 +203,13 @@ export default function RootLayout() {
           <Settings size={18} />
         </button>
       </aside>
+
+      {/* Category Tree Drawer Panel (w-64) */}
+      <CategoryTreeDrawer
+        isOpen={treeDrawerOpen}
+        onClose={() => setTreeDrawerOpen(false)}
+        projects={MOCK_PROJECTS}
+      />
 
       {/* Main content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">

@@ -17,6 +17,7 @@ export interface Project {
   progress: number;
   deadline: string;
   tags: string[];
+  category?: string;
   createdAt?: string;
   notes?: number;
   tasks?: number;

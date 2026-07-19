@@ -1,63 +1,8 @@
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Outlet,
-  NavLink,
-  useNavigate,
-  Navigate,
-} from "react-router-dom";
-import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  LayoutDashboard,
-  BookOpen,
-  ListChecks,
-  Network,
-  Cpu,
-  Search,
-  Bell,
-  Plus,
-  ChevronRight,
-  ChevronDown,
-  X,
-  Send,
-  Bookmark,
-  Zap,
-  Archive,
-  Play,
-  MoreHorizontal,
-  GitBranch,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-  Layers,
-  FileText,
-  MessageSquare,
-  Sparkles,
-  Target,
-  Map,
-  Settings,
-  TrendingUp,
-  Circle,
-  Minus,
-  ChevronsRight,
-  Lock,
-  Unlock,
-  RefreshCw,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-} from "lucide-react";
+import { Project } from "../types";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 
-export const MOCK_PROJECTS = [
+export const MOCK_PROJECTS: Project[] = [
   {
     id: "1",
     title: "深度学习基础理论精读",
@@ -67,6 +12,7 @@ export const MOCK_PROJECTS = [
     deadline: "2026-08-15",
     notes: 24,
     tags: ["AI", "数学"],
+    category: "AI & 机器学习",
   },
   {
     id: "2",
@@ -77,6 +23,7 @@ export const MOCK_PROJECTS = [
     deadline: "2026-09-30",
     tasks: 18,
     tags: ["产品", "研发"],
+    category: "产品与研发",
   },
   {
     id: "3",
@@ -87,6 +34,7 @@ export const MOCK_PROJECTS = [
     deadline: "2026-07-25",
     notes: 37,
     tags: ["历史", "社会学"],
+    category: "人文与历史",
   },
   {
     id: "4",
@@ -97,6 +45,7 @@ export const MOCK_PROJECTS = [
     deadline: "2026-10-12",
     tasks: 12,
     tags: ["演讲", "技术"],
+    category: "产品与研发",
   },
   {
     id: "5",
@@ -107,6 +56,7 @@ export const MOCK_PROJECTS = [
     deadline: "2026-06-01",
     notes: 52,
     tags: ["心理学"],
+    category: "人文与历史",
   },
   {
     id: "6",
@@ -117,6 +67,7 @@ export const MOCK_PROJECTS = [
     deadline: "2026-09-01",
     notes: 6,
     tags: ["ML", "系统"],
+    category: "AI & 机器学习",
   },
 ];
 
