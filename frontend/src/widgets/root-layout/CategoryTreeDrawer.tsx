@@ -35,11 +35,7 @@ export function CategoryTreeDrawer({
   const [typeFilter, setTypeFilter] = useState<FilterType>("ALL")
 
   // 控制分类展开收起的 State (Key 为 category 名称)
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    "AI & 机器学习": true,
-    "产品与研发": true,
-    "人文与历史": true,
-  })
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({})
 
   // 按 category 分组并根据搜索词与类型过滤
   const categoryGroups = useMemo(() => {
@@ -86,10 +82,23 @@ export function CategoryTreeDrawer({
     }))
   }
 
-  // 判断是否全展开 (在搜索或类型过滤时自动展开匹配项)
-  const isCategoryExpanded = (cat: string) => {
+  // 判断是否展开 (在搜索/类型过滤时自动展开；默认若包含当前高亮选中的项目则自动展开，否则跟随用户手动设置)
+  const isCategoryExpanded = (cat: string, catProjects: Project[]) => {
     if (searchTerm.trim().length > 0 || typeFilter !== "ALL") return true
-    return expandedCategories[cat] ?? true
+
+    // 若用户手动设置了该分类的状态，则以用户的显式操作为准
+    if (typeof expandedCategories[cat] === "boolean") {
+      return expandedCategories[cat]
+    }
+
+    // 默认情况：若分类包含当前激活选中的项目，则自动展开
+    return catProjects.some((p) => {
+      const targetPath =
+        p.type === "READING"
+          ? `/project/read/${p.id}`
+          : `/project/plan/${p.id}`
+      return location.pathname === targetPath
+    })
   }
 
   const handleResetFilters = () => {
@@ -162,7 +171,7 @@ export function CategoryTreeDrawer({
                   onClick={() => setTypeFilter("ALL")}
                   className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-all cursor-pointer text-center ${
                     typeFilter === "ALL"
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
+                      ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
                       : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
                   }`}
                 >
@@ -172,7 +181,7 @@ export function CategoryTreeDrawer({
                   onClick={() => setTypeFilter("READING")}
                   className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     typeFilter === "READING"
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
+                      ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
                       : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
                   }`}
                 >
@@ -183,7 +192,7 @@ export function CategoryTreeDrawer({
                   onClick={() => setTypeFilter("PLAN")}
                   className={`flex-1 py-1 text-[10px] font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     typeFilter === "PLAN"
-                      ? "bg-violet-500/20 text-violet-300 border border-violet-500/30 shadow-xs font-semibold"
+                      ? "bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-xs font-semibold"
                       : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
                   }`}
                 >
@@ -216,7 +225,7 @@ export function CategoryTreeDrawer({
                 </div>
               ) : (
                 categoryGroups.map(({ category, projects: catProjects }) => {
-                  const expanded = isCategoryExpanded(category)
+                  const expanded = isCategoryExpanded(category, catProjects)
                   return (
                     <div key={category} className="space-y-0.5" role="none">
                       {/* Category Folder Node */}
@@ -273,8 +282,10 @@ export function CategoryTreeDrawer({
                                   aria-selected={isActive}
                                   className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-[11px] transition-all cursor-pointer text-left group active:scale-[0.99] ${
                                     isActive
-                                      ? "bg-gradient-to-r from-cyan-500/20 via-cyan-500/10 to-transparent text-cyan-200 font-medium border-l-2 border-cyan-400 pl-2 -ml-[2px] shadow-sm shadow-cyan-950/50"
-                                      : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border-l-2 border-transparent"
+                                      ? p.type === "READING"
+                                        ? "bg-cyan-500/15 text-cyan-200 font-semibold border border-cyan-500/30 shadow-xs shadow-cyan-950/40"
+                                        : "bg-violet-500/15 text-violet-200 font-semibold border border-violet-500/30 shadow-xs shadow-violet-950/40"
+                                      : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
                                   }`}
                                 >
                                   <div className="flex items-center gap-1.5 min-w-0">

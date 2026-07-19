@@ -67,7 +67,7 @@ export default function RootLayout() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [searchOpen, searchVal])
 
-  const [treeDrawerOpen, setTreeDrawerOpen] = useState(true)
+  const [treeDrawerOpen, setTreeDrawerOpen] = useState(false)
 
   const navItems = [
     { type: "link", to: "/dashboard", icon: LayoutDashboard, label: "大盘" },
@@ -79,47 +79,63 @@ export default function RootLayout() {
   // 根据当前路径生成多级面包屑指示
   const getBreadcrumbs = (): BreadcrumbItem[] => {
     const path = location.pathname
+
     if (path.startsWith("/dashboard")) {
       return [
         { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
         { label: "知识大盘" },
       ]
     }
+
     if (path.startsWith("/project/read")) {
-      const match = path.match(/\/project\/read\/(.+)/)
+      const match = path.match(/\/project\/read\/([^/]+)/)
       const id = match ? match[1] : ""
+      const project = MOCK_PROJECTS.find((p) => p.id === id)
+
       return [
-        { label: "项目库", icon: Layers },
-        { label: "阅读项目", href: id ? `/project/read/${id}` : "/project/read/1", icon: BookOpen },
-        ...(id ? [{ label: `项目详情 #${id}` }] : []),
+        { label: "项目库", icon: FolderTree },
+        { label: project?.category || "阅读项目", icon: BookOpen },
+        { label: project?.title || (id ? `项目详情 #${id}` : "未命名项目") },
       ]
     }
+
     if (path.startsWith("/project/plan")) {
-      const match = path.match(/\/project\/plan\/(.+)/)
+      const match = path.match(/\/project\/plan\/([^/]+)/)
       const id = match ? match[1] : ""
+      const project = MOCK_PROJECTS.find((p) => p.id === id)
+
       return [
-        { label: "项目库", icon: Layers },
-        { label: "执行计划", href: id ? `/project/plan/${id}` : "/project/plan/2", icon: ListChecks },
-        ...(id ? [{ label: `计划详情 #${id}` }] : []),
+        { label: "项目库", icon: FolderTree },
+        { label: project?.category || "执行计划", icon: ListChecks },
+        { label: project?.title || (id ? `计划详情 #${id}` : "未命名计划") },
       ]
     }
+
     if (path.startsWith("/graph")) {
       return [
-        { label: "知识库", icon: Layers },
+        { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
         { label: "关联图谱", icon: Network },
       ]
     }
+
     if (path.startsWith("/skills/sandbox")) {
-      const match = path.match(/\/skills\/sandbox\/(.+)/)
+      const match = path.match(/\/skills\/sandbox\/([^/]+)/)
       const id = match ? match[1] : ""
+      const skillNameMap: Record<string, string> = {
+        "skill-1": "知识抽取与计划生成 Skill",
+        "skill-2": "智能摘要 Skill",
+      }
+      const name = skillNameMap[id] || (id ? `实例 #${id}` : "Skill 沙箱")
+
       return [
         { label: "Skill 引擎", icon: Cpu },
         { label: "沙箱工作区", href: id ? `/skills/sandbox/${id}` : "/skills/sandbox/skill-1", icon: Cpu },
-        ...(id ? [{ label: `实例 #${id}` }] : []),
+        { label: name },
       ]
     }
+
     return [
-      { label: "控制台", icon: Layers },
+      { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
       { label: "概览" },
     ]
   }

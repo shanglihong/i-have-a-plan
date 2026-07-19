@@ -11,7 +11,6 @@ import {
 
 import {
   ChevronRight,
-  Minus,
   X,
   Send,
   Bookmark,
@@ -21,9 +20,27 @@ import {
   Sparkles,
   Target,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  BookOpen,
+  Search,
+  Copy,
+  Check,
+  Clock,
+  Quote,
+  Lightbulb,
 } from "lucide-react"
 
 import { StatusBadge, ProgressBar } from "../../shared/ui"
+import { CompanionDrawer } from "./components/CompanionDrawer"
+import {
+  MOCK_READING_CHAPTERS,
+  MOCK_READING_INITIAL_MESSAGES,
+  MOCK_READING_NOTES_FALLBACK,
+  MOCK_READING_AI_REPLY,
+} from "../../shared/mock/data"
 
 // ─── Reading Workspace Page ────────────────────────────────────────────────────────
 
@@ -31,6 +48,7 @@ export default function ReadingWorkspacePage() {
   const { id } = useParams()
   const queryClient = useQueryClient()
   const [activeChapter, setActiveChapter] = useState("ch3")
+  const [rightTab, setRightTab] = useState<"copilot" | "notes">("copilot")
 
   const outlineOpen = useLayoutStore((s) => s.outlineOpen)
   const setOutlineOpen = useLayoutStore((s) => s.setOutlineOpen)
@@ -44,20 +62,48 @@ export default function ReadingWorkspacePage() {
   const setFloatingMenu = useFloatingMenuStore((s) => s.setMenu)
 
   const [discussMsg, setDiscussMsg] = useState("")
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content:
-        "你好！我已深度阅读本章内容。关于**反向传播算法**与**链式法则**，你有任何想探讨的疑难点吗？",
-      done: true,
-    },
-  ])
+  const [quotedContext, setQuotedContext] = useState<string | null>(null)
+  const [noteSearch, setNoteSearch] = useState("")
+  const [copiedCode, setCopiedCode] = useState(false)
+  const [scrollProgress, setScrollProgress] = useState(0)
+  const [is25InchPlus, setIs25InchPlus] = useState(false)
+
+  const [messages, setMessages] = useState<
+    Array<{
+      role: string
+      content: string
+      done: boolean
+      quote: string | null
+    }>
+  >(MOCK_READING_INITIAL_MESSAGES)
   const [streaming, setStreaming] = useState(false)
   const [showBubble, setShowBubble] = useState(false)
   const readerRef = useRef<HTMLDivElement>(null)
   const chatRef = useRef<HTMLDivElement>(null)
 
-  // 键盘 Escape 响应
+  const [isLaptopOrSmaller, setIsLaptopOrSmaller] = useState(false)
+
+  // 响应式检测大屏 (≥ 1536px) 与笔记本屏 (含 13" Mac 1440px/1366px < 1536px)
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const w = window.innerWidth
+      setIs25InchPlus(w >= 1536)
+      setIsLaptopOrSmaller(w < 1536)
+    }
+    checkScreenSize()
+    window.addEventListener("resize", checkScreenSize)
+    return () => window.removeEventListener("resize", checkScreenSize)
+  }, [])
+
+  // 笔记本屏下打开伴读栏时自动收起左侧目录，保障 13" Mac 文章正文的最佳阅读宽度
+  const handleOpenDiscuss = () => {
+    if (isLaptopOrSmaller) {
+      setOutlineOpen(false)
+    }
+    setDiscussOpen(true)
+  }
+
+  // 键盘 Escape 快捷键
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -72,7 +118,7 @@ export default function ReadingWorkspacePage() {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight
     }
-  }, [messages])
+  }, [messages, streaming])
 
   const { data: notesData } = useQuery({
     queryKey: ["project-notes", id],
@@ -81,7 +127,7 @@ export default function ReadingWorkspacePage() {
       return res.data
     },
   })
-  const notes = notesData?.items || []
+  const notes = notesData?.items || MOCK_READING_NOTES_FALLBACK
 
   const createNoteMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -93,21 +139,14 @@ export default function ReadingWorkspacePage() {
     },
   })
 
-  const chapters = [
-    { id: "ch1", label: "第1章：感知机与历史", level: 0, done: true },
-    { id: "ch2", label: "第2章：多层网络", level: 0, done: true },
-    { id: "ch3", label: "第3章：反向传播", level: 0, active: true },
-    { id: "ch3-1", label: "3.1 链式法则推导", level: 1 },
-    { id: "ch3-2", label: "3.2 梯度消失分析", level: 1 },
-    { id: "ch3-3", label: "3.3 BatchNorm 缓解", level: 1 },
-    { id: "ch4", label: "第4章：卷积网络", level: 0 },
-    { id: "ch5", label: "第5章：注意力与Transformer", level: 0 },
-  ]
+  const chapters = MOCK_READING_CHAPTERS
 
+
+  // 点击笔记锚点平滑定位与高亮脉冲
   useEffect(() => {
     if (targetAnchor && readerRef.current) {
       const elements = Array.from(
-        readerRef.current.querySelectorAll("h1, h2, p, div"),
+        readerRef.current.querySelectorAll("h1, h2, h3, p, div, blockquote"),
       )
       const targetEl = elements.find((el) =>
         el.textContent?.includes(
@@ -120,6 +159,7 @@ export default function ReadingWorkspacePage() {
     }
   }, [targetAnchor])
 
+  // 划词定位菜单计算
   const handleTextSelect = useCallback(() => {
     const sel = window.getSelection()
     if (!sel || sel.isCollapsed) {
@@ -135,32 +175,71 @@ export default function ReadingWorkspacePage() {
     const rect = range.getBoundingClientRect()
     const containerRect = readerRef.current?.getBoundingClientRect()
     if (!containerRect) return
+
+    // 边界安全处理
+    const rawX = rect.left - containerRect.left + rect.width / 2
+    const rawY = rect.top - containerRect.top - 52
+    const clampedX = Math.max(100, Math.min(rawX, containerRect.width - 100))
+    const clampedY = Math.max(10, rawY)
+
     setFloatingMenu({
-      x: rect.left - containerRect.left + rect.width / 2,
-      y: rect.top - containerRect.top - 8,
+      x: clampedX,
+      y: clampedY,
       text,
     })
   }, [setFloatingMenu])
 
-  const sendMessage = () => {
-    if (!discussMsg.trim()) return
-    const userMsg = discussMsg
+  // 划词发起讨论
+  const handleDiscussSelection = (text: string) => {
+    setQuotedContext(text)
+    setRightTab("copilot")
+    handleOpenDiscuss()
+    setFloatingMenu(null)
+  }
+
+  // 划词快速记笔记
+  const handleCreateNoteFromSelection = (text: string) => {
+    createNoteMutation.mutate({
+      content: text,
+      quote: text,
+      anchor: "第3章 · 反向传播算法",
+    })
+    setRightTab("notes")
+    handleOpenDiscuss()
+    setFloatingMenu(null)
+  }
+
+  // AI 伴读对话发送
+  const sendMessage = (promptText?: string) => {
+    const textToSend = promptText || discussMsg
+    if (!textToSend.trim()) return
+
+    const userQuote = quotedContext
     setDiscussMsg("")
-    setMessages((m) => [...m, { role: "user", content: userMsg, done: true }])
+    setQuotedContext(null)
+    setMessages((m) => [
+      ...m,
+      { role: "user", content: textToSend, done: true, quote: userQuote },
+    ])
     setStreaming(true)
 
-    const reply =
-      "这是一个很好的问题。**反向传播算法**的核心是利用链式求导法则，将输出层的误差信号逐层传递回输入层。关键在于：每一层的梯度都是当前层局部梯度与后续层梯度的乘积。当激活函数（如 Sigmoid）的导数区间在 (0, 0.25) 时，多层连乘后梯度会指数级缩小，这就是**梯度消失**的根源。"
+    const reply = MOCK_READING_AI_REPLY
+
     let i = 0
-    setMessages((m) => [...m, { role: "assistant", content: "", done: false }])
+    setMessages((m) => [
+      ...m,
+      { role: "assistant", content: "", done: false, quote: null },
+    ])
+
     const interval = setInterval(() => {
-      i += 3
+      i += 4
       setMessages((m) => {
         const last = [...m]
         last[last.length - 1] = {
           role: "assistant",
           content: reply.slice(0, i),
           done: false,
+          quote: null,
         }
         return last
       })
@@ -173,401 +252,421 @@ export default function ReadingWorkspacePage() {
           return last
         })
       }
-    }, 30)
+    }, 25)
   }
 
   const traceNote = (noteAnchor: string) => {
     setTargetAnchor(noteAnchor)
-    setTimeout(() => setTargetAnchor(null), 2000)
+    setTimeout(() => setTargetAnchor(null), 2500)
   }
 
   const handleScroll = useCallback(() => {
     if (!readerRef.current) return
     const { scrollTop, scrollHeight, clientHeight } = readerRef.current
-    setShowBubble((scrollTop + clientHeight) / scrollHeight >= 0.7)
+    const progress = Math.min(
+      100,
+      Math.max(0, (scrollTop / (scrollHeight - clientHeight)) * 100),
+    )
+    setScrollProgress(progress)
+    setShowBubble(progress >= 65 && progress <= 95)
   }, [])
 
+  const copyFormulaCode = (code: string) => {
+    navigator.clipboard.writeText(code)
+    setCopiedCode(true)
+    setTimeout(() => setCopiedCode(false), 2000)
+  }
+
+  const filteredNotes = notes.filter(
+    (n: any) =>
+      n.content?.toLowerCase().includes(noteSearch.toLowerCase()) ||
+      n.quote?.toLowerCase().includes(noteSearch.toLowerCase()) ||
+      n.anchor?.toLowerCase().includes(noteSearch.toLowerCase()),
+  )
+
   return (
-    <div className="h-full flex overflow-hidden bg-[#090d16] text-slate-100">
-      {/* Left Chapter Outline Sidebar */}
+    <div className="h-full flex overflow-hidden bg-[#090D16] text-slate-100 font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+      {/* ──────────────── Left Chapter Outline Sidebar ──────────────── */}
       <AnimatePresence initial={false}>
         {outlineOpen && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 230, opacity: 1 }}
+            animate={{ width: 250, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="border-r border-white/10 bg-[#0c111d] shrink-0"
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="border-r border-slate-800/80 bg-[#0C111D] shrink-0 z-20"
           >
-            <div className="w-[230px] h-full flex flex-col">
-              <div className="p-3.5 border-b border-white/10">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-slate-200">
-                    深度学习基础理论精读
-                  </span>
+            <div className="w-[250px] h-full flex flex-col">
+              {/* Sidebar Header */}
+              <div className="p-4 border-b border-slate-800/80 bg-[#090D16]/50">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={15} className="text-cyan-400" />
+                    <span className="text-xs font-semibold text-slate-200 tracking-wide">
+                      章节目录
+                    </span>
+                  </div>
                   <button
                     onClick={() => setOutlineOpen(false)}
                     aria-label="收起目录"
-                    className="text-slate-400 hover:text-slate-100 p-1 rounded hover:bg-white/10 cursor-pointer"
+                    className="text-slate-400 hover:text-slate-200 p-1.5 rounded-md hover:bg-slate-800/60 transition-colors cursor-pointer"
                   >
-                    <Minus size={14} />
+                    <PanelLeftClose size={15} />
                   </button>
                 </div>
-                {/* Progress bar */}
-                <div className="mt-3 space-y-2">
+
+                {/* Progress Overview */}
+                <div className="space-y-2.5 pt-1">
                   <div>
-                    <div className="flex justify-between text-xs text-slate-400 mb-1">
+                    <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
                       <span>阅读进度</span>
-                      <span className="font-mono text-cyan-400 font-semibold">68%</span>
+                      <span className="font-mono text-cyan-400 font-semibold">
+                        {Math.round(scrollProgress)}%
+                      </span>
                     </div>
-                    <ProgressBar value={68} color="cyan" />
+                    <ProgressBar value={scrollProgress} color="cyan" />
                   </div>
                   <div>
-                    <div className="flex justify-between text-xs text-slate-400 mb-1">
-                      <span>切片解析</span>
-                      <span className="font-mono text-violet-400 font-semibold">82%</span>
+                    <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
+                      <span>精读卡片理解</span>
+                      <span className="font-mono text-violet-400 font-semibold">
+                        82%
+                      </span>
                     </div>
                     <ProgressBar value={82} color="violet" />
                   </div>
                 </div>
               </div>
-              <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1">
-                {chapters.map((ch) => (
-                  <button
-                    key={ch.id}
-                    onClick={() => setActiveChapter(ch.id)}
-                    className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all flex items-center gap-2 cursor-pointer
-                      ${activeChapter === ch.id ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30 shadow-sm" : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}
-                      ${ch.level === 1 ? "ml-3 text-[11px]" : ""}`}
-                  >
-                    {ch.done ? (
-                      <CheckCircle2
-                        size={12}
-                        className="text-emerald-400 shrink-0"
-                      />
-                    ) : ch.active ? (
-                      <Circle
-                        size={12}
-                        className="text-cyan-400 shrink-0"
-                      />
-                    ) : (
-                      <Circle
-                        size={12}
-                        className="text-slate-600 shrink-0"
-                      />
-                    )}
-                    <span className="leading-snug truncate">
-                      {ch.label}
-                    </span>
-                  </button>
-                ))}
+
+              {/* Chapters Tree Nav */}
+              <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1 scrollbar-thin scrollbar-thumb-slate-800">
+                {chapters.map((ch) => {
+                  const isCurrent = activeChapter === ch.id
+                  return (
+                    <button
+                      key={ch.id}
+                      onClick={() => setActiveChapter(ch.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-lg text-xs transition-all flex items-center gap-2.5 cursor-pointer font-medium
+                        ${isCurrent
+                          ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border border-cyan-500/30 shadow-sm shadow-cyan-950/50"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent"
+                        }
+                        ${ch.level === 1 ? "ml-3 text-[11px] py-2" : ""}`}
+                    >
+                      {ch.done ? (
+                        <CheckCircle2
+                          size={13}
+                          className="text-emerald-400 shrink-0"
+                        />
+                      ) : isCurrent ? (
+                        <Circle
+                          size={13}
+                          className="text-cyan-400 fill-cyan-400/30 shrink-0"
+                        />
+                      ) : (
+                        <Circle
+                          size={13}
+                          className="text-slate-600 shrink-0"
+                        />
+                      )}
+                      <span className="leading-snug truncate">{ch.label}</span>
+                    </button>
+                  )
+                })}
               </nav>
+
+              <div className="p-3 border-t border-slate-800/80 bg-[#090D16]/30 text-[11px] text-slate-500 flex items-center justify-between font-mono">
+                <span>共 5 章 12 节</span>
+                <span className="text-emerald-400/80">已完成 60%</span>
+              </div>
             </div>
           </motion.aside>
         )}
       </AnimatePresence>
 
-      {/* Center Reader Area */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-white/10 overflow-hidden relative">
-        {!outlineOpen && (
-          <button
-            onClick={() => setOutlineOpen(true)}
-            aria-label="展开目录"
-            className="absolute left-3 top-3 z-10 p-2 bg-[#111827] border border-white/10 rounded-lg text-slate-300 hover:text-slate-100 transition-all cursor-pointer shadow-lg"
-          >
-            <ChevronRight size={16} />
-          </button>
-        )}
+      {/* ──────────────── Center Reader Workspace ──────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-[#090D16]">
+        {/* Unified Top Header Bar */}
+        <header className="h-12 px-4 border-b border-slate-800/80 bg-[#0C111D]/90 backdrop-blur-md flex items-center gap-3 shrink-0 z-10 relative">
+          {/* Outline Toggle */}
+          {!outlineOpen && (
+            <button
+              onClick={() => setOutlineOpen(true)}
+              aria-label="展开目录"
+              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-md transition-colors cursor-pointer"
+              title="展开目录栏"
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+          )}
 
-        <div className="px-5 py-3 border-b border-white/10 flex items-center gap-3 shrink-0 bg-[#0c111d]">
-          <span className="text-xs font-semibold text-slate-200">
-            第3章 · 反向传播算法
-          </span>
+          {/* Breadcrumb / Title */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xs text-slate-400 hidden sm:inline truncate font-medium">
+              深度学习基础理论精读
+            </span>
+            <ChevronRight size={13} className="text-slate-600 hidden sm:inline shrink-0" />
+            <span className="text-xs font-semibold text-slate-100 truncate">
+              第3章 · 反向传播算法
+            </span>
+          </div>
+
           <div className="flex-1" />
-          <span className="text-xs font-mono text-slate-400">
-            预计耗时 ~24 min
-          </span>
-          <StatusBadge status="ACTIVE" />
-        </div>
 
+          {/* Reading Stats & Status Badge */}
+          <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
+            <div className="hidden md:flex items-center gap-1.5 font-mono text-[11px] bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-full text-slate-300">
+              <Clock size={12} className="text-cyan-400" />
+              <span>预计 ~24 min</span>
+            </div>
+            <StatusBadge status="ACTIVE" />
+
+            {/* Sidebar Discuss Toggle */}
+            {!discussOpen && (
+              <button
+                onClick={handleOpenDiscuss}
+                aria-label="打开伴读栏"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 rounded-lg text-cyan-300 text-xs font-semibold transition-all cursor-pointer shadow-sm"
+              >
+                <PanelRightOpen size={15} />
+                <span className="hidden sm:inline">伴读与笔记</span>
+              </button>
+            )}
+          </div>
+
+          {/* Top Reading Scroll Progress Line */}
+          <div
+            className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-cyan-500 to-violet-500 transition-all duration-150 ease-out"
+            style={{ width: `${scrollProgress}%` }}
+          />
+        </header>
+
+        {/* Reader Scroll Container */}
         <div
           ref={readerRef}
-          className="flex-1 overflow-y-auto px-8 py-8 relative"
+          className="flex-1 overflow-y-auto px-4 sm:px-8 2xl:px-12 py-8 2xl:py-10 relative scrollbar-thin scrollbar-thumb-slate-800"
           onMouseUp={handleTextSelect}
           onScroll={handleScroll}
         >
-          {/* Floating Text Selection Menu */}
-          <AnimatePresence>
-            {floatingMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 4, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.12 }}
-                className="absolute z-40 bg-[#151d2a] border border-slate-700 rounded-xl shadow-2xl px-1.5 py-1 flex items-center gap-1"
-                style={{
-                  left: floatingMenu.x - 70,
-                  top: floatingMenu.y - 48,
-                }}
-              >
-                <button
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg transition-all cursor-pointer font-medium"
-                  onClick={() => setFloatingMenu(null)}
-                >
-                  <MessageSquare size={13} /> 讨论
-                </button>
-                <div className="w-px h-4 bg-white/15" />
-                <button
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-emerald-300 hover:bg-emerald-500/20 rounded-lg transition-all cursor-pointer font-medium"
-                  onClick={() => {
-                    createNoteMutation.mutate({
-                      content: floatingMenu.text,
-                      anchor: "当前选中内容",
-                    })
-                    setFloatingMenu(null)
-                  }}
-                >
-                  <Bookmark size={13} /> 记笔记
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
-          {/* Article Main Body */}
-          <article className="max-w-[660px] mx-auto">
-            <h1 className="text-2xl font-bold text-slate-100 mb-2 tracking-wide">
-              第三章：反向传播算法
-            </h1>
-            <p className="text-xs text-slate-400 mb-6 font-mono border-b border-white/10 pb-3">
-              深度学习基础理论精读 · Chapter 3
-            </p>
-
-            <p className="text-sm text-slate-200 leading-relaxed mb-5">
-              反向传播（Backpropagation）是训练人工神经网络的基础算法，由
-              Rumelhart、Hinton 和 Williams 于 1986
-              年系统性地提出并推广。其本质是利用微积分中的
-              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-medium">
-                链式法则（Chain Rule）
-              </span>
-              ，高效计算损失函数关于网络中每一个参数的偏导数。
-            </p>
-
-            <h2 className="text-base font-semibold text-slate-100 mb-3 mt-6">
-              3.1 链式法则的核心推导
-            </h2>
-            <p className="text-sm text-slate-200 leading-relaxed mb-5">
-              设神经网络为一个复合函数{" "}
-              <code className="text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 rounded font-mono text-xs font-semibold">
-                L = f(g(h(x)))
-              </code>
-              ，则根据链式法则，损失 L 对输入 x
-              的梯度为三个局部梯度的连乘。这意味着，网络越深，需要相乘的局部梯度就越多。
-            </p>
-
-            <div
-              className={`my-5 p-4 bg-slate-900/80 border border-slate-700/80 rounded-xl transition-all duration-700 ${targetAnchor === "第5章 · 激活函数" ? "ring-2 ring-cyan-500/60 bg-cyan-500/10" : ""}`}
-            >
-              <p className="text-sm text-slate-200 leading-relaxed">
-                当激活函数选用 Sigmoid 时，其导数的最大值仅为
-                0.25。当层数超过 5
-                层时，梯度会衰减至接近于零——这便是臭名昭著的
-                <strong className="text-slate-100 font-semibold">
-                  梯度消失问题（Vanishing Gradient Problem）
-                </strong>
-                。
-              </p>
-            </div>
-
-            <h2 className="text-base font-semibold text-slate-100 mb-3 mt-6">
-              3.2 梯度消失的量化分析
-            </h2>
-            <p className="text-sm text-slate-200 leading-relaxed mb-5">
-              假设每层 Sigmoid 激活函数的局部梯度均为其最大值
-              0.25，那么对于一个 10
-              层网络，第一层接收到的梯度信号强度仅为输出层的{" "}
-              <code className="text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded font-mono text-xs font-semibold">
-                0.25^10 ≈ 9.5 × 10⁻⁷
-              </code>
-              ，几乎为零，导致浅层参数根本无法被有效更新。
-            </p>
-
-            <h2 className="text-base font-semibold text-slate-100 mb-3 mt-6">
-              3.3 BatchNorm 的缓解机制
-            </h2>
-            <p className="text-sm text-slate-200 leading-relaxed mb-5">
-              批量归一化（Batch
-              Normalization）通过对每一层的输入进行标准化，将激活值强制约束在梯度较大的区域，从而显著改善了深层网络的训练稳定性。配合
-              ReLU
-              激活函数，现代深度网络已经能够稳定训练超过百层。
-            </p>
-
-            <div className="h-20" />
-          </article>
-        </div>
-
-        {/* AI Recommendation Floating Bubble */}
+        {/* Floating Selection Menu */}
         <AnimatePresence>
-          {showBubble && (
+          {floatingMenu && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="absolute bottom-5 right-5 bg-[#111827] border border-slate-700 rounded-xl p-3.5 max-w-[280px] shadow-2xl z-30"
+              initial={{ opacity: 0, y: 6, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.12 }}
+              className="absolute z-50 bg-[#121A29] border border-slate-700/90 rounded-xl shadow-2xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-lg"
+              style={{
+                left: floatingMenu.x - 90,
+                top: floatingMenu.y,
+              }}
             >
-              <div className="flex items-start gap-2.5">
-                <Sparkles
-                  size={16}
-                  className="text-cyan-400 shrink-0 mt-0.5"
-                />
-                <div>
-                  <p className="text-xs text-slate-200 leading-relaxed">
-                    本章核心概念与你的笔记「梯度消失问题」高度相关，建议提炼为技能卡片。
-                  </p>
-                  <button className="mt-2 text-xs font-semibold text-cyan-300 hover:text-cyan-200 transition-colors cursor-pointer">
-                    提炼技能 →
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowBubble(false)}
-                  aria-label="关闭推荐"
-                  className="text-slate-400 hover:text-slate-100 shrink-0 cursor-pointer p-0.5"
-                >
-                  <X size={13} />
-                </button>
-              </div>
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg transition-all cursor-pointer font-semibold"
+                onClick={() => handleDiscussSelection(floatingMenu.text)}
+              >
+                <MessageSquare size={13} className="text-cyan-400" />
+                提问 AI
+              </button>
+
+              <div className="w-px h-4 bg-slate-700/80" />
+
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-emerald-300 hover:bg-emerald-500/20 rounded-lg transition-all cursor-pointer font-semibold"
+                onClick={() => handleCreateNoteFromSelection(floatingMenu.text)}
+              >
+                <Bookmark size={13} className="text-emerald-400" />
+                记笔记
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
 
-      {/* Right AI Notes & Assistant Sidebar */}
-      <AnimatePresence initial={false}>
-        {discussOpen && (
-          <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 310, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden shrink-0 bg-[#0c111d] border-l border-white/10"
-          >
-            <div className="w-[310px] h-full flex flex-col">
-              <div className="p-3 border-b border-white/10 flex items-center justify-between">
-                <div className="flex gap-1.5">
-                  <button className="px-3 py-1 text-xs font-semibold text-cyan-300 bg-cyan-500/20 rounded-md border border-cyan-500/30">
-                    笔记
-                  </button>
-                  <button className="px-3 py-1 text-xs text-slate-400 hover:text-slate-200 rounded-md transition-colors cursor-pointer">
-                    伴读
-                  </button>
-                </div>
-                <button
-                  onClick={() => setDiscussOpen(false)}
-                  aria-label="关闭伴读栏"
-                  className="text-slate-400 hover:text-slate-100 p-1 rounded hover:bg-white/10 transition-colors cursor-pointer"
-                >
-                  <X size={14} />
-                </button>
-              </div>
+        {/* Main Content Body (Max Width 720px for optimal readability) */}
+        <article className="max-w-[720px] mx-auto text-slate-200 leading-relaxed font-sans">
+          {/* Document Header */}
+          <div className="mb-8 pb-4 border-b border-slate-800/80">
+            <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold">
+              Core Theory Reading · Chapter 3
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mt-2 mb-3 tracking-tight">
+              第三章：反向传播算法及其微积分推导
+            </h1>
+            <p className="text-xs text-slate-400 font-mono">
+              发布时间：2026-07-19 · 阅读难度：高级 · 核心考点：链式法则、梯度衰减
+            </p>
+          </div>
 
-              {/* Notes waterfall */}
-              <div className="flex-1 overflow-y-auto p-3.5 space-y-3">
-                {notes.map((note: any) => (
-                  <motion.div
-                    key={note.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#111827] border border-slate-700/80 rounded-xl p-3.5 shadow-md"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <button
-                        onClick={() => traceNote(note.anchor)}
-                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer font-medium"
-                      >
-                        <Target size={11} /> {note.anchor}
-                      </button>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {note.createdAt}
-                      </span>
-                    </div>
-                    {note.quote && (
-                      <blockquote className="text-xs text-emerald-300 bg-emerald-500/10 px-3 py-2 rounded-lg mb-2 italic leading-relaxed border-l-2 border-emerald-500/40">
-                        "{note.quote}"
-                      </blockquote>
-                    )}
-                    <p
-                      className="text-xs text-slate-200 leading-relaxed"
-                      dangerouslySetInnerHTML={{
-                        __html: note.content.replace(
-                          /\*\*(.*?)\*\*/g,
-                          '<strong class="text-slate-100">$1</strong>',
-                        ),
-                      }}
-                    />
-                  </motion.div>
-                ))}
+          {/* Paragraph 1 */}
+          <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+            反向传播（Backpropagation）是训练人工神经网络的核心算法，由 Rumelhart、Hinton 和 Williams 于 1986 年系统性地提出。其本质在于借助微积分中的
+            <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 mx-1 rounded font-medium">
+              链式求导法则 (Chain Rule)
+            </span>
+            ，高效且精准地计算损失函数关于神经网络中每一个可修学习参数的偏导数。
+          </p>
 
-                <button className="w-full py-2.5 text-xs text-slate-300 hover:text-slate-100 border border-dashed border-slate-700 rounded-xl hover:border-slate-500 transition-all flex items-center justify-center gap-1.5 cursor-pointer font-medium">
-                  <Plus size={13} /> 新建笔记
-                </button>
-              </div>
+          {/* Section 3.1 */}
+          <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
+            <span className="text-cyan-400 font-mono">3.1</span> 链式法则的核心微积分推导
+          </h2>
+          <p className="text-[15px] leading-[1.8] text-slate-300 mb-5">
+            设一个典型的多层前馈神经网络可以抽象为复合函数{" "}
+            <code className="text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded font-mono text-xs font-semibold">
+              L = f(g(h(x)))
+            </code>
+            ，根据多元微积分法则，目标损失 L 关于最内层输入变量 x 的梯度等于各个局部梯度的连乘：
+          </p>
 
-              {/* Discuss Input Area */}
-              <div className="p-3.5 border-t border-white/10 bg-[#090d16]">
-                <div className="flex gap-2">
-                  <input
-                    value={discussMsg}
-                    onChange={(e) => setDiscussMsg(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                    placeholder="向伴读 AI 提问…"
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-500/60 transition-all"
-                  />
-                  <button
-                    onClick={sendMessage}
-                    disabled={streaming}
-                    aria-label="发送消息"
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition-all disabled:opacity-50 cursor-pointer shrink-0"
-                  >
-                    <Send size={13} />
-                  </button>
-                </div>
-
-                {/* Message list */}
-                {messages.length > 0 && (
-                  <div
-                    ref={chatRef}
-                    className="mt-3 space-y-2 max-h-[180px] overflow-y-auto"
-                  >
-                    {messages.map((msg, i) => (
-                      <div
-                        key={i}
-                        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed ${msg.role === "user" ? "bg-cyan-500/20 text-cyan-200 border border-cyan-500/30" : "bg-slate-900 border border-slate-800 text-slate-200"} ${!msg.done ? "cursor-blink" : ""}`}
-                          dangerouslySetInnerHTML={{
-                            __html: msg.content.replace(
-                              /\*\*(.*?)\*\*/g,
-                              '<strong class="text-slate-100">$1</strong>',
-                            ),
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
+          {/* Math Formula Card Block */}
+          <div className="my-6 p-4 bg-[#0F172A]/80 border border-slate-800 rounded-xl relative group shadow-lg">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-mono text-slate-400 font-medium">
+                链式求导公式 (Chain Rule Expression)
+              </span>
+              <button
+                onClick={() =>
+                  copyFormulaCode(
+                    "∂L/∂x = (∂L/∂f) · (∂f/∂g) · (∂g/∂h) · (∂h/∂x)",
+                  )
+                }
+                className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+                title="复制公式"
+              >
+                {copiedCode ? (
+                  <Check size={14} className="text-emerald-400" />
+                ) : (
+                  <Copy size={14} />
                 )}
+              </button>
+            </div>
+            <div className="font-mono text-sm text-cyan-300 bg-slate-950/80 p-3 rounded-lg border border-slate-800/80 overflow-x-auto text-center font-semibold tracking-wide">
+              ∂L / ∂x = (∂L / ∂f) · (∂f / ∂g) · (∂g / ∂h) · (∂h / ∂x)
+            </div>
+          </div>
+
+          {/* Section 3.2 */}
+          <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
+            <span className="text-cyan-400 font-mono">3.2</span> 梯度消失现象与定量分析
+          </h2>
+
+          {/* Callout Box with Target Anchor Glow Pulse */}
+          <div
+            className={`my-6 p-4 rounded-xl border transition-all duration-700 ${targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
+                ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
+                : "bg-slate-900/60 border-slate-800"
+              }`}
+          >
+            <div className="flex items-start gap-3">
+              <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-xs font-bold text-slate-200 mb-1">
+                  重点避坑：梯度消失 (Vanishing Gradient Problem)
+                </h4>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  当传统激活函数选用 Sigmoid 时，其导数区间仅为 <code className="text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded font-mono">(0, 0.25]</code>。在多层神经网络中，当层数超出 5 层以上时，首尾梯度相乘将导致信号呈指数级收缩至零。
+                </p>
               </div>
             </div>
-          </motion.aside>
+          </div>
+
+          <p className="text-[15px] leading-[1.8] text-slate-300 mb-5">
+            假设每层 Sigmoid 激活函数的局部导数均取最大值 0.25，对于一个 10 层的深层网络，第 1 层接收到的残差更新信号强度仅为：
+          </p>
+
+          <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-lg text-xs font-mono text-amber-300 mb-6 text-center">
+            0.25¹⁰ ≈ 9.5367 × 10⁻⁷  (浅层参数近乎停滞更新)
+          </div>
+
+          {/* Section 3.3 */}
+          <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
+            <span className="text-cyan-400 font-mono">3.3</span> Batch Normalization 与 ResNet 现代解法
+          </h2>
+          <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+            批量归一化（Batch Normalization）通过将每一隐藏层的输入分布强制拉回到均值为 0、方差为 1 的标准正态分布区间，从而完美避开了 Sigmoid 的两端饱和区。配合
+            <span className="text-cyan-300 font-medium mx-1">ReLU (Rectified Linear Unit)</span>
+            以及 ResNet 残差连接，现代深度模型已成功支撑上千层网络的稳定收敛。
+          </p>
+
+          <div className="h-24" />
+        </article>
+      </div>
+
+      {/* AI Recommendation Floating Bubble */}
+      <AnimatePresence>
+        {showBubble && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            className="absolute bottom-6 right-6 bg-[#0F172A] border border-cyan-500/40 rounded-xl p-4 2xl:p-5 max-w-[300px] 2xl:max-w-[380px] shadow-2xl z-30 backdrop-blur-md"
+          >
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-300 shrink-0">
+                <Sparkles size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h5 className="text-xs 2xl:text-sm font-bold text-slate-100 mb-1">
+                  AI 伴读提醒
+                </h5>
+                <p className="text-xs 2xl:text-sm text-slate-300 leading-relaxed">
+                  检测到您正在深度阅读「梯度消失」，是否生成此考点的记忆卡片？
+                </p>
+                <button
+                  onClick={() => {
+                    handleDiscussSelection("请帮我归纳梯度消失的核心成因与解决方案")
+                    setShowBubble(false)
+                  }}
+                  className="mt-2.5 px-3 py-1.5 2xl:px-3.5 2xl:py-2 text-xs 2xl:text-xs font-semibold text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                >
+                  生成技能卡片 →
+                </button>
+              </div>
+              <button
+                onClick={() => setShowBubble(false)}
+                aria-label="关闭推荐"
+                className="text-slate-400 hover:text-slate-100 shrink-0 cursor-pointer p-0.5 rounded hover:bg-slate-800"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
+    </div>
+
+      {/* ──────────────── Right Notes & AI Copilot Sidebar Component ──────────────── */}
+      <CompanionDrawer
+        isOpen={discussOpen}
+        onClose={() => setDiscussOpen(false)}
+        is25InchPlus={is25InchPlus}
+        isLaptopOrSmaller={isLaptopOrSmaller}
+        activeTab={rightTab}
+        onTabChange={setRightTab}
+        messages={messages}
+        streaming={streaming}
+        discussMsg={discussMsg}
+        setDiscussMsg={setDiscussMsg}
+        quotedContext={quotedContext}
+        setQuotedContext={setQuotedContext}
+        onSendMessage={sendMessage}
+        notes={notes}
+        noteSearch={noteSearch}
+        setNoteSearch={setNoteSearch}
+        onTraceNote={traceNote}
+        onCreateNote={(data) => createNoteMutation.mutate(data)}
+      />
 
       {!discussOpen && (
         <button
-          onClick={() => setDiscussOpen(true)}
-          aria-label="打开伴读栏"
-          className="absolute right-3 top-12 z-10 p-2 bg-[#111827] border border-white/10 rounded-lg text-slate-300 hover:text-slate-100 transition-all cursor-pointer shadow-lg"
+          onClick={handleOpenDiscuss}
+          aria-label="打开伴读与笔记栏"
+          title="展开伴读与笔记栏"
+          className="absolute right-4 top-14 z-10 p-2.5 bg-[#0F172A]/90 hover:bg-slate-800 border border-cyan-500/30 hover:border-cyan-500/60 rounded-xl text-cyan-300 hover:text-cyan-200 transition-all cursor-pointer shadow-xl backdrop-blur-md group"
         >
-          <MessageSquare size={16} />
+          <MessageSquare size={16} className="group-hover:scale-110 transition-transform" />
         </button>
       )}
     </div>

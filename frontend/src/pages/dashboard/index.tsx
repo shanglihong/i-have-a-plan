@@ -306,19 +306,17 @@ export default function DashboardPage() {
                         );
                       }
                     }}
-                    className={`glass rounded-2xl p-4.5 relative overflow-hidden border transition-all cursor-pointer group shadow-lg ${
-                      isReading
+                    className={`glass rounded-2xl p-4.5 relative overflow-hidden border transition-all cursor-pointer group shadow-lg ${isReading
                         ? "border-white/10 hover:border-cyan-500/40 hover:shadow-cyan-950/40"
                         : "border-white/10 hover:border-violet-500/40 hover:shadow-violet-950/40"
-                    }`}
+                      }`}
                   >
                     {/* Top Accent Gradient Bar */}
                     <div
-                      className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
-                        isReading
+                      className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${isReading
                           ? "from-cyan-400 to-blue-500"
                           : "from-violet-400 to-purple-600"
-                      } opacity-70 group-hover:opacity-100 transition-opacity`}
+                        } opacity-70 group-hover:opacity-100 transition-opacity`}
                     />
 
                     {/* Suspended Overlay */}
@@ -329,11 +327,10 @@ export default function DashboardPage() {
                     <div className="flex items-start justify-between gap-2 mb-2.5">
                       <div className="flex items-center gap-2">
                         <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center border ${
-                            isReading
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center border ${isReading
                               ? `${COLOR_MAP.cyan.bg} border-cyan-500/20`
                               : `${COLOR_MAP.violet.bg} border-violet-500/20`
-                          }`}
+                            }`}
                         >
                           {isReading ? (
                             <BookOpen size={14} className={COLOR_MAP.cyan.text} />
@@ -420,13 +417,12 @@ export default function DashboardPage() {
                   >
                     <div className="flex items-start gap-3 min-w-0">
                       <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                          isSuspended
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${isSuspended
                             ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
                             : isHighProgress
-                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                            : "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30"
-                        }`}
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30"
+                          }`}
                       >
                         {isSuspended ? (
                           <RotateCcw size={16} />
@@ -439,19 +435,18 @@ export default function DashboardPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                              isSuspended
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${isSuspended
                                 ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
                                 : isHighProgress
-                                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
-                                : "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
-                            }`}
+                                  ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                                  : "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
+                              }`}
                           >
                             {isSuspended
                               ? "处于暂停状态"
                               : isHighProgress
-                              ? "阶段里程碑即将达成"
-                              : "进行中关键里程碑"}
+                                ? "阶段里程碑即将达成"
+                                : "进行中关键里程碑"}
                           </span>
                           <span className="text-xs text-slate-400 font-mono">
                             截止: {p.deadline}
@@ -464,8 +459,8 @@ export default function DashboardPage() {
                           {isSuspended
                             ? "当前已被挂起，建议恢复执行以避免任务延期"
                             : isHighProgress
-                            ? `进度已达 ${p.progress}%，建议提交提炼生成 Sandbox Skill`
-                            : `已完成 ${p.progress}%，当前推进正常`}
+                              ? `进度已达 ${p.progress}%，建议提交提炼生成 Sandbox Skill`
+                              : `已完成 ${p.progress}%，当前推进正常`}
                         </p>
                       </div>
                     </div>
@@ -660,11 +655,10 @@ export default function DashboardPage() {
                           setCreateType(t.type);
                           setFormError(null);
                         }}
-                        className={`p-3.5 rounded-xl ring-1 transition-all cursor-pointer group ${
-                          isSelected
+                        className={`p-3.5 rounded-xl ring-1 transition-all cursor-pointer group ${isSelected
                             ? `${themeStyle.ring} bg-white/10`
                             : "ring-white/10 hover:ring-white/20 bg-white/5"
-                        }`}
+                          }`}
                       >
                         <div
                           className={`w-8 h-8 rounded-lg ${themeStyle.bg} flex items-center justify-center mb-2.5`}
@@ -742,11 +736,10 @@ export default function DashboardPage() {
                       <div className="space-y-2">
                         <div
                           onClick={() => setSelectedSkillId("")}
-                          className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${
-                            selectedSkillId === ""
+                          className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${selectedSkillId === ""
                               ? "border-violet-500/60 bg-violet-500/15 text-slate-200"
                               : "border-slate-700/80 hover:border-slate-600 bg-slate-900/40 text-slate-400"
-                          }`}
+                            }`}
                         >
                           <span className="font-medium">无 (从零创建自订任务树)</span>
                           <span className="text-[11px] text-slate-400">零前置模版</span>
@@ -758,11 +751,10 @@ export default function DashboardPage() {
                             <div
                               key={sk.id}
                               onClick={() => setSelectedSkillId(sk.id)}
-                              className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${
-                                isSel
+                              className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${isSel
                                   ? "border-violet-500/60 bg-violet-500/15 text-slate-200"
                                   : "border-slate-700/80 hover:border-slate-600 bg-slate-900/40 text-slate-400"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center gap-2">
                                 <Sparkles size={13} className="text-violet-400" />
@@ -793,11 +785,10 @@ export default function DashboardPage() {
                   <button
                     type="submit"
                     disabled={createProjectMutation.isPending}
-                    className={`flex-1 py-2 text-sm rounded-lg font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      createType === "READING"
+                    className={`flex-1 py-2 text-sm rounded-lg font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${createType === "READING"
                         ? "text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 ring-1 ring-cyan-500/40"
                         : "text-violet-300 bg-violet-500/20 hover:bg-violet-500/30 ring-1 ring-violet-500/40"
-                    } ${createProjectMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
+                      } ${createProjectMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {createProjectMutation.isPending ? (
                       "创建中..."
