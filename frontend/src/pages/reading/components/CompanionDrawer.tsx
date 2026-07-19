@@ -13,11 +13,9 @@ import {
   Bot,
   Copy,
   Check,
-  Zap,
-  Lightbulb,
-  BookOpen,
   GripVertical,
 } from "lucide-react"
+
 
 export interface MessageItem {
   role: string
@@ -81,8 +79,8 @@ export function CompanionDrawer({
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [noteSavedIndex, setNoteSavedIndex] = useState<number | null>(null)
 
-  // 默认自适应基准宽度：25"+ (420px), 13"/14" Mac & Standard (300px)
-  const defaultWidth = is25InchPlus ? 420 : isLaptopOrSmaller ? 300 : 320
+  // 默认自适应基准宽度：25"+ (420px), 13"/14" Mac (260px), Standard 1536-1920 (320px)
+  const defaultWidth = is25InchPlus ? 420 : isLaptopOrSmaller ? 260 : 320
   const [customWidth, setCustomWidth] = useState<number | null>(null)
   const [isResizing, setIsResizing] = useState(false)
 
@@ -93,7 +91,7 @@ export function CompanionDrawer({
     setCustomWidth(null)
   }, [is25InchPlus, isLaptopOrSmaller])
 
-  // 拖拽手柄 Handler (支持在 260px ~ 480px 范围自由拉伸)
+  // 拖拽手柄 Handler (13" Mac: 220~380px | 标准屏: 260~480px)
   const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
     mouseDownEvent.preventDefault()
     setIsResizing(true)
@@ -102,7 +100,9 @@ export function CompanionDrawer({
 
     const doDrag = (mouseMoveEvent: MouseEvent) => {
       const deltaX = startX - mouseMoveEvent.clientX
-      const newWidth = Math.max(260, Math.min(480, startWidth + deltaX))
+      const minW = isLaptopOrSmaller ? 220 : 260
+      const maxW = isLaptopOrSmaller ? 380 : 480
+      const newWidth = Math.max(minW, Math.min(maxW, startWidth + deltaX))
       setCustomWidth(newWidth)
     }
 
@@ -114,7 +114,7 @@ export function CompanionDrawer({
 
     window.addEventListener("mousemove", doDrag)
     window.addEventListener("mouseup", stopDrag)
-  }, [currentWidth])
+  }, [currentWidth, isLaptopOrSmaller])
 
   // 自动滚动到聊天底部
   useEffect(() => {
@@ -163,9 +163,8 @@ export function CompanionDrawer({
             onMouseDown={startResizing}
             onDoubleClick={() => setCustomWidth(null)}
             title="按住左右拖动调节宽度，双击复位默认宽度"
-            className={`absolute left-0 top-0 bottom-0 w-1.5 hover:w-2 z-30 cursor-col-resize group flex items-center justify-center transition-all ${
-              isResizing ? "bg-cyan-500/40" : "hover:bg-cyan-500/20"
-            }`}
+            className={`absolute left-0 top-0 bottom-0 w-1.5 hover:w-2 z-30 cursor-col-resize group flex items-center justify-center transition-all ${isResizing ? "bg-cyan-500/40" : "hover:bg-cyan-500/20"
+              }`}
           >
             <div className="h-10 w-1 rounded-full bg-slate-700/60 group-hover:bg-cyan-400 transition-colors flex items-center justify-center">
               <GripVertical size={10} className="text-slate-900 opacity-0 group-hover:opacity-100" />
@@ -189,9 +188,8 @@ export function CompanionDrawer({
 
                 <button
                   onClick={() => onTabChange("copilot")}
-                  className={`relative z-10 px-2.5 2xl:px-4 py-1.5 text-xs 2xl:text-sm font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === "copilot" ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
-                  }`}
+                  className={`relative z-10 px-2.5 2xl:px-4 py-1.5 text-xs 2xl:text-sm font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${activeTab === "copilot" ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
+                    }`}
                 >
                   <Sparkles size={13} className={activeTab === "copilot" ? "text-cyan-400" : "text-slate-400"} />
                   <span>AI 伴读</span>
@@ -199,9 +197,8 @@ export function CompanionDrawer({
 
                 <button
                   onClick={() => onTabChange("notes")}
-                  className={`relative z-10 px-2.5 2xl:px-4 py-1.5 text-xs 2xl:text-sm font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
-                    activeTab === "notes" ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
-                  }`}
+                  className={`relative z-10 px-2.5 2xl:px-4 py-1.5 text-xs 2xl:text-sm font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${activeTab === "notes" ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
+                    }`}
                 >
                   <Bookmark size={13} className={activeTab === "notes" ? "text-cyan-400" : "text-slate-400"} />
                   <span>笔记 ({notes.length})</span>
@@ -253,11 +250,10 @@ export function CompanionDrawer({
 
                           {/* Message Content Bubble */}
                           <div
-                            className={`group relative rounded-2xl px-3.5 py-2.5 text-xs 2xl:text-sm leading-relaxed ${
-                              isUser
+                            className={`group relative rounded-2xl px-3.5 py-2.5 text-xs 2xl:text-sm leading-relaxed ${isUser
                                 ? "bg-gradient-to-r from-cyan-600/30 to-blue-600/20 text-cyan-100 border border-cyan-500/40 rounded-tr-sm shadow-md"
                                 : "bg-[#111827] border border-slate-800 text-slate-200 rounded-tl-sm shadow-md"
-                            }`}
+                              }`}
                           >
                             <div
                               dangerouslySetInnerHTML={{
@@ -344,30 +340,6 @@ export function CompanionDrawer({
                   )}
                 </AnimatePresence>
 
-                {/* Quick Prompts Bar (No Emoji, Vector Icons Only) */}
-                <div className="px-2.5 2xl:px-4 py-1.5 border-t border-slate-800/60 bg-[#0C111D]/90 flex gap-1.5 overflow-x-auto scrollbar-none">
-                  <button
-                    onClick={() => onSendMessage("请用简单比喻解释链式法则的核心思想？")}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
-                  >
-                    <Lightbulb size={11} className="text-amber-400" />
-                    <span>链式法则比喻</span>
-                  </button>
-                  <button
-                    onClick={() => onSendMessage("梯度消失现象的深层根源及公式推导是怎样的？")}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
-                  >
-                    <Zap size={11} className="text-cyan-400" />
-                    <span>梯度消失剖析</span>
-                  </button>
-                  <button
-                    onClick={() => onSendMessage("ResNet 残差网络如何解决深层梯度衰减问题？")}
-                    className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-[11px] text-slate-300 border border-slate-800 hover:border-cyan-500/40 whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center gap-1"
-                  >
-                    <BookOpen size={11} className="text-violet-400" />
-                    <span>ResNet残差机制</span>
-                  </button>
-                </div>
 
                 {/* Message Input Container */}
                 <div className="p-2.5 2xl:p-4 border-t border-slate-800/80 bg-[#090D16]">

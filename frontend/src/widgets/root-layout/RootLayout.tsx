@@ -147,7 +147,7 @@ export default function RootLayout() {
       {/* Primary Activity Bar Navigation (w-16) */}
       <aside className="w-16 flex flex-col items-center py-4 gap-1.5 border-r border-white/10 bg-[#0c111d] shrink-0 z-40 select-none">
         {/* Logo */}
-        <div 
+        <div
           className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center mb-3 cursor-pointer shadow-lg shadow-cyan-500/10 hover:opacity-90 transition-opacity"
           title="I Have A Plan"
         >
@@ -171,9 +171,9 @@ export default function RootLayout() {
                   }`}
               >
                 {isTreeActive && (
-                  <motion.div 
+                  <motion.div
                     layoutId="activeNavIndicator"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cyan-400 rounded-r-full -ml-[1px]" 
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cyan-400 rounded-r-full -ml-[1px]"
                   />
                 )}
                 <Icon size={18} className="shrink-0" />
@@ -198,9 +198,9 @@ export default function RootLayout() {
               {({ isActive }) => (
                 <>
                   {isActive && (
-                    <motion.div 
+                    <motion.div
                       layoutId="activeNavIndicator"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cyan-400 rounded-r-full -ml-[1px]" 
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cyan-400 rounded-r-full -ml-[1px]"
                     />
                   )}
                   <Icon size={18} className="shrink-0" />
@@ -212,7 +212,7 @@ export default function RootLayout() {
         })}
 
         <div className="flex-1" />
-        <button 
+        <button
           aria-label="全局设置"
           className="w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-100 hover:bg-white/10 transition-all cursor-pointer"
         >
@@ -253,11 +253,10 @@ export default function RootLayout() {
                       </Link>
                     ) : (
                       <div
-                        className={`flex items-center gap-1.5 px-1.5 py-1 ${
-                          isLast
+                        className={`flex items-center gap-1.5 px-1.5 py-1 ${isLast
                             ? "text-slate-100 font-semibold tracking-wide text-sm"
                             : "text-slate-400 font-medium"
-                        }`}
+                          }`}
                       >
                         {Icon && (
                           <Icon
@@ -404,7 +403,7 @@ export default function RootLayout() {
             </div>
 
             {/* Avatar */}
-            <div 
+            <div
               aria-label="用户个人中心"
               className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center text-xs font-bold text-white cursor-pointer ring-2 ring-white/10 hover:ring-cyan-400 transition-all shadow-md"
             >

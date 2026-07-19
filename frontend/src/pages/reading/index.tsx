@@ -275,12 +275,12 @@ export default function ReadingWorkspacePage() {
         {outlineOpen && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 250, opacity: 1 }}
+            animate={{ width: 220, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeInOut" }}
             className="border-r border-slate-800/80 bg-[#0C111D] shrink-0 z-20"
           >
-            <div className="w-[250px] h-full flex flex-col">
+            <div className="w-[220px] h-full flex flex-col">
               {/* Sidebar Header */}
               <div className="h-12 px-4 border-b border-slate-800/80 bg-[#090D16]/50 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
@@ -300,25 +300,25 @@ export default function ReadingWorkspacePage() {
 
               {/* Progress Overview */}
               <div className="space-y-2.5 px-4 py-3 border-b border-slate-800/60">
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
-                      <span>阅读进度</span>
-                      <span className="font-mono text-cyan-400 font-semibold">
-                        {Math.round(scrollProgress)}%
-                      </span>
-                    </div>
-                    <ProgressBar value={scrollProgress} color="cyan" />
+                <div>
+                  <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
+                    <span>阅读进度</span>
+                    <span className="font-mono text-cyan-400 font-semibold">
+                      {Math.round(scrollProgress)}%
+                    </span>
                   </div>
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
-                      <span>精读卡片理解</span>
-                      <span className="font-mono text-violet-400 font-semibold">
-                        82%
-                      </span>
-                    </div>
-                    <ProgressBar value={82} color="violet" />
-                  </div>
+                  <ProgressBar value={scrollProgress} color="cyan" />
                 </div>
+                <div>
+                  <div className="flex justify-between text-[11px] text-slate-400 mb-1 font-medium">
+                    <span>精读卡片理解</span>
+                    <span className="font-mono text-violet-400 font-semibold">
+                      82%
+                    </span>
+                  </div>
+                  <ProgressBar value={82} color="violet" />
+                </div>
+              </div>
 
 
               {/* Chapters Tree Nav */}
@@ -427,210 +427,210 @@ export default function ReadingWorkspacePage() {
         {/* Reader Scroll Container */}
         <div
           ref={readerRef}
-          className="flex-1 overflow-y-auto px-4 sm:px-8 2xl:px-12 py-8 2xl:py-10 relative scrollbar-thin scrollbar-thumb-slate-800"
+          className="flex-1 overflow-y-auto px-4 sm:px-6 2xl:px-12 py-6 2xl:py-10 relative scrollbar-thin scrollbar-thumb-slate-800"
           onMouseUp={handleTextSelect}
           onScroll={handleScroll}
         >
 
-        {/* Floating Selection Menu */}
-        <AnimatePresence>
-          {floatingMenu && (
-            <motion.div
-              initial={{ opacity: 0, y: 6, scale: 0.94 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.12 }}
-              className="absolute z-50 bg-[#121A29] border border-slate-700/90 rounded-xl shadow-2xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-lg"
-              style={{
-                left: floatingMenu.x - 90,
-                top: floatingMenu.y,
-              }}
+          {/* Floating Selection Menu */}
+          <AnimatePresence>
+            {floatingMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.12 }}
+                className="absolute z-50 bg-[#121A29] border border-slate-700/90 rounded-xl shadow-2xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-lg"
+                style={{
+                  left: floatingMenu.x - 90,
+                  top: floatingMenu.y,
+                }}
+              >
+                <button
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg transition-all cursor-pointer font-semibold"
+                  onClick={() => handleDiscussSelection(floatingMenu.text)}
+                >
+                  <MessageSquare size={13} className="text-cyan-400" />
+                  提问 AI
+                </button>
+
+                <div className="w-px h-4 bg-slate-700/80" />
+
+                <button
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-emerald-300 hover:bg-emerald-500/20 rounded-lg transition-all cursor-pointer font-semibold"
+                  onClick={() => handleCreateNoteFromSelection(floatingMenu.text)}
+                >
+                  <Bookmark size={13} className="text-emerald-400" />
+                  记笔记
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Main Content Body (Max Width 720px for optimal readability) */}
+          <article className="max-w-[720px] mx-auto text-slate-200 leading-relaxed font-sans">
+            {/* Document Header */}
+            <div className="mb-8 pb-4 border-b border-slate-800/80">
+              <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold">
+                Core Theory Reading · Chapter 3
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mt-2 mb-3 tracking-tight">
+                第三章：反向传播算法及其微积分推导
+              </h1>
+              <p className="text-xs text-slate-400 font-mono">
+                发布时间：2026-07-19 · 阅读难度：高级 · 核心考点：链式法则、梯度衰减
+              </p>
+            </div>
+
+            {/* Paragraph 1 */}
+            <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+              反向传播（Backpropagation）是训练人工神经网络的核心算法，由 Rumelhart、Hinton 和 Williams 于 1986 年系统性地提出。其本质在于借助微积分中的
+              <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 mx-1 rounded font-medium">
+                链式求导法则 (Chain Rule)
+              </span>
+              ，高效且精准地计算损失函数关于神经网络中每一个可修学习参数的偏导数。
+            </p>
+
+            {/* Section 3.1 */}
+            <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
+              <span className="text-cyan-400 font-mono">3.1</span> 链式法则的核心微积分推导
+            </h2>
+            <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+              设一个典型的多层前馈神经网络可以抽象为复合函数{" "}
+              <code className="text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded font-mono text-xs font-semibold">
+                L = f(g(h(x)))
+              </code>
+              ，根据多元微积分法则，目标损失 L 关于最内层输入变量 x 的梯度等于各个局部梯度的连乘：
+            </p>
+
+            {/* Math Formula Card Block */}
+            <div className="my-6 p-4 bg-[#0F172A]/80 border border-slate-800 rounded-xl relative group shadow-lg">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-mono text-slate-400 font-medium">
+                  链式求导公式 (Chain Rule Expression)
+                </span>
+                <button
+                  onClick={() =>
+                    copyFormulaCode(
+                      "∂L/∂x = (∂L/∂f) · (∂f/∂g) · (∂g/∂h) · (∂h/∂x)",
+                    )
+                  }
+                  className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="复制公式"
+                >
+                  {copiedCode ? (
+                    <Check size={14} className="text-emerald-400" />
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                </button>
+              </div>
+              <div className="font-mono text-sm text-cyan-300 bg-slate-950/80 p-3 rounded-lg border border-slate-800/80 overflow-x-auto text-center font-semibold tracking-wide">
+                ∂L / ∂x = (∂L / ∂f) · (∂f / ∂g) · (∂g / ∂h) · (∂h / ∂x)
+              </div>
+            </div>
+
+            {/* Section 3.2 */}
+            <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
+              <span className="text-cyan-400 font-mono">3.2</span> 梯度消失现象与定量分析
+            </h2>
+
+            {/* Callout Box with Target Anchor Glow Pulse */}
+            <div
+              className={`my-6 p-4 rounded-xl border transition-all duration-700 ${targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
+                ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
+                : "bg-slate-900/60 border-slate-800"
+                }`}
             >
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg transition-all cursor-pointer font-semibold"
-                onClick={() => handleDiscussSelection(floatingMenu.text)}
-              >
-                <MessageSquare size={13} className="text-cyan-400" />
-                提问 AI
-              </button>
+              <div className="flex items-start gap-3">
+                <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-xs font-bold text-slate-200 mb-1">
+                    重点避坑：梯度消失 (Vanishing Gradient Problem)
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    当传统激活函数选用 Sigmoid 时，其导数区间仅为 <code className="text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded font-mono">(0, 0.25]</code>。在多层神经网络中，当层数超出 5 层以上时，首尾梯度相乘将导致信号呈指数级收缩至零。
+                  </p>
+                </div>
+              </div>
+            </div>
 
-              <div className="w-px h-4 bg-slate-700/80" />
+            <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+              假设每层 Sigmoid 激活函数的局部导数均取最大值 0.25，对于一个 10 层的深层网络，第 1 层接收到的残差更新信号强度仅为：
+            </p>
 
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-emerald-300 hover:bg-emerald-500/20 rounded-lg transition-all cursor-pointer font-semibold"
-                onClick={() => handleCreateNoteFromSelection(floatingMenu.text)}
-              >
-                <Bookmark size={13} className="text-emerald-400" />
-                记笔记
-              </button>
+            <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-lg text-xs font-mono text-amber-300 mb-6 text-center">
+              0.25¹⁰ ≈ 9.5367 × 10⁻⁷  (浅层参数近乎停滞更新)
+            </div>
+
+            {/* Section 3.3 */}
+            <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
+              <span className="text-cyan-400 font-mono">3.3</span> Batch Normalization 与 ResNet 现代解法
+            </h2>
+            <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
+              批量归一化（Batch Normalization）通过将每一隐藏层的输入分布强制拉回到均值为 0、方差为 1 的标准正态分布区间，从而完美避开了 Sigmoid 的两端饱和区。配合
+              <span className="text-cyan-300 font-medium mx-1">ReLU (Rectified Linear Unit)</span>
+              以及 ResNet 残差连接，现代深度模型已成功支撑上千层网络的稳定收敛。
+            </p>
+
+            <div className="h-16" />
+          </article>
+        </div>
+
+        {/* AI Recommendation Floating Bubble */}
+        <AnimatePresence>
+          {showBubble && (
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.95 }}
+              className="absolute bottom-6 right-6 bg-[#0F172A] border border-cyan-500/40 rounded-xl p-4 2xl:p-5 max-w-[300px] 2xl:max-w-[380px] shadow-2xl z-30 backdrop-blur-md"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-300 shrink-0">
+                  <Sparkles size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h5 className="text-xs 2xl:text-sm font-bold text-slate-100 mb-1">
+                    AI 伴读提醒
+                  </h5>
+                  <p className="text-xs 2xl:text-sm text-slate-300 leading-relaxed">
+                    检测到您正在深度阅读「梯度消失」，是否生成此考点的记忆卡片？
+                  </p>
+                  <button
+                    onClick={() => {
+                      handleDiscussSelection("请帮我归纳梯度消失的核心成因与解决方案")
+                      setShowBubble(false)
+                    }}
+                    className="mt-2.5 px-3 py-1.5 2xl:px-3.5 2xl:py-2 text-xs font-semibold text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    生成技能卡片 →
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowBubble(false)}
+                  aria-label="关闭推荐"
+                  className="text-slate-400 hover:text-slate-100 shrink-0 cursor-pointer p-0.5 rounded hover:bg-slate-800"
+                >
+                  <X size={14} />
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Main Content Body (Max Width 720px for optimal readability) */}
-        <article className="max-w-[720px] mx-auto text-slate-200 leading-relaxed font-sans">
-          {/* Document Header */}
-          <div className="mb-8 pb-4 border-b border-slate-800/80">
-            <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold">
-              Core Theory Reading · Chapter 3
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 mt-2 mb-3 tracking-tight">
-              第三章：反向传播算法及其微积分推导
-            </h1>
-            <p className="text-xs text-slate-400 font-mono">
-              发布时间：2026-07-19 · 阅读难度：高级 · 核心考点：链式法则、梯度衰减
-            </p>
-          </div>
-
-          {/* Paragraph 1 */}
-          <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
-            反向传播（Backpropagation）是训练人工神经网络的核心算法，由 Rumelhart、Hinton 和 Williams 于 1986 年系统性地提出。其本质在于借助微积分中的
-            <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 mx-1 rounded font-medium">
-              链式求导法则 (Chain Rule)
-            </span>
-            ，高效且精准地计算损失函数关于神经网络中每一个可修学习参数的偏导数。
-          </p>
-
-          {/* Section 3.1 */}
-          <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
-            <span className="text-cyan-400 font-mono">3.1</span> 链式法则的核心微积分推导
-          </h2>
-          <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
-            设一个典型的多层前馈神经网络可以抽象为复合函数{" "}
-            <code className="text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded font-mono text-xs font-semibold">
-              L = f(g(h(x)))
-            </code>
-            ，根据多元微积分法则，目标损失 L 关于最内层输入变量 x 的梯度等于各个局部梯度的连乘：
-          </p>
-
-          {/* Math Formula Card Block */}
-          <div className="my-6 p-4 bg-[#0F172A]/80 border border-slate-800 rounded-xl relative group shadow-lg">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-mono text-slate-400 font-medium">
-                链式求导公式 (Chain Rule Expression)
-              </span>
-              <button
-                onClick={() =>
-                  copyFormulaCode(
-                    "∂L/∂x = (∂L/∂f) · (∂f/∂g) · (∂g/∂h) · (∂h/∂x)",
-                  )
-                }
-                className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
-                title="复制公式"
-              >
-                {copiedCode ? (
-                  <Check size={14} className="text-emerald-400" />
-                ) : (
-                  <Copy size={14} />
-                )}
-              </button>
-            </div>
-            <div className="font-mono text-sm text-cyan-300 bg-slate-950/80 p-3 rounded-lg border border-slate-800/80 overflow-x-auto text-center font-semibold tracking-wide">
-              ∂L / ∂x = (∂L / ∂f) · (∂f / ∂g) · (∂g / ∂h) · (∂h / ∂x)
-            </div>
-          </div>
-
-          {/* Section 3.2 */}
-          <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
-            <span className="text-cyan-400 font-mono">3.2</span> 梯度消失现象与定量分析
-          </h2>
-
-          {/* Callout Box with Target Anchor Glow Pulse */}
-          <div
-            className={`my-6 p-4 rounded-xl border transition-all duration-700 ${targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
-                ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
-                : "bg-slate-900/60 border-slate-800"
-              }`}
+        {/* 伴读栏未展开时的快捷浮动入口 - 定位于 center column 内 */}
+        {!discussOpen && (
+          <button
+            onClick={handleOpenDiscuss}
+            aria-label="打开伴读与笔记栏"
+            title="展开伴读与笔记栏"
+            className="absolute right-4 top-[52px] z-20 p-2.5 bg-[#0F172A]/90 hover:bg-slate-800 border border-cyan-500/30 hover:border-cyan-500/60 rounded-xl text-cyan-300 hover:text-cyan-200 transition-all cursor-pointer shadow-xl backdrop-blur-md group"
           >
-            <div className="flex items-start gap-3">
-              <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="text-xs font-bold text-slate-200 mb-1">
-                  重点避坑：梯度消失 (Vanishing Gradient Problem)
-                </h4>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  当传统激活函数选用 Sigmoid 时，其导数区间仅为 <code className="text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded font-mono">(0, 0.25]</code>。在多层神经网络中，当层数超出 5 层以上时，首尾梯度相乘将导致信号呈指数级收缩至零。
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
-            假设每层 Sigmoid 激活函数的局部导数均取最大值 0.25，对于一个 10 层的深层网络，第 1 层接收到的残差更新信号强度仅为：
-          </p>
-
-          <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-lg text-xs font-mono text-amber-300 mb-6 text-center">
-            0.25¹⁰ ≈ 9.5367 × 10⁻⁷  (浅层参数近乎停滞更新)
-          </div>
-
-          {/* Section 3.3 */}
-          <h2 className="text-lg font-bold text-slate-100 mb-3 mt-8 flex items-center gap-2">
-            <span className="text-cyan-400 font-mono">3.3</span> Batch Normalization 与 ResNet 现代解法
-          </h2>
-          <p className="text-[15px] leading-[1.8] text-slate-300 mb-6">
-            批量归一化（Batch Normalization）通过将每一隐藏层的输入分布强制拉回到均值为 0、方差为 1 的标准正态分布区间，从而完美避开了 Sigmoid 的两端饱和区。配合
-            <span className="text-cyan-300 font-medium mx-1">ReLU (Rectified Linear Unit)</span>
-            以及 ResNet 残差连接，现代深度模型已成功支撑上千层网络的稳定收敛。
-          </p>
-
-          <div className="h-16" />
-        </article>
-      </div>
-
-      {/* AI Recommendation Floating Bubble */}
-      <AnimatePresence>
-        {showBubble && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.95 }}
-            className="absolute bottom-6 right-6 bg-[#0F172A] border border-cyan-500/40 rounded-xl p-4 2xl:p-5 max-w-[300px] 2xl:max-w-[380px] shadow-2xl z-30 backdrop-blur-md"
-          >
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-300 shrink-0">
-                <Sparkles size={16} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h5 className="text-xs 2xl:text-sm font-bold text-slate-100 mb-1">
-                  AI 伴读提醒
-                </h5>
-                <p className="text-xs 2xl:text-sm text-slate-300 leading-relaxed">
-                  检测到您正在深度阅读「梯度消失」，是否生成此考点的记忆卡片？
-                </p>
-                <button
-                  onClick={() => {
-                    handleDiscussSelection("请帮我归纳梯度消失的核心成因与解决方案")
-                    setShowBubble(false)
-                  }}
-                  className="mt-2.5 px-3 py-1.5 2xl:px-3.5 2xl:py-2 text-xs font-semibold text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 rounded-lg transition-all cursor-pointer flex items-center gap-1"
-                >
-                  生成技能卡片 →
-                </button>
-              </div>
-              <button
-                onClick={() => setShowBubble(false)}
-                aria-label="关闭推荐"
-                className="text-slate-400 hover:text-slate-100 shrink-0 cursor-pointer p-0.5 rounded hover:bg-slate-800"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </motion.div>
+            <MessageSquare size={16} className="group-hover:scale-110 transition-transform" />
+          </button>
         )}
-      </AnimatePresence>
-
-      {/* 伴读栏未展开时的快捷浮动入口 - 定位于 center column 内 */}
-      {!discussOpen && (
-        <button
-          onClick={handleOpenDiscuss}
-          aria-label="打开伴读与笔记栏"
-          title="展开伴读与笔记栏"
-          className="absolute right-4 top-[52px] z-20 p-2.5 bg-[#0F172A]/90 hover:bg-slate-800 border border-cyan-500/30 hover:border-cyan-500/60 rounded-xl text-cyan-300 hover:text-cyan-200 transition-all cursor-pointer shadow-xl backdrop-blur-md group"
-        >
-          <MessageSquare size={16} className="group-hover:scale-110 transition-transform" />
-        </button>
-      )}
-    </div>
+      </div>
 
       {/* ──────────────── Right Notes & AI Copilot Sidebar Component ──────────────── */}
       <CompanionDrawer
