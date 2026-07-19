@@ -1,12 +1,6 @@
 import { http, HttpResponse, delay } from 'msw'
-import {
-  MOCK_PROJECTS,
-  MOCK_NOTES,
-  MOCK_TASKS,
-  MOCK_GRAPH_NODES,
-  MOCK_GRAPH_EDGES,
-} from './data'
-
+import { MOCK_PROJECTS_DATA as MOCK_PROJECTS } from '../../mock/modules/projects/data'
+import { MOCK_NOTES_DATA as MOCK_NOTES } from '../../mock/modules/notes/data'
 
 export const handlers = [
   http.get('/api/projects', async ({ request }) => {
@@ -15,7 +9,7 @@ export const handlers = [
 
     let filtered = MOCK_PROJECTS
     if (status && status !== 'ALL') {
-      filtered = filtered.filter(p => p.status === status)
+      filtered = filtered.filter((p: any) => p.status === status)
     }
 
     await delay(300)
@@ -30,7 +24,7 @@ export const handlers = [
 
   http.get('/api/projects/:id', async ({ params }) => {
     const { id } = params
-    const project = MOCK_PROJECTS.find(p => p.id === id)
+    const project = MOCK_PROJECTS.find((p: any) => p.id === id)
     await delay(300)
     if (!project) {
       return HttpResponse.json({

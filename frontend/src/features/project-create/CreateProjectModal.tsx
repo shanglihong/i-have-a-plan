@@ -13,17 +13,23 @@ interface CreateProjectModalProps {
   onClose: () => void;
 }
 
+const getOneWeekLaterDateString = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  return date.toISOString().split("T")[0];
+};
+
 export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const [createType, setCreateType] = useState<ProjectType>("READING");
   const [projectTitle, setProjectTitle] = useState("");
-  const [deadline, setDeadline] = useState("2026-09-30");
+  const [deadline, setDeadline] = useState<string>(getOneWeekLaterDateString);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedSkillId, setSelectedSkillId] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
 
   const resetForm = () => {
     setProjectTitle("");
-    setDeadline("2026-09-30");
+    setDeadline(getOneWeekLaterDateString());
     setSelectedFile(null);
     setSelectedSkillId("");
     setFormError(null);

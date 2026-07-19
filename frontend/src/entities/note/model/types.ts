@@ -9,6 +9,8 @@ export interface SourceAnchor {
 export interface UnifiedReadingNoteDO {
   id: string;
   project_id: string;
+  projectId?: string;
+  project_name?: string;
   content: string;
   quote?: string;
   anchor?: string;

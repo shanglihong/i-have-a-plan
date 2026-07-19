@@ -1,17 +1,5 @@
-import { Sparkles } from "lucide-react";
-
-export interface SkillOption {
-  id: string;
-  title: string;
-  category: string;
-  nodesCount: number;
-}
-
-export const PRESET_SKILLS: SkillOption[] = [
-  { id: "skill_01", title: "Linux 内核模块分析与调试", category: "系统底层", nodesCount: 14 },
-  { id: "skill_02", title: "Graph RAG 知识检索系统架构", category: "AI 与图工程", nodesCount: 9 },
-  { id: "skill_03", title: "TypeScript & React 高级模式", category: "前端体系", nodesCount: 12 },
-];
+import { Sparkles, Loader2 } from "lucide-react";
+import { useSearchSkillsQuery } from "../../../entities";
 
 interface PresetSkillSelectorProps {
   selectedSkillId: string;
@@ -22,6 +10,9 @@ export function PresetSkillSelector({
   selectedSkillId,
   onSelectSkill,
 }: PresetSkillSelectorProps) {
+  const { data, isLoading } = useSearchSkillsQuery();
+  const skills = data?.items || [];
+
   return (
     <div>
       <label className="text-xs text-slate-300 mb-1.5 block font-medium flex items-center justify-between">
@@ -43,30 +34,37 @@ export function PresetSkillSelector({
           <span className="text-xs text-slate-400">零前置模版</span>
         </div>
 
-        {PRESET_SKILLS.map((sk) => {
-          const isSel = selectedSkillId === sk.id;
-          return (
-            <div
-              key={sk.id}
-              onClick={() => onSelectSkill(sk.id)}
-              className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${
-                isSel
-                  ? "border-violet-500/60 bg-violet-500/15 text-slate-200"
-                  : "border-slate-700/80 hover:border-slate-600 bg-slate-900/40 text-slate-400"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles size={13} className="text-violet-400" />
-                <span className="font-medium text-slate-200">
-                  {sk.title}
+        {isLoading ? (
+          <div className="p-4 rounded-lg border border-slate-700/50 bg-slate-900/20 text-xs text-slate-400 flex items-center justify-center gap-2">
+            <Loader2 size={14} className="animate-spin text-violet-400" />
+            <span>加载推荐技能中...</span>
+          </div>
+        ) : (
+          skills.map((sk) => {
+            const isSel = selectedSkillId === sk.id;
+            return (
+              <div
+                key={sk.id}
+                onClick={() => onSelectSkill(sk.id)}
+                className={`p-2.5 rounded-lg border text-xs cursor-pointer transition-all flex items-center justify-between ${
+                  isSel
+                    ? "border-violet-500/60 bg-violet-500/15 text-slate-200"
+                    : "border-slate-700/80 hover:border-slate-600 bg-slate-900/40 text-slate-400"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles size={13} className="text-violet-400" />
+                  <span className="font-medium text-slate-200">
+                    {sk.title}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-400">
+                  {sk.nodesCount} 个节点 · {sk.category}
                 </span>
               </div>
-              <span className="text-xs text-slate-400">
-                {sk.nodesCount} 个节点 · {sk.category}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
