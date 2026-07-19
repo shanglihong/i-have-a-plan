@@ -3,6 +3,7 @@
 export type ProjectType = "READING" | "PLAN";
 
 export type ProjectStatus =
+  | "INIT"
   | "ACTIVE"
   | "SUSPENDED"
   | "ARCHIVED"

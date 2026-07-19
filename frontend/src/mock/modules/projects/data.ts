@@ -1,0 +1,48 @@
+import { Project } from "../../../shared/types";
+
+export const MOCK_PROJECTS_DATA: Project[] = [
+  {
+    id: "1",
+    title: "深入理解 Linux 内核架构与网络协议栈",
+    type: "READING",
+    status: "ACTIVE",
+    progress: 75,
+    deadline: "2026-08-30",
+    tags: ["内核", "C语言", "网络"],
+    notes: 42,
+    createdAt: "2026-07-01",
+  },
+  {
+    id: "2",
+    title: "Graph RAG 知识检索与引擎落地工程",
+    type: "PLAN",
+    status: "ACTIVE",
+    progress: 40,
+    deadline: "2026-09-15",
+    tags: ["AI", "图数据库", "Python"],
+    tasks: 12,
+    createdAt: "2026-07-05",
+  },
+  {
+    id: "3",
+    title: "TypeScript & React 高级设计模式精读",
+    type: "READING",
+    status: "COMPLETED",
+    progress: 100,
+    deadline: "2026-07-10",
+    tags: ["前端", "TS", "架构"],
+    notes: 28,
+    createdAt: "2026-06-15",
+  },
+  {
+    id: "4",
+    title: "ebpf 动态追踪与性能调优最佳实践",
+    type: "PLAN",
+    status: "SUSPENDED",
+    progress: 15,
+    deadline: "2026-10-01",
+    tags: ["ebpf", "Linux", "性能"],
+    tasks: 8,
+    createdAt: "2026-07-08",
+  },
+];

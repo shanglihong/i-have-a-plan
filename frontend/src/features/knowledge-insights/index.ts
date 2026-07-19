@@ -1,0 +1,1 @@
+export { KnowledgeInsightsWidget } from "./KnowledgeInsightsWidget";
