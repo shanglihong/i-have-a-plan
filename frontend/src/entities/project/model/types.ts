@@ -5,6 +5,8 @@ export type ProjectStatus = "INIT" | "ACTIVE" | "SUSPENDED" | "ARCHIVED" | "PARS
 // 持久化 DO & API 返回的基础实体
 export interface ProjectDO {
   id: string;
+  kb_id?: string;
+  kb_name?: string;
   title: string;
   type: ProjectType;
   status: ProjectStatus;
@@ -18,6 +20,8 @@ export interface ProjectDO {
   updatedAt?: string;
 }
 
+
+
 // 前端使用 View Object (VO)
 export interface ProjectVO extends ProjectDO {
   _ui_progress: number;
@@ -29,6 +33,8 @@ export interface CreateReadingProjectPayload {
   type: "READING";
   deadline: string;
   file?: File;
+  kb_id?: string;
+  kb_name?: string;
 }
 
 export interface CreatePlanProjectPayload {
@@ -36,6 +42,8 @@ export interface CreatePlanProjectPayload {
   type: "PLAN";
   deadline: string;
   skill_id?: string;
+  kb_id?: string;
+  kb_name?: string;
 }
 
 export type CreateProjectPayload =

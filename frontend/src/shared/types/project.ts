@@ -12,14 +12,17 @@ export type ProjectStatus =
 
 export interface Project {
   id: string;
+  kb_id?: string;
+  kb_name?: string;
   title: string;
   type: ProjectType;
   status: ProjectStatus;
   progress: number;
   deadline: string;
   tags: string[];
-  category?: string;
   createdAt?: string;
   notes?: number;
   tasks?: number;
 }
+
+

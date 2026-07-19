@@ -4,6 +4,7 @@ import { notesHandlers } from "./modules/notes/handlers";
 import { skillsHandlers } from "./modules/skills/handlers";
 import { tasksHandlers } from "./modules/tasks/handlers";
 import { graphHandlers } from "./modules/graph/handlers";
+import { searchHandlers } from "./modules/search/handlers";
 
 export * from "./modules/projects/data";
 export * from "./modules/dashboard/data";
@@ -11,6 +12,7 @@ export * from "./modules/notes/data";
 export * from "./modules/skills/data";
 export * from "./modules/tasks/data";
 export * from "./modules/graph/data";
+export * from "./modules/search/data";
 
 export const handlers = [
   ...projectsHandlers,
@@ -19,5 +21,6 @@ export const handlers = [
   ...skillsHandlers,
   ...tasksHandlers,
   ...graphHandlers,
+  ...searchHandlers,
 ];
 

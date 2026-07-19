@@ -46,10 +46,14 @@ export const projectsHandlers = [
       const formData = await request.formData();
       const title = (formData.get("title") as string) || "未命名阅读项目";
       const deadline = (formData.get("deadline") as string) || "2026-12-31";
+      const kbId = (formData.get("kb_id") as string) || "kb_default";
+      const kbName = (formData.get("kb_name") as string) || "默认知识库";
 
       const newProject = {
         id: "proj_" + Date.now(),
+        kb_id: kbId,
         title,
+        kb_name: kbName,
         type: "READING" as const,
         status: "ACTIVE" as const,
         progress: 0,
@@ -64,7 +68,9 @@ export const projectsHandlers = [
       const body = (await request.json()) as Record<string, any>;
       const newProject = {
         id: "proj_" + Date.now(),
-        title: body.title || "未命名计划项目",
+        kb_id: body.kb_id || "kb_" + Date.now(),
+        title: body.title || "未命名计划",
+        kb_name: body.kb_name || "默认知识库",
         type: "PLAN" as const,
         status: "ACTIVE" as const,
         progress: 0,
@@ -76,6 +82,8 @@ export const projectsHandlers = [
       MOCK_PROJECTS_DATA.unshift(newProject);
       return HttpResponse.json(newProject, { status: 201 });
     }
+
+
   }),
 
   http.post("/api/projects/:id/suspend", async ({ params }) => {

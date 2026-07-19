@@ -263,12 +263,13 @@ export default function PlanWorkspacePage() {
                           </span>
                         </div>
 
-                        {task.deps.length > 0 && (
+                        {task.deps && task.deps.length > 0 && (
                           <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-800 text-xs text-slate-400">
                             <GitBranch size={12} className="text-slate-400 shrink-0" />
                             <span>依赖 {task.deps.length} 个前置节点</span>
                           </div>
                         )}
+
                       </motion.div>
                     ))}
                 </div>

@@ -75,3 +75,5 @@
 | **2.4** | **[04_skills_and_sandbox.md](./modules/04_skills_and_sandbox.md)** | **技能提炼与沙箱验证** | `GET /api/skills/search` (语义检索技能)<br>`POST /api/skills/compile` (提炼编译 SSE)<br>`POST /api/skills/{id}/approve` (PA-03 门禁校验) |
 | **2.5** | **[05_tasks_and_planning.md](./modules/05_tasks_and_planning.md)** | **计划与任务调度** | `POST /api/tasks/reschedule` (拓扑顺延计算)<br>`PATCH /api/tasks/{id}` (更新原子任务状态) |
 | **2.6** | **[06_dashboard_aggregation.md](./modules/06_dashboard_aggregation.md)** | **大盘工作台与汇总统计** | `GET /api/dashboard/stats` (工作台指标汇总)<br>`GET /api/notes/featured` (大盘精选金句笔记)<br>`GET /api/skills/active` (活跃技能引擎列表) |
+| **2.7** | **[07_global_search.md](./modules/07_global_search.md)** | **全站全局搜索** | `GET /api/search` (聚合全站全局搜索) |
+| **2.8** | **[08_knowledge_bases.md](./modules/08_knowledge_bases.md)** | **知识库管理与目录** | `GET /api/knowledge-bases` (获取知识库列表)<br>`POST /api/knowledge-bases` (新建知识库)<br>`PUT /api/knowledge-bases/{id}` (更新知识库)<br>`DELETE /api/knowledge-bases/{id}` (删除知识库) |

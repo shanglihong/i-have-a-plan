@@ -16,7 +16,9 @@
 #### 请求载荷 (JSON - 针对计划项目)
 ```json
 {
-  "title": "项目名称",
+  "title": "Linux 内核协议栈重构计划",
+  "kb_id": "kb_sys_01",
+  "kb_name": "Linux 内核与系统底层知识库",
   "type": "PLAN",
   "deadline": "2026-12-31T23:59:59Z",
   "skill_id": "string (可选注入的技能模板 ID)"
@@ -24,7 +26,9 @@
 ```
 
 #### 请求载荷 (FormData - 针对阅读项目)
-* `title`: string
+* `title`: string (关联项目/文档标题)
+* `kb_id`: string (所属知识库 ID)
+* `kb_name`: string (所属知识库名称 - 作为文件夹目录)
 * `type`: "READING"
 * `deadline`: "2026-12-31T23:59:59Z"
 * `file`: Blob (文档实体文件)
@@ -33,7 +37,9 @@
 ```json
 {
   "id": "project_uuid",
-  "title": "项目名称",
+  "title": "Linux 内核协议栈重构计划",
+  "kb_id": "kb_sys_01",
+  "kb_name": "Linux 内核与系统底层知识库",
   "type": "PLAN",
   "status": "ACTIVE",
   "created_at": "2026-07-18T10:00:00Z"
@@ -54,6 +60,8 @@
   "items": [
     {
       "id": "1",
+      "kb_id": "kb_sys_01",
+      "kb_name": "Linux 内核与系统底层知识库",
       "title": "深入理解 Linux 内核架构与网络协议栈",
       "type": "READING",
       "status": "ACTIVE",
@@ -69,6 +77,8 @@
   "has_next": true
 }
 ```
+
+
 
 ---
 

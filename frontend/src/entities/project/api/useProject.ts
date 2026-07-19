@@ -39,15 +39,33 @@ export function useProjectDetailQuery(id: string) {
 export function useCreateProjectMutation() {
   const queryClient = useQueryClient();
 
+  const safeToISOString = (dateStr: string) => {
+    try {
+      const parsed = new Date(dateStr);
+      if (isNaN(parsed.getTime())) return new Date().toISOString();
+      return parsed.toISOString();
+    } catch {
+      return new Date().toISOString();
+    }
+  };
+
   return useMutation({
     mutationFn: async (payload: CreateProjectPayload) => {
+      const formattedDeadline = safeToISOString(payload.deadline);
+
       if (payload.type === "READING") {
         const formData = new FormData();
         formData.append("title", payload.title.trim());
         formData.append("type", "READING");
-        formData.append("deadline", new Date(payload.deadline).toISOString());
+        formData.append("deadline", formattedDeadline);
         if (payload.file) {
           formData.append("file", payload.file);
+        }
+        if (payload.kb_id) {
+          formData.append("kb_id", payload.kb_id);
+        }
+        if (payload.kb_name) {
+          formData.append("kb_name", payload.kb_name);
         }
         const res = await api.post("/projects", formData, {
           headers: { "Content-Type": "multipart/form-data" },
@@ -57,8 +75,10 @@ export function useCreateProjectMutation() {
         const body = {
           title: payload.title.trim(),
           type: "PLAN",
-          deadline: new Date(payload.deadline).toISOString(),
+          deadline: formattedDeadline,
           skill_id: payload.skill_id || undefined,
+          kb_id: payload.kb_id || undefined,
+          kb_name: payload.kb_name || undefined,
         };
         const res = await api.post("/projects", body);
         return res.data;

@@ -1,153 +1,32 @@
-import { Outlet, NavLink, Link, useLocation } from "react-router-dom"
-import { useState, useRef, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useClickOutside } from "../../shared/hooks/useClickOutside"
+import { Outlet, NavLink, useLocation } from "react-router-dom"
+import { useState } from "react"
+import { motion } from "framer-motion"
 import {
   LayoutDashboard,
-  BookOpen,
-  ListChecks,
   Network,
   Cpu,
-  Search,
-  Bell,
-  X,
-  AlertTriangle,
-  CheckCircle2,
   Layers,
-  Sparkles,
-  Settings,
-  ChevronRight,
   FolderTree,
-  Type,
 } from "lucide-react"
 
-import { CategoryTreeDrawer } from "./CategoryTreeDrawer"
-import { MOCK_PROJECTS } from "../../mock"
-import { useFontScale } from "../../shared/hooks/useFontScale"
-
-
-// ─── Breadcrumb Data Contract ─────────────────────────────────────────────────
-
-interface BreadcrumbItem {
-  label: string
-  href?: string
-  icon?: React.ComponentType<{ size?: number; className?: string }>
-}
-
-// ─── Navigation Layout Widget ──────────────────────────────────────────────────
+import {
+  KnowledgeBaseTreeDrawer,
+  GlobalSearchBar,
+  NotificationDropdown,
+  FontScaleSelector,
+  BreadcrumbNav,
+} from "../../features"
 
 export default function RootLayout() {
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchVal, setSearchVal] = useState("")
-  const [notifOpen, setNotifOpen] = useState(false)
-  const [fontScaleOpen, setFontScaleOpen] = useState(false)
-
   const location = useLocation()
-  const { scaleLevel, currentOption, options, setScaleLevel } = useFontScale()
-
-  const notifRef = useRef<HTMLDivElement>(null)
-  const searchRef = useRef<HTMLDivElement>(null)
-  const fontScaleRef = useRef<HTMLDivElement>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-
-  // 点击外部自动收起通知、字号菜单与搜索框
-  useClickOutside(notifRef, () => setNotifOpen(false), notifOpen)
-  useClickOutside(searchRef, () => setSearchOpen(false), searchOpen)
-  useClickOutside(fontScaleRef, () => setFontScaleOpen(false), fontScaleOpen)
-
-  // 全局快捷键 Cmd+K / Ctrl+K & Esc 支持
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault()
-        setSearchOpen(true)
-        setTimeout(() => searchInputRef.current?.focus(), 50)
-      } else if (e.key === "Escape" && searchOpen) {
-        if (searchVal) {
-          setSearchVal("")
-        } else {
-          setSearchOpen(false)
-        }
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [searchOpen, searchVal])
-
   const [treeDrawerOpen, setTreeDrawerOpen] = useState(false)
 
   const navItems = [
     { type: "link", to: "/dashboard", icon: LayoutDashboard, label: "大盘" },
-    { type: "tree-toggle", icon: FolderTree, label: "项目库" },
+    { type: "tree-toggle", icon: FolderTree, label: "知识库" },
     { type: "link", to: "/graph", icon: Network, label: "图谱" },
     { type: "link", to: "/skills/sandbox/skill-1", icon: Cpu, label: "沙箱" },
   ]
-
-  // 根据当前路径生成多级面包屑指示
-  const getBreadcrumbs = (): BreadcrumbItem[] => {
-    const path = location.pathname
-
-    if (path.startsWith("/dashboard")) {
-      return [
-        { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
-        { label: "知识大盘" },
-      ]
-    }
-
-    if (path.startsWith("/project/read")) {
-      const match = path.match(/\/project\/read\/([^/]+)/)
-      const id = match ? match[1] : ""
-      const project = MOCK_PROJECTS.find((p) => p.id === id)
-
-      return [
-        { label: "项目库", icon: FolderTree },
-        { label: project?.category || "阅读项目", icon: BookOpen },
-        { label: project?.title || (id ? `项目详情 #${id}` : "未命名项目") },
-      ]
-    }
-
-    if (path.startsWith("/project/plan")) {
-      const match = path.match(/\/project\/plan\/([^/]+)/)
-      const id = match ? match[1] : ""
-      const project = MOCK_PROJECTS.find((p) => p.id === id)
-
-      return [
-        { label: "项目库", icon: FolderTree },
-        { label: project?.category || "执行计划", icon: ListChecks },
-        { label: project?.title || (id ? `计划详情 #${id}` : "未命名计划") },
-      ]
-    }
-
-    if (path.startsWith("/graph")) {
-      return [
-        { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
-        { label: "关联图谱", icon: Network },
-      ]
-    }
-
-    if (path.startsWith("/skills/sandbox")) {
-      const match = path.match(/\/skills\/sandbox\/([^/]+)/)
-      const id = match ? match[1] : ""
-      const skillNameMap: Record<string, string> = {
-        "skill-1": "知识抽取与计划生成 Skill",
-        "skill-2": "智能摘要 Skill",
-      }
-      const name = skillNameMap[id] || (id ? `实例 #${id}` : "Skill 沙箱")
-
-      return [
-        { label: "Skill 引擎", icon: Cpu },
-        { label: "沙箱工作区", href: id ? `/skills/sandbox/${id}` : "/skills/sandbox/skill-1", icon: Cpu },
-        { label: name },
-      ]
-    }
-
-    return [
-      { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
-      { label: "概览" },
-    ]
-  }
-
-  const breadcrumbs = getBreadcrumbs()
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#090d16] text-slate-100">
@@ -170,7 +49,7 @@ export default function RootLayout() {
                 key={item.label}
                 onClick={() => setTreeDrawerOpen((prev) => !prev)}
                 aria-label={item.label}
-                title={treeDrawerOpen ? "收起项目类别树" : "展开项目类别树"}
+                title={treeDrawerOpen ? "收起知识库目录" : "展开知识库目录"}
                 className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all group relative cursor-pointer
                 ${isTreeActive
                     ? "bg-cyan-500/20 text-cyan-300 font-semibold"
@@ -219,258 +98,29 @@ export default function RootLayout() {
         })}
 
         <div className="flex-1" />
-        <button
-          aria-label="全局设置"
-          className="w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-100 hover:bg-white/10 transition-all cursor-pointer"
-        >
-          <Settings size={18} />
-        </button>
+        {/* 系统偏好与字号缩放设置控制组件 */}
+        <FontScaleSelector />
       </aside>
 
-      {/* Category Tree Drawer Panel (w-64) */}
-      <CategoryTreeDrawer
+      {/* Knowledge Base Tree Drawer Panel (Feature Component) */}
+      <KnowledgeBaseTreeDrawer
         isOpen={treeDrawerOpen}
         onClose={() => setTreeDrawerOpen(false)}
-        projects={MOCK_PROJECTS}
       />
 
       {/* Main content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header Topbar */}
         <header className="h-13 flex items-center justify-between px-5 border-b border-white/10 bg-[#0c111d]/90 backdrop-blur-md shrink-0 relative z-30">
-          {/* Breadcrumb / Page Title */}
-          <nav aria-label="面包屑导航" className="flex items-center text-xs select-none">
-            <ol className="flex items-center gap-0.5">
-              {breadcrumbs.map((item, index) => {
-                const isLast = index === breadcrumbs.length - 1
-                const Icon = item.icon
-
-                return (
-                  <li key={index} className="flex items-center">
-                    {index > 0 && (
-                      <ChevronRight size={12} className="text-slate-600 shrink-0 select-none mx-1" />
-                    )}
-                    {item.href && !isLast ? (
-                      <Link
-                        to={item.href}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-slate-400 hover:text-cyan-300 hover:bg-white/5 transition-all font-medium group"
-                      >
-                        {Icon && <Icon size={14} className="shrink-0 text-slate-400 group-hover:text-cyan-300 transition-colors" />}
-                        <span>{item.label}</span>
-                      </Link>
-                    ) : (
-                      <div
-                        className={`flex items-center gap-1.5 px-1.5 py-1 ${isLast
-                            ? "text-slate-100 font-semibold tracking-wide text-sm"
-                            : "text-slate-400 font-medium"
-                          }`}
-                      >
-                        {Icon && (
-                          <Icon
-                            size={isLast ? 15 : 14}
-                            className={isLast ? "text-cyan-400 shrink-0" : "text-slate-400 shrink-0"}
-                          />
-                        )}
-                        <span>{item.label}</span>
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ol>
-          </nav>
+          {/* Breadcrumb Navigation Feature Component */}
+          <BreadcrumbNav />
 
           <div className="flex items-center gap-3">
-            {/* Search Bar Container */}
-            <div className="relative" ref={searchRef}>
-              <AnimatePresence mode="wait">
-                {searchOpen ? (
-                  <motion.div
-                    key="search-input"
-                    initial={{ width: 180, opacity: 0 }}
-                    animate={{ width: 300, opacity: 1 }}
-                    exit={{ width: 180, opacity: 0 }}
-                    transition={{ duration: 0.18 }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-[#111827] border border-white/15 rounded-xl shadow-lg focus-within:border-slate-400/60 focus-within:ring-2 focus-within:ring-white/5 transition-all"
-                  >
-                    <Search size={14} className="text-slate-400 shrink-0" />
-                    <input
-                      ref={searchInputRef}
-                      autoFocus
-                      value={searchVal}
-                      onChange={(e) => setSearchVal(e.target.value)}
-                      placeholder="搜索笔记、项目、图谱…"
-                      style={{ outline: "none", boxShadow: "none" }}
-                      className="flex-1 bg-transparent text-xs text-slate-100 placeholder-slate-400 outline-none border-none focus:outline-none focus-visible:outline-none focus:ring-0 ring-0 shadow-none"
-                    />
-                    {searchVal ? (
-                      <button
-                        onClick={() => setSearchVal("")}
-                        aria-label="清空搜索"
-                        className="cursor-pointer text-slate-400 hover:text-slate-200 p-0.5 rounded hover:bg-white/10 transition-colors"
-                        title="清空"
-                      >
-                        <X size={13} />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setSearchOpen(false)}
-                        aria-label="关闭搜索"
-                        className="cursor-pointer text-slate-400 hover:text-slate-200 p-0.5 rounded hover:bg-white/10 transition-colors"
-                        title="关闭 (Esc)"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </motion.div>
-                ) : (
-                  <motion.button
-                    key="search-button"
-                    onClick={() => {
-                      setSearchOpen(true)
-                      setTimeout(() => searchInputRef.current?.focus(), 50)
-                    }}
-                    aria-label="打开全局搜索"
-                    className="h-9 px-2.5 flex items-center gap-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-white/10 border border-transparent hover:border-white/10 transition-all cursor-pointer text-xs group"
-                  >
-                    <Search size={15} className="group-hover:text-slate-200 transition-colors" />
-                    <span className="hidden md:inline-block text-slate-400 text-xs">搜索…</span>
-                    <kbd className="hidden sm:inline-flex items-center gap-0.5 text-xs bg-white/10 border border-white/10 text-slate-300 px-1.5 py-0.5 rounded font-mono font-medium shadow-sm">
-                      ⌘K
-                    </kbd>
-                  </motion.button>
-                )}
-              </AnimatePresence>
-            </div>
+            {/* Global Search Bar Feature Component */}
+            <GlobalSearchBar />
 
-            {/* Font Scale Selector Dropdown */}
-            <div className="relative" ref={fontScaleRef}>
-              <button
-                onClick={() => setFontScaleOpen((o) => !o)}
-                aria-label="调节全局字号缩放"
-                title={`当前字号等级: ${currentOption.label} (${Math.round(currentOption.scale * 100)}%)`}
-                className="h-9 px-2 flex items-center gap-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/10 transition-all cursor-pointer text-xs group border border-transparent hover:border-white/10"
-              >
-                <Type size={15} className="text-slate-400 group-hover:text-cyan-400 transition-colors shrink-0" />
-                <span className="hidden lg:inline-block text-slate-300 text-xs font-medium">
-                  {currentOption.label}
-                </span>
-              </button>
-              <AnimatePresence>
-                {fontScaleOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-11 w-56 bg-[#111827] border border-slate-700/80 rounded-xl shadow-2xl p-2 z-50"
-                  >
-                    <div className="px-2.5 py-1.5 border-b border-slate-800 mb-1">
-                      <p className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                        <Type size={14} className="text-cyan-400" /> 全局字号自适应
-                      </p>
-                      <p className="text-xs text-slate-400 mt-0.5">针对高分辨率与大屏幕视距优化</p>
-                    </div>
-                    <div className="space-y-0.5">
-                      {options.map((opt) => {
-                        const isSelected = scaleLevel === opt.key;
-                        return (
-                          <button
-                            key={opt.key}
-                            onClick={() => {
-                              setScaleLevel(opt.key);
-                              setFontScaleOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
-                              isSelected
-                                ? "bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/30"
-                                : "text-slate-300 hover:bg-white/5 hover:text-slate-100"
-                            }`}
-                          >
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span>{opt.label}</span>
-                                {opt.key === "comfortable" && (
-                                  <span className="text-xs bg-cyan-500/20 text-cyan-300 px-1 py-0.2 rounded font-mono">推荐大屏</span>
-                                )}
-                              </div>
-                              <div className="text-xs text-slate-400 font-normal">{opt.description}</div>
-                            </div>
-                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0 ml-1" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Notifications Dropdown */}
-            <div className="relative" ref={notifRef}>
-              <button
-                onClick={() => setNotifOpen((o) => !o)}
-                aria-label="查看通知"
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-100 hover:bg-white/10 transition-all relative cursor-pointer"
-              >
-                <Bell size={16} />
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyan-400 ring-2 ring-[#0c111d]" />
-              </button>
-              <AnimatePresence>
-                {notifOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-11 w-80 bg-[#111827] border border-slate-700/80 rounded-xl shadow-2xl p-3 z-50"
-                  >
-                    <div className="flex items-center justify-between mb-2 px-1 pb-2 border-b border-slate-800">
-                      <p className="text-xs text-slate-300 font-semibold">通知中心</p>
-                      <span className="text-xs text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded font-mono">3 未读</span>
-                    </div>
-                    {[
-                      {
-                        icon: Sparkles,
-                        msg: "「深度学习」技能编译完成，点击前往沙箱审批",
-                        time: "刚刚",
-                        iconColor: "text-cyan-400",
-                      },
-                      {
-                        icon: AlertTriangle,
-                        msg: "任务「基线模型训练」已逾期 8 天",
-                        time: "1小时前",
-                        iconColor: "text-amber-400",
-                      },
-                      {
-                        icon: CheckCircle2,
-                        msg: "《人类简史》图谱构建完成，新增 12 个节点",
-                        time: "昨天",
-                        iconColor: "text-emerald-400",
-                      },
-                    ].map((n, i) => (
-                      <div
-                        key={i}
-                        className="flex items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors"
-                      >
-                        <n.icon
-                          size={15}
-                          className={`${n.iconColor} mt-0.5 shrink-0`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-slate-200 leading-snug">
-                            {n.msg}
-                          </p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            {n.time}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            {/* Notifications Dropdown Feature Component */}
+            <NotificationDropdown />
 
             {/* Avatar */}
             <div

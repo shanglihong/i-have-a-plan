@@ -6,3 +6,6 @@ export * from "./note";
 export * from "./skill";
 export * from "./graph";
 export * from "./dashboard";
+export * from "./notification";
+export * from "./search";
+

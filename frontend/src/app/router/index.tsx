@@ -5,6 +5,7 @@ import ReadingWorkspacePage from "../../pages/reading"
 import PlanWorkspacePage from "../../pages/plan"
 import GlobalGraphPage from "../../pages/graph"
 import SkillSandboxPage from "../../pages/sandbox"
+import KnowledgeBaseManagerPage from "../../pages/knowledge-bases"
 
 export const router = createBrowserRouter([
   {
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
         element: <Navigate to="/dashboard" replace />,
       },
       { path: "dashboard", element: <DashboardPage /> },
+      { path: "knowledge-bases", element: <KnowledgeBaseManagerPage /> },
       {
         path: "project/read/:id",
         element: <ReadingWorkspacePage />,
