@@ -6,7 +6,6 @@ import PlanWorkspacePage from "../../pages/plan"
 import GlobalGraphPage from "../../pages/graph"
 import SkillSandboxPage from "../../pages/sandbox"
 import KnowledgeBaseManagerPage from "../../pages/knowledge-bases"
-import NotesHubPage from "../../pages/notes"
 
 export const router = createBrowserRouter([
   {
@@ -19,7 +18,6 @@ export const router = createBrowserRouter([
       },
       { path: "dashboard", element: <DashboardPage /> },
       { path: "knowledge-bases", element: <KnowledgeBaseManagerPage /> },
-      { path: "notes", element: <NotesHubPage /> },
       {
         path: "project/read/:id",
         element: <ReadingWorkspacePage />,

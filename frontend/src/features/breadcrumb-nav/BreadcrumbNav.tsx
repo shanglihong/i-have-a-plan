@@ -5,7 +5,6 @@ import {
   Target,
   Network,
   Cpu,
-  Library,
   ChevronRight,
   Sparkles,
 } from "lucide-react"
@@ -36,14 +35,7 @@ export function BreadcrumbNav() {
     if (path.startsWith("/knowledge-bases")) {
       return [
         { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
-        { label: "知识库", icon: Library },
-      ]
-    }
-
-    if (path.startsWith("/notes")) {
-      return [
-        { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
-        { label: "知识输出中心", icon: Sparkles },
+        { label: "知识库", icon: Sparkles },
       ]
     }
 
@@ -134,8 +126,8 @@ export function BreadcrumbNav() {
               ) : (
                 <div
                   className={`flex items-center gap-1.5 px-1.5 py-1 ${isLast
-                      ? "text-slate-100 font-semibold tracking-wide text-sm"
-                      : "text-slate-400 font-medium"
+                    ? "text-slate-100 font-semibold tracking-wide text-sm"
+                    : "text-slate-400 font-medium"
                     }`}
                 >
                   {Icon && (

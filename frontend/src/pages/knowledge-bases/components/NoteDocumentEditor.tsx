@@ -117,7 +117,7 @@ export function NoteDocumentEditor({
               <button
                 onClick={onToggleSidebar}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/10 active:scale-95 transition-all cursor-pointer shrink-0"
-                title="展开知识输出中心侧边栏"
+                title="展开知识库目录侧边栏"
                 aria-label="展开侧边栏"
               >
                 <PanelLeftOpen size={16} />
