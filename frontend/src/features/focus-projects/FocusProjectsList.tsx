@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, RotateCcw, Zap, AlertCircle, ArrowRight } from "lucide-react";
+import { AlertTriangle, RotateCcw, Zap, AlertCircle, ArrowRight, Library } from "lucide-react";
 import { Project } from "../../shared/types";
 
 interface FocusProjectsListProps {
@@ -66,7 +66,7 @@ export function FocusProjectsList({ projects }: FocusProjectsListProps) {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span
                       className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
                         isSuspended
@@ -82,6 +82,15 @@ export function FocusProjectsList({ projects }: FocusProjectsListProps) {
                           ? "里程碑即达成"
                           : "进行中关键工程"}
                     </span>
+                    {p.kb_name && (
+                      <span
+                        className="text-xs font-medium text-slate-300 bg-slate-900/80 border border-white/10 px-2 py-0.5 rounded-md flex items-center gap-1 max-w-[220px] truncate"
+                        title={p.kb_name}
+                      >
+                        <Library size={11} className="text-cyan-400 shrink-0" />
+                        <span className="truncate">{p.kb_name}</span>
+                      </span>
+                    )}
                     <span className="text-xs text-slate-400 font-mono">
                       截止时间: {p.deadline}
                     </span>

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, ListChecks, Clock, ChevronRight, Hash } from "lucide-react";
+import { BookOpen, ListChecks, Clock, ChevronRight, Hash, Library } from "lucide-react";
 import { Project } from "../../shared/types";
 import { COLOR_MAP } from "../../shared/constants";
 import { StatusBadge, ProgressBar } from "../../shared/ui";
@@ -77,6 +77,23 @@ export function ProjectCard({
           {index === 0 ? "10分钟前" : index === 1 ? "1小时前" : "昨天"}
         </span>
       </div>
+
+      {/* 知识库名称 Badge */}
+      {project.kb_name && (
+        <div className="flex items-center gap-1.5 mb-2">
+          <span
+            className={`text-xs font-medium px-2 py-0.5 rounded-md flex items-center gap-1.5 border max-w-full truncate ${
+              isReading
+                ? "bg-cyan-950/40 text-cyan-300/90 border-cyan-500/20"
+                : "bg-violet-950/40 text-violet-300/90 border-violet-500/20"
+            }`}
+            title={project.kb_name}
+          >
+            <Library size={11} className={isReading ? "text-cyan-400 shrink-0" : "text-violet-400 shrink-0"} />
+            <span className="truncate">{project.kb_name}</span>
+          </span>
+        </div>
+      )}
 
       <h3 className="text-sm 2xl:text-base font-bold text-slate-100 leading-snug line-clamp-2 mb-2.5 group-hover:text-cyan-300 transition-colors duration-200">
         {project.title}

@@ -66,7 +66,7 @@ export default function DashboardPage() {
             className="flex items-center gap-1.5 px-4 py-2 text-xs text-cyan-950 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl font-bold shadow-md shadow-cyan-500/20 transition-all duration-200 cursor-pointer active:scale-95"
           >
             <Plus size={15} />
-            新建双轨项目
+            新建项目
           </button>
         </div>
       </div>
