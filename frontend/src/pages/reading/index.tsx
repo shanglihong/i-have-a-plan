@@ -596,21 +596,23 @@ export default function ReadingWorkspacePage() {
 
             <div className="h-16" />
           </article>
-
-          {/* Chapter End 5% Recommendation Bubble */}
-          <RecommendationBubble
-            isVisible={showBubble}
-            onClose={() => setShowBubble(false)}
-            onGenerateSkill={() => {
-              handleExtractSkill("L2")
-              setShowBubble(false)
-            }}
-            onStartDiscuss={() => {
-              handleDiscussSelection("请帮我归纳梯度消失的核心成因与解决方案")
-              setShowBubble(false)
-            }}
-          />
         </div>
+
+        {/* Chapter End 5% Recommendation Bubble (Floating in Central Viewport) */}
+        <RecommendationBubble
+          isVisible={showBubble}
+          isLaptopOrSmaller={isLaptopOrSmaller}
+          chapterTitle={chapterMarkers.find((c) => c.id === activeChapter)?.label}
+          onClose={() => setShowBubble(false)}
+          onGenerateSkill={() => {
+            handleExtractSkill("L2")
+            setShowBubble(false)
+          }}
+          onStartDiscuss={() => {
+            handleDiscussSelection("请帮我归纳梯度消失的核心成因与解决方案")
+            setShowBubble(false)
+          }}
+        />
       </div>
 
       {/* ──────────────── Right Companion Drawer Component ──────────────── */}

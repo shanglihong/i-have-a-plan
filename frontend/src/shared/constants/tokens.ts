@@ -12,7 +12,7 @@ export const READING_TOKENS = {
     // 元数据/时间戳/快捷键说明：12px Mono
     meta: "text-xs font-mono text-slate-500",
     // 动作与按钮标签：12px Medium，强制单行水平对齐，绝不换行变形
-    action: "inline-flex items-center gap-1.5 shrink-0 text-xs font-medium font-sans text-slate-400 hover:text-slate-200 transition-colors cursor-pointer",
+    action: "inline-flex items-center gap-1.5 shrink-0 whitespace-nowrap text-xs font-medium font-sans text-slate-400 hover:text-slate-200 transition-colors cursor-pointer",
   },
 
   // 容器与卡片质感标识 (Surface Tokens)
@@ -28,8 +28,12 @@ export const READING_TOKENS = {
     // 思考感悟 (Thought Block Container)
     thought: "bg-[#0B101D]/90 border border-slate-800/90 focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/20 rounded-xl p-2.5 transition-all shadow-inner",
     // 章节/原文定位 Tag
-    anchorBadge: "text-xs font-mono text-cyan-300 bg-cyan-950/50 border border-cyan-500/30 px-2.5 py-0.5 rounded-lg font-medium",
+    anchorBadge: "text-xs font-mono text-cyan-300 bg-cyan-950/50 border border-cyan-500/30 px-2 py-0.5 rounded-lg font-medium shrink-0 whitespace-nowrap",
     // 启发式提问 Prompt Chip
-    promptChip: "px-3 py-1.5 text-xs sm:text-sm font-sans text-slate-300 hover:text-cyan-300 bg-slate-900/80 hover:bg-cyan-950/60 border border-slate-800/90 hover:border-cyan-500/40 rounded-full transition-all cursor-pointer flex items-center gap-1.5 shadow-xs",
+    promptChip: "px-3 py-1.5 text-xs sm:text-sm font-sans text-slate-300 hover:text-cyan-300 bg-slate-900/80 hover:bg-cyan-950/60 border border-slate-800/90 hover:border-cyan-500/40 rounded-full transition-all cursor-pointer flex items-center gap-1.5 shadow-xs shrink-0 whitespace-nowrap",
+    // 浮动推荐/引导提示卡片 (Recommendation Floating Bubble Card)
+    recommendationBubble: "bg-slate-900/95 border border-cyan-500/40 rounded-2xl shadow-2xl shadow-cyan-950/50 backdrop-blur-xl select-none",
+    // 提炼技能主行动按钮
+    recommendationAction: "flex-1 shrink-0 whitespace-nowrap px-3 py-1.5 text-xs font-semibold text-cyan-200 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 hover:border-cyan-400 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 shadow-xs group",
   },
 } as const
