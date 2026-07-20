@@ -248,7 +248,7 @@ export function ProjectTreeDrawer({
                   <div className="p-1 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shrink-0">
                     <HeaderIcon size={15} />
                   </div>
-                  <span className="text-xs font-semibold text-slate-200 tracking-wider uppercase truncate">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-200 tracking-wide uppercase truncate">
                     {currentModeConfig.title}
                   </span>
                   {isExpanded && (
@@ -264,10 +264,11 @@ export function ProjectTreeDrawer({
                     aria-label={isExpanded ? "还原抽屉宽度" : "放大抽屉宽度"}
                     aria-expanded={isExpanded}
                     title={isExpanded ? "还原为标准宽度 (240px)" : "放大抽屉宽度 (360px)"}
-                    className={`p-1 rounded-lg transition-all cursor-pointer flex items-center justify-center border ${isExpanded
+                    className={`p-1 rounded-lg transition-all cursor-pointer flex items-center justify-center border ${
+                      isExpanded
                         ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/30"
                         : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/10 hover:border-white/10"
-                      }`}
+                    }`}
                   >
                     <AnimatePresence mode="wait" initial={false}>
                       <motion.div
@@ -296,7 +297,7 @@ export function ProjectTreeDrawer({
               <div className="px-3 py-2.5 shrink-0 border-b border-white/5 bg-slate-950/20">
                 <div className="relative flex items-center">
                   <Search
-                    size={13}
+                    size={14}
                     className="absolute left-2.5 text-slate-500 pointer-events-none"
                   />
                   <input
@@ -304,7 +305,7 @@ export function ProjectTreeDrawer({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder={currentModeConfig.searchPlaceholder}
-                    className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-900/90 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all"
+                    className="w-full pl-8 pr-7 py-1.5 text-xs sm:text-sm bg-slate-900/90 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/30 transition-all"
                   />
                   {searchTerm && (
                     <button
@@ -334,7 +335,7 @@ export function ProjectTreeDrawer({
                     <div className="p-3 rounded-full bg-white/5 text-slate-500 border border-white/5">
                       <FolderSearch size={22} />
                     </div>
-                    <span className="text-xs text-slate-400 font-medium">
+                    <span className="text-xs sm:text-sm text-slate-400 font-medium">
                       {currentModeConfig.emptyText}
                     </span>
                     {searchTerm && (
@@ -363,11 +364,12 @@ export function ProjectTreeDrawer({
                           <div className="flex items-center gap-1.5 min-w-0">
                             <ChevronRight
                               size={14}
-                              className={`text-slate-400 shrink-0 transition-transform duration-200 ${expanded ? "rotate-90 text-slate-200" : ""
-                                }`}
+                              className={`text-slate-400 shrink-0 transition-transform duration-200 ${
+                                expanded ? "rotate-90 text-slate-200" : ""
+                              }`}
                             />
                             <StatusIcon size={14} className={`${group.color} shrink-0`} />
-                            <span className="text-xs font-semibold truncate text-slate-200 group-hover:text-cyan-300 transition-colors">
+                            <span className="text-xs sm:text-sm font-semibold truncate text-slate-200 group-hover:text-cyan-300 transition-colors">
                               {group.label}
                             </span>
                           </div>
@@ -390,7 +392,8 @@ export function ProjectTreeDrawer({
                               role="group"
                             >
                               {group.projects.map((p) => {
-                                const targetPath = p.type === "PLAN" ? `/project/plan/${p.id}` : `/project/read/${p.id}`
+                                const targetPath =
+                                  p.type === "PLAN" ? `/project/plan/${p.id}` : `/project/read/${p.id}`
                                 const isActive = location.pathname === targetPath
                                 const ItemIcon = p.type === "PLAN" ? Target : BookOpen
 
@@ -400,14 +403,15 @@ export function ProjectTreeDrawer({
                                     onClick={() => navigate(targetPath)}
                                     role="treeitem"
                                     aria-selected={isActive}
-                                    className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-all cursor-pointer text-left group active:scale-[0.99] ${isActive
+                                    className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs sm:text-[13px] transition-all cursor-pointer text-left group active:scale-[0.99] ${
+                                      isActive
                                         ? "bg-cyan-500/15 text-cyan-200 font-semibold border border-cyan-500/30 shadow-xs shadow-cyan-950/40"
                                         : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
-                                      }`}
+                                    }`}
                                   >
                                     <div className="flex items-center gap-1.5 min-w-0">
                                       <ItemIcon
-                                        size={13}
+                                        size={14}
                                         className={
                                           isActive
                                             ? "text-cyan-300 shrink-0"
@@ -435,7 +439,7 @@ export function ProjectTreeDrawer({
 
               {/* Footer Summary */}
               <div className="px-3.5 py-2.5 border-t border-white/10 bg-slate-950/40 flex items-center justify-between shrink-0 text-xs text-slate-400 select-none">
-                <span className="font-mono text-[11px]">
+                <span className="font-mono text-xs text-slate-400 font-medium">
                   {currentModeConfig.getItemCountText(totalProjectsCount, statusGroups.length)}
                 </span>
               </div>

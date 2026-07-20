@@ -291,19 +291,20 @@ export default function ReadingWorkspacePage() {
         {outlineOpen && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 260, opacity: 1 }}
+            animate={{ width: 300, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeInOut" }}
             className="border-r border-slate-800/80 bg-[#0C111D] shrink-0 z-20"
           >
-            <div className="w-[260px] h-full flex flex-col">
-              {/* Sidebar Header */}
+            <div className="w-[300px] h-full flex flex-col">
+              {/* Sidebar Header with Integrated Progress Badge */}
               <div className="h-12 px-4 border-b border-slate-800/80 bg-[#090D16]/50 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <BookOpen size={15} className="text-cyan-400" />
-                  <span className="text-xs font-semibold text-slate-200 tracking-wide">
-                    章节大纲与进度
+                  <span className="text-xs sm:text-sm font-semibold text-slate-200 tracking-wide">
+                    章节大纲
                   </span>
+                  <DualMetricProgressBar scrollProgress={scrollProgress} />
                 </div>
                 <button
                   onClick={() => setOutlineOpen(false)}
@@ -312,16 +313,6 @@ export default function ReadingWorkspacePage() {
                 >
                   <PanelLeftClose size={15} />
                 </button>
-              </div>
-
-              {/* Dual-Metric Progress Overview */}
-              <div className="px-4 py-3 border-b border-slate-800/60 bg-[#090D16]/30">
-                <DualMetricProgressBar
-                  scrollProgress={scrollProgress}
-                  understandingProgress={82}
-                  chapters={chapterMarkers}
-                  onSelectChapter={(chId) => setActiveChapter(chId)}
-                />
               </div>
 
               {/* Chapters Tree Nav */}
@@ -333,22 +324,20 @@ export default function ReadingWorkspacePage() {
                       key={ch.id}
                       onClick={() => setActiveChapter(ch.id)}
                       title={ch.label}
-                      className={`w-full text-left rounded-lg text-xs transition-all flex items-start gap-2.5 cursor-pointer font-medium border ${
-                        ch.level === 1 ? "pl-7 pr-3 py-2 text-xs" : "px-3 py-2.5"
-                      } ${
-                        isCurrent
+                      className={`w-full text-left rounded-lg text-xs sm:text-[13px] transition-all flex items-center gap-2.5 cursor-pointer font-medium border ${ch.level === 1 ? "pl-7 pr-3 py-2" : "px-3 py-2.5"
+                        } ${isCurrent
                           ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border-cyan-500/30 shadow-sm shadow-cyan-950/50"
                           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-transparent"
-                      }`}
+                        }`}
                     >
                       {ch.done ? (
-                        <CheckCircle2 size={13} className="text-emerald-400 shrink-0 self-start mt-0.5" />
+                        <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
                       ) : isCurrent ? (
-                        <Circle size={13} className="text-cyan-400 fill-cyan-400/30 shrink-0 self-start mt-0.5" />
+                        <Circle size={14} className="text-cyan-400 fill-cyan-400/30 shrink-0" />
                       ) : (
-                        <Circle size={13} className="text-slate-600 shrink-0 self-start mt-0.5" />
+                        <Circle size={14} className="text-slate-600 shrink-0" />
                       )}
-                      <span className="whitespace-normal break-words leading-relaxed text-left flex-1">{ch.label}</span>
+                      <span className="truncate flex-1 min-w-0">{ch.label}</span>
                     </button>
                   )
                 })}
@@ -557,11 +546,10 @@ export default function ReadingWorkspacePage() {
 
             {/* Paragraph Callout Box */}
             <div
-              className={`my-6 p-4 rounded-xl border transition-all duration-700 ${
-                targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
-                  ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
-                  : "bg-slate-900/60 border-slate-800"
-              }`}
+              className={`my-6 p-4 rounded-xl border transition-all duration-700 ${targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
+                ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
+                : "bg-slate-900/60 border-slate-800"
+                }`}
             >
               <div className="flex items-start gap-3">
                 <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
