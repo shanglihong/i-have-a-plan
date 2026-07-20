@@ -187,11 +187,10 @@ export function KnowledgeBaseTreeDrawer({
                     aria-label={isExpanded ? "还原抽屉宽度" : "放大抽屉宽度"}
                     aria-expanded={isExpanded}
                     title={isExpanded ? "还原为标准宽度 (240px)" : "放大抽屉宽度 (360px)"}
-                    className={`p-1 rounded-lg transition-all cursor-pointer flex items-center justify-center border ${
-                      isExpanded
+                    className={`p-1 rounded-lg transition-all cursor-pointer flex items-center justify-center border ${isExpanded
                         ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/30"
                         : "text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/10 hover:border-white/10"
-                    }`}
+                      }`}
                   >
                     <AnimatePresence mode="wait" initial={false}>
                       <motion.div
@@ -245,32 +244,29 @@ export function KnowledgeBaseTreeDrawer({
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setTypeFilter("ALL")}
-                    className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer text-center ${
-                      typeFilter === "ALL"
+                    className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer text-center ${typeFilter === "ALL"
                         ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
                         : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
-                    }`}
+                      }`}
                   >
                     全部
                   </button>
                   <button
                     onClick={() => setTypeFilter("READING")}
-                    className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                      typeFilter === "READING"
+                    className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${typeFilter === "READING"
                         ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
                         : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
-                    }`}
+                      }`}
                   >
                     <BookOpen size={11} />
                     <span>阅读</span>
                   </button>
                   <button
                     onClick={() => setTypeFilter("PLAN")}
-                    className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                      typeFilter === "PLAN"
+                    className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${typeFilter === "PLAN"
                         ? "bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-xs font-semibold"
                         : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
-                    }`}
+                      }`}
                   >
                     <ListChecks size={11} />
                     <span>计划</span>
@@ -319,9 +315,8 @@ export function KnowledgeBaseTreeDrawer({
                           <div className="flex items-center gap-1.5 min-w-0">
                             <ChevronRight
                               size={14}
-                              className={`text-slate-400 shrink-0 transition-transform duration-200 ${
-                                expanded ? "rotate-90 text-slate-200" : ""
-                              }`}
+                              className={`text-slate-400 shrink-0 transition-transform duration-200 ${expanded ? "rotate-90 text-slate-200" : ""
+                                }`}
                             />
                             {expanded ? (
                               <FolderOpen size={14} className="text-cyan-400 shrink-0" />
@@ -361,13 +356,12 @@ export function KnowledgeBaseTreeDrawer({
                                     onClick={() => navigate(targetPath)}
                                     role="treeitem"
                                     aria-selected={isActive}
-                                    className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-all cursor-pointer text-left group active:scale-[0.99] ${
-                                      isActive
+                                    className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-all cursor-pointer text-left group active:scale-[0.99] ${isActive
                                         ? p.type === "READING"
                                           ? "bg-cyan-500/15 text-cyan-200 font-semibold border border-cyan-500/30 shadow-xs shadow-cyan-950/40"
                                           : "bg-violet-500/15 text-violet-200 font-semibold border border-violet-500/30 shadow-xs shadow-violet-950/40"
                                         : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
-                                    }`}
+                                      }`}
                                   >
                                     <div className="flex items-center gap-1.5 min-w-0">
                                       {p.type === "READING" ? (
@@ -392,15 +386,14 @@ export function KnowledgeBaseTreeDrawer({
                                       <span className="truncate">{p.title}</span>
                                     </div>
                                     <div
-                                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                        p.status === "COMPLETED"
+                                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.status === "COMPLETED"
                                           ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]"
                                           : p.status === "SUSPENDED"
                                             ? "bg-amber-400"
                                             : p.status === "ARCHIVED"
                                               ? "bg-slate-500"
                                               : "bg-cyan-400 animate-pulse"
-                                      }`}
+                                        }`}
                                       title={`状态: ${p.status}`}
                                     />
                                   </button>

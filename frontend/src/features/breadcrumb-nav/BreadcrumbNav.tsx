@@ -8,6 +8,7 @@ import {
   FolderTree,
   ChevronRight,
   FolderCog,
+  Sparkles,
 } from "lucide-react"
 import { useProjectsQuery } from "../../entities/project"
 
@@ -37,7 +38,14 @@ export function BreadcrumbNav() {
     if (path.startsWith("/knowledge-bases")) {
       return [
         { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
-        { label: "知识库管理中心", icon: FolderCog },
+        { label: "知识库管理", icon: FolderCog },
+      ]
+    }
+
+    if (path.startsWith("/notes")) {
+      return [
+        { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
+        { label: "知识输出中心", icon: Sparkles },
       ]
     }
 
@@ -46,11 +54,17 @@ export function BreadcrumbNav() {
       const id = match ? match[1] : ""
       const project = projects.find((p) => p.id === id)
 
-      return [
-        { label: "知识库目录", href: "/knowledge-bases", icon: FolderTree },
-        { label: project?.kb_name || "阅读项目", icon: BookOpen },
-        { label: project?.title || (id ? `项目详情 #${id}` : "未命名项目") },
+      const items: BreadcrumbItem[] = [
+        { label: "知识库", href: "/knowledge-bases", icon: FolderTree },
       ]
+      if (project?.kb_name) {
+        items.push({ label: project.kb_name, href: "/knowledge-bases", icon: FolderCog })
+      }
+      items.push({
+        label: project?.title || (id ? `精读项目 #${id}` : "未命名项目"),
+        icon: BookOpen,
+      })
+      return items
     }
 
     if (path.startsWith("/project/plan")) {
@@ -58,11 +72,17 @@ export function BreadcrumbNav() {
       const id = match ? match[1] : ""
       const project = projects.find((p) => p.id === id)
 
-      return [
-        { label: "知识库目录", href: "/knowledge-bases", icon: FolderTree },
-        { label: project?.kb_name || "执行计划", icon: ListChecks },
-        { label: project?.title || (id ? `计划详情 #${id}` : "未命名计划") },
+      const items: BreadcrumbItem[] = [
+        { label: "知识库", href: "/knowledge-bases", icon: FolderTree },
       ]
+      if (project?.kb_name) {
+        items.push({ label: project.kb_name, href: "/knowledge-bases", icon: FolderCog })
+      }
+      items.push({
+        label: project?.title || (id ? `执行计划 #${id}` : "未命名计划"),
+        icon: ListChecks,
+      })
+      return items
     }
 
     if (path.startsWith("/graph")) {

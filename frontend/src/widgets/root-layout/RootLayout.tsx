@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
   LayoutDashboard,
@@ -7,6 +7,7 @@ import {
   Cpu,
   Layers,
   FolderTree,
+  BookMarked,
 } from "lucide-react"
 
 import {
@@ -21,11 +22,17 @@ export default function RootLayout() {
   const location = useLocation()
   const [treeDrawerOpen, setTreeDrawerOpen] = useState(false)
 
+  // 路由变化时自动收缩知识库目录抽屉
+  useEffect(() => {
+    setTreeDrawerOpen(false)
+  }, [location.pathname])
+
   const navItems = [
     { type: "link", to: "/dashboard", icon: LayoutDashboard, label: "大盘" },
     { type: "tree-toggle", icon: FolderTree, label: "知识库" },
+    { type: "link", to: "/notes", icon: BookMarked, label: "沉淀" },
     { type: "link", to: "/graph", icon: Network, label: "图谱" },
-    { type: "link", to: "/skills/sandbox/skill-1", icon: Cpu, label: "沙箱" },
+    { type: "link", to: "/skills/sandbox/skill-1", icon: Cpu, label: "技能" },
   ]
 
   return (
@@ -34,6 +41,7 @@ export default function RootLayout() {
       <aside className="w-16 flex flex-col items-center py-4 gap-1.5 border-r border-white/10 bg-[#0c111d] shrink-0 z-40 select-none">
         {/* Logo */}
         <div
+          onClick={() => setTreeDrawerOpen(false)}
           className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center mb-3 cursor-pointer shadow-lg shadow-cyan-500/10 hover:opacity-90 transition-opacity"
           title="I Have A Plan"
         >
@@ -72,6 +80,7 @@ export default function RootLayout() {
             <NavLink
               key={item.to}
               to={item.to!}
+              onClick={() => setTreeDrawerOpen(false)}
               aria-label={item.label}
               className={({ isActive }) =>
                 `w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all group relative cursor-pointer

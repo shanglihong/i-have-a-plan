@@ -11,7 +11,6 @@ import {
 
 import {
   ChevronRight,
-  X,
   Bookmark,
   Circle,
   CheckCircle2,
@@ -27,17 +26,17 @@ import {
   Lightbulb,
 } from "lucide-react"
 
-import { StatusBadge, ProgressBar } from "../../shared/ui"
+import { StatusBadge } from "../../shared/ui"
 import { CompanionDrawer } from "./components/CompanionDrawer"
+import { DualMetricProgressBar, ChapterMarker } from "./components/DualMetricProgressBar"
+import { RecommendationBubble } from "./components/RecommendationBubble"
+import { NoteCardData } from "./components/UnifiedNoteCard"
 import {
   MOCK_READING_CHAPTERS,
   MOCK_READING_INITIAL_MESSAGES,
   MOCK_READING_NOTES_FALLBACK,
   MOCK_READING_AI_REPLY,
 } from "../../mock"
-
-
-// ─── Reading Workspace Page ────────────────────────────────────────────────────────
 
 export default function ReadingWorkspacePage() {
   const { id } = useParams()
@@ -62,6 +61,7 @@ export default function ReadingWorkspacePage() {
   const [copiedCode, setCopiedCode] = useState(false)
   const [scrollProgress, setScrollProgress] = useState(0)
   const [is25InchPlus, setIs25InchPlus] = useState(false)
+  const [isLaptopOrSmaller, setIsLaptopOrSmaller] = useState(false)
 
   const [messages, setMessages] = useState<
     Array<{
@@ -73,11 +73,11 @@ export default function ReadingWorkspacePage() {
   >(MOCK_READING_INITIAL_MESSAGES)
   const [streaming, setStreaming] = useState(false)
   const [showBubble, setShowBubble] = useState(false)
+  const [extractedToast, setExtractedToast] = useState<string | null>(null)
+
   const readerRef = useRef<HTMLDivElement>(null)
 
-  const [isLaptopOrSmaller, setIsLaptopOrSmaller] = useState(false)
-
-  // 响应式检测大屏 (≥ 1536px) 与笔记本屏 (含 13" Mac 1440px/1366px < 1536px)
+  // 响应式检测大屏 (≥ 1536px) 与笔记本屏 (含 13" Mac 1440px/1366px)
   useEffect(() => {
     const checkScreenSize = () => {
       const w = window.innerWidth
@@ -89,7 +89,7 @@ export default function ReadingWorkspacePage() {
     return () => window.removeEventListener("resize", checkScreenSize)
   }, [])
 
-  // 笔记本屏下打开伴读栏时自动收起左侧目录，保障 13" Mac 文章正文的最佳阅读宽度
+  // 笔记本屏下打开伴读栏时自动收起左侧目录，保障最佳正文阅读宽度
   const handleOpenDiscuss = () => {
     if (isLaptopOrSmaller) {
       setOutlineOpen(false)
@@ -97,7 +97,7 @@ export default function ReadingWorkspacePage() {
     setDiscussOpen(true)
   }
 
-  // 键盘 Escape 快捷键
+  // 键盘 Escape 快捷键关闭选区菜单
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -108,8 +108,6 @@ export default function ReadingWorkspacePage() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [setFloatingMenu])
 
-
-
   const { data: notesData } = useQuery({
     queryKey: ["project-notes", id],
     queryFn: async () => {
@@ -117,7 +115,7 @@ export default function ReadingWorkspacePage() {
       return res.data
     },
   })
-  const notes = notesData?.items || MOCK_READING_NOTES_FALLBACK
+  const notes: NoteCardData[] = notesData?.items || MOCK_READING_NOTES_FALLBACK
 
   const createNoteMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -131,20 +129,31 @@ export default function ReadingWorkspacePage() {
 
   const chapters = MOCK_READING_CHAPTERS
 
+  const chapterMarkers: ChapterMarker[] = [
+    { id: "ch1", label: "第1章 · 前言与理论背景", progressPercent: 15, estimatedMinutes: 8 },
+    { id: "ch2", label: "第2章 · 神经网络基础", progressPercent: 35, estimatedMinutes: 15 },
+    { id: "ch3", label: "第3章 · 反向传播算法", progressPercent: 60, estimatedMinutes: 24 },
+    { id: "ch4", label: "第4章 · 优化器与正则化", progressPercent: 80, estimatedMinutes: 18 },
+    { id: "ch5", label: "第5章 · 深度模型实战", progressPercent: 95, estimatedMinutes: 30 },
+  ]
 
-  // 点击笔记锚点平滑定位与高亮脉冲
+  // 点击笔记锚点平滑定位与 3 次脉冲闪烁高亮
   useEffect(() => {
     if (targetAnchor && readerRef.current) {
       const elements = Array.from(
         readerRef.current.querySelectorAll("h1, h2, h3, p, div, blockquote"),
       )
       const targetEl = elements.find((el) =>
-        el.textContent?.includes(
-          targetAnchor.split(" · ")[1] || targetAnchor,
-        ),
+        el.textContent?.includes(targetAnchor.split(" · ")[1] || targetAnchor),
       )
       if (targetEl) {
         targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
+
+        // 触发 3 次脉冲闪烁发光高亮
+        targetEl.classList.add("ring-2", "ring-cyan-400", "bg-cyan-950/40", "transition-all", "duration-500")
+        setTimeout(() => {
+          targetEl.classList.remove("ring-2", "ring-cyan-400", "bg-cyan-950/40")
+        }, 2200)
       }
     }
   }, [targetAnchor])
@@ -166,10 +175,9 @@ export default function ReadingWorkspacePage() {
     const containerRect = readerRef.current?.getBoundingClientRect()
     if (!containerRect) return
 
-    // 边界安全处理
     const rawX = rect.left - containerRect.left + rect.width / 2
     const rawY = rect.top - containerRect.top - 52
-    const clampedX = Math.max(100, Math.min(rawX, containerRect.width - 100))
+    const clampedX = Math.max(120, Math.min(rawX, containerRect.width - 120))
     const clampedY = Math.max(10, rawY)
 
     setFloatingMenu({
@@ -179,7 +187,7 @@ export default function ReadingWorkspacePage() {
     })
   }, [setFloatingMenu])
 
-  // 划词发起讨论
+  // 划词发起提问 Discuss
   const handleDiscussSelection = (text: string) => {
     setQuotedContext(text)
     setRightTab("copilot")
@@ -196,6 +204,14 @@ export default function ReadingWorkspacePage() {
     })
     setRightTab("notes")
     handleOpenDiscuss()
+    setFloatingMenu(null)
+  }
+
+  // 提炼技能 Skill Extraction Trigger (L1 / L2)
+  const handleExtractSkill = (scopeType: "L1" | "L2", _data?: any) => {
+    const label = scopeType === "L1" ? `已成功将笔记提炼为沙箱技能 Draft` : `已打包本章精华并生成技能树`
+    setExtractedToast(label)
+    setTimeout(() => setExtractedToast(null), 3000)
     setFloatingMenu(null)
   }
 
@@ -258,7 +274,8 @@ export default function ReadingWorkspacePage() {
       Math.max(0, (scrollTop / (scrollHeight - clientHeight)) * 100),
     )
     setScrollProgress(progress)
-    setShowBubble(progress >= 65 && progress <= 95)
+    // 章节末 5% 推荐气泡触发
+    setShowBubble(progress >= 65 && progress <= 98)
   }, [])
 
   const copyFormulaCode = (code: string) => {
@@ -267,8 +284,6 @@ export default function ReadingWorkspacePage() {
     setTimeout(() => setCopiedCode(false), 2000)
   }
 
-
-
   return (
     <div className="h-full flex overflow-hidden bg-[#090D16] text-slate-100 font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
       {/* ──────────────── Left Chapter Outline Sidebar ──────────────── */}
@@ -276,18 +291,18 @@ export default function ReadingWorkspacePage() {
         {outlineOpen && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 220, opacity: 1 }}
+            animate={{ width: 260, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeInOut" }}
             className="border-r border-slate-800/80 bg-[#0C111D] shrink-0 z-20"
           >
-            <div className="w-[220px] h-full flex flex-col">
+            <div className="w-[260px] h-full flex flex-col">
               {/* Sidebar Header */}
               <div className="h-12 px-4 border-b border-slate-800/80 bg-[#090D16]/50 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <BookOpen size={15} className="text-cyan-400" />
                   <span className="text-xs font-semibold text-slate-200 tracking-wide">
-                    章节目录
+                    章节大纲与进度
                   </span>
                 </div>
                 <button
@@ -299,28 +314,15 @@ export default function ReadingWorkspacePage() {
                 </button>
               </div>
 
-              {/* Progress Overview */}
-              <div className="space-y-2.5 px-4 py-3 border-b border-slate-800/60">
-                <div>
-                  <div className="flex justify-between text-xs text-slate-400 mb-1 font-medium">
-                    <span>阅读进度</span>
-                    <span className="font-mono text-cyan-400 font-semibold">
-                      {Math.round(scrollProgress)}%
-                    </span>
-                  </div>
-                  <ProgressBar value={scrollProgress} color="cyan" />
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs text-slate-400 mb-1 font-medium">
-                    <span>精读卡片理解</span>
-                    <span className="font-mono text-violet-400 font-semibold">
-                      82%
-                    </span>
-                  </div>
-                  <ProgressBar value={82} color="violet" />
-                </div>
+              {/* Dual-Metric Progress Overview */}
+              <div className="px-4 py-3 border-b border-slate-800/60 bg-[#090D16]/30">
+                <DualMetricProgressBar
+                  scrollProgress={scrollProgress}
+                  understandingProgress={82}
+                  chapters={chapterMarkers}
+                  onSelectChapter={(chId) => setActiveChapter(chId)}
+                />
               </div>
-
 
               {/* Chapters Tree Nav */}
               <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1 scrollbar-thin scrollbar-thumb-slate-800">
@@ -330,30 +332,23 @@ export default function ReadingWorkspacePage() {
                     <button
                       key={ch.id}
                       onClick={() => setActiveChapter(ch.id)}
-                      className={`w-full text-left rounded-lg text-xs transition-all flex items-center gap-2.5 cursor-pointer font-medium border
-                        ${ch.level === 1 ? "pl-7 pr-3 py-2 text-xs" : "px-3 py-2.5"}
-                        ${isCurrent
+                      title={ch.label}
+                      className={`w-full text-left rounded-lg text-xs transition-all flex items-start gap-2.5 cursor-pointer font-medium border ${
+                        ch.level === 1 ? "pl-7 pr-3 py-2 text-xs" : "px-3 py-2.5"
+                      } ${
+                        isCurrent
                           ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border-cyan-500/30 shadow-sm shadow-cyan-950/50"
                           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-transparent"
-                        }`}
+                      }`}
                     >
                       {ch.done ? (
-                        <CheckCircle2
-                          size={13}
-                          className="text-emerald-400 shrink-0"
-                        />
+                        <CheckCircle2 size={13} className="text-emerald-400 shrink-0 self-start mt-0.5" />
                       ) : isCurrent ? (
-                        <Circle
-                          size={13}
-                          className="text-cyan-400 fill-cyan-400/30 shrink-0"
-                        />
+                        <Circle size={13} className="text-cyan-400 fill-cyan-400/30 shrink-0 self-start mt-0.5" />
                       ) : (
-                        <Circle
-                          size={13}
-                          className="text-slate-600 shrink-0"
-                        />
+                        <Circle size={13} className="text-slate-600 shrink-0 self-start mt-0.5" />
                       )}
-                      <span className="leading-snug truncate">{ch.label}</span>
+                      <span className="whitespace-normal break-words leading-relaxed text-left flex-1">{ch.label}</span>
                     </button>
                   )
                 })}
@@ -370,15 +365,29 @@ export default function ReadingWorkspacePage() {
 
       {/* ──────────────── Center Reader Workspace ──────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-[#090D16]">
+        {/* Top Floating Toast Notification */}
+        <AnimatePresence>
+          {extractedToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-14 left-1/2 -translate-x-1/2 z-50 bg-violet-950/90 border border-violet-500/50 text-violet-200 px-4 py-2 rounded-xl text-xs font-semibold shadow-2xl backdrop-blur-md flex items-center gap-2"
+            >
+              <Sparkles size={14} className="text-violet-400" />
+              <span>{extractedToast}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Unified Top Header Bar */}
         <header className="h-12 px-4 border-b border-slate-800/80 bg-[#0C111D]/90 backdrop-blur-md flex items-center gap-3 shrink-0 z-10 relative">
-          {/* Outline Toggle */}
           {!outlineOpen && (
             <button
               onClick={() => setOutlineOpen(true)}
               aria-label="展开目录"
               className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-md transition-colors cursor-pointer"
-              title="展开目录栏"
+              title="展开大纲与进度"
             >
               <PanelLeftOpen size={16} />
             </button>
@@ -397,28 +406,29 @@ export default function ReadingWorkspacePage() {
 
           <div className="flex-1" />
 
-          {/* Reading Stats & Status Badge */}
+          {/* Reading Stats & Actions */}
           <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
             <div className="hidden md:flex items-center gap-1.5 font-mono text-xs bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-full text-slate-300">
               <Clock size={12} className="text-cyan-400" />
               <span>预计 ~24 min</span>
             </div>
+
             <StatusBadge status="ACTIVE" />
 
-            {/* Sidebar Discuss Toggle */}
             {!discussOpen && (
               <button
                 onClick={handleOpenDiscuss}
-                aria-label="打开伴读栏"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 rounded-lg text-cyan-300 text-xs font-semibold transition-all cursor-pointer shadow-sm"
+                aria-label="打开伴读与笔记"
+                title="展开右侧伴读与笔记侧边栏"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl text-cyan-300 hover:text-cyan-200 text-xs font-semibold transition-all cursor-pointer shadow-xs active:scale-95"
               >
-                <PanelRightOpen size={15} />
+                <PanelRightOpen size={15} className="text-cyan-400" />
                 <span className="hidden sm:inline">伴读与笔记</span>
               </button>
             )}
           </div>
 
-          {/* Top Reading Scroll Progress Line */}
+          {/* Top Scroll Progress Bar */}
           <div
             className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-cyan-500 to-violet-500 transition-all duration-150 ease-out"
             style={{ width: `${scrollProgress}%` }}
@@ -432,8 +442,7 @@ export default function ReadingWorkspacePage() {
           onMouseUp={handleTextSelect}
           onScroll={handleScroll}
         >
-
-          {/* Floating Selection Menu */}
+          {/* Floating Text Selection Menu */}
           <AnimatePresence>
             {floatingMenu && (
               <motion.div
@@ -443,12 +452,12 @@ export default function ReadingWorkspacePage() {
                 transition={{ duration: 0.12 }}
                 className="absolute z-50 bg-[#121A29] border border-slate-700/90 rounded-xl shadow-2xl px-2 py-1.5 flex items-center gap-1 backdrop-blur-lg"
                 style={{
-                  left: floatingMenu.x - 90,
+                  left: floatingMenu.x - 110,
                   top: floatingMenu.y,
                 }}
               >
                 <button
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg transition-all cursor-pointer font-semibold"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-200 hover:text-cyan-300 hover:bg-cyan-500/20 rounded-lg transition-all cursor-pointer font-semibold"
                   onClick={() => handleDiscussSelection(floatingMenu.text)}
                 >
                   <MessageSquare size={13} className="text-cyan-400" />
@@ -458,17 +467,27 @@ export default function ReadingWorkspacePage() {
                 <div className="w-px h-4 bg-slate-700/80" />
 
                 <button
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-200 hover:text-emerald-300 hover:bg-emerald-500/20 rounded-lg transition-all cursor-pointer font-semibold"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-200 hover:text-emerald-300 hover:bg-emerald-500/20 rounded-lg transition-all cursor-pointer font-semibold"
                   onClick={() => handleCreateNoteFromSelection(floatingMenu.text)}
                 >
                   <Bookmark size={13} className="text-emerald-400" />
                   记笔记
                 </button>
+
+                <div className="w-px h-4 bg-slate-700/80" />
+
+                <button
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-slate-200 hover:text-violet-300 hover:bg-violet-500/20 rounded-lg transition-all cursor-pointer font-semibold"
+                  onClick={() => handleExtractSkill("L1", floatingMenu.text)}
+                >
+                  <Sparkles size={13} className="text-violet-400" />
+                  提炼技能
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Main Content Body (Max Width 720px for optimal readability) */}
+          {/* Main Article Body (Max Width 720px for optimal readability) */}
           <article className="max-w-[720px] mx-auto text-slate-200 leading-relaxed font-sans">
             {/* Document Header */}
             <div className="mb-8 pb-4 border-b border-slate-800/80">
@@ -536,12 +555,13 @@ export default function ReadingWorkspacePage() {
               <span className="text-cyan-400 font-mono">3.2</span> 梯度消失现象与定量分析
             </h2>
 
-            {/* Callout Box with Target Anchor Glow Pulse */}
+            {/* Paragraph Callout Box */}
             <div
-              className={`my-6 p-4 rounded-xl border transition-all duration-700 ${targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
-                ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
-                : "bg-slate-900/60 border-slate-800"
-                }`}
+              className={`my-6 p-4 rounded-xl border transition-all duration-700 ${
+                targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
+                  ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
+                  : "bg-slate-900/60 border-slate-800"
+              }`}
             >
               <div className="flex items-start gap-3">
                 <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
@@ -561,7 +581,7 @@ export default function ReadingWorkspacePage() {
             </p>
 
             <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-lg text-xs font-mono text-amber-300 mb-6 text-center">
-              0.25¹⁰ ≈ 9.5367 × 10⁻⁷  (浅层参数近乎停滞更新)
+              0.25¹⁰ ≈ 9.5367 × 10⁻⁷ (浅层参数近乎停滞更新)
             </div>
 
             {/* Section 3.3 */}
@@ -576,64 +596,24 @@ export default function ReadingWorkspacePage() {
 
             <div className="h-16" />
           </article>
+
+          {/* Chapter End 5% Recommendation Bubble */}
+          <RecommendationBubble
+            isVisible={showBubble}
+            onClose={() => setShowBubble(false)}
+            onGenerateSkill={() => {
+              handleExtractSkill("L2")
+              setShowBubble(false)
+            }}
+            onStartDiscuss={() => {
+              handleDiscussSelection("请帮我归纳梯度消失的核心成因与解决方案")
+              setShowBubble(false)
+            }}
+          />
         </div>
-
-        {/* AI Recommendation Floating Bubble */}
-        <AnimatePresence>
-          {showBubble && (
-            <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.95 }}
-              className="absolute bottom-6 right-6 bg-[#0F172A] border border-cyan-500/40 rounded-xl p-4 2xl:p-5 max-w-[300px] 2xl:max-w-[380px] shadow-2xl z-30 backdrop-blur-md"
-            >
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-300 shrink-0">
-                  <Sparkles size={16} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h5 className="text-xs 2xl:text-sm font-bold text-slate-100 mb-1">
-                    AI 伴读提醒
-                  </h5>
-                  <p className="text-xs 2xl:text-sm text-slate-300 leading-relaxed">
-                    检测到您正在深度阅读「梯度消失」，是否生成此考点的记忆卡片？
-                  </p>
-                  <button
-                    onClick={() => {
-                      handleDiscussSelection("请帮我归纳梯度消失的核心成因与解决方案")
-                      setShowBubble(false)
-                    }}
-                    className="mt-2.5 px-3 py-1.5 2xl:px-3.5 2xl:py-2 text-xs font-semibold text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 rounded-lg transition-all cursor-pointer flex items-center gap-1"
-                  >
-                    生成技能卡片 →
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowBubble(false)}
-                  aria-label="关闭推荐"
-                  className="text-slate-400 hover:text-slate-100 shrink-0 cursor-pointer p-0.5 rounded hover:bg-slate-800"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* 伴读栏未展开时的快捷浮动入口 - 定位于 center column 内 */}
-        {!discussOpen && (
-          <button
-            onClick={handleOpenDiscuss}
-            aria-label="打开伴读与笔记栏"
-            title="展开伴读与笔记栏"
-            className="absolute right-4 top-[52px] z-20 p-2.5 bg-[#0F172A]/90 hover:bg-slate-800 border border-cyan-500/30 hover:border-cyan-500/60 rounded-xl text-cyan-300 hover:text-cyan-200 transition-all cursor-pointer shadow-xl backdrop-blur-md group"
-          >
-            <MessageSquare size={16} className="group-hover:scale-110 transition-transform" />
-          </button>
-        )}
       </div>
 
-      {/* ──────────────── Right Notes & AI Copilot Sidebar Component ──────────────── */}
+      {/* ──────────────── Right Companion Drawer Component ──────────────── */}
       <CompanionDrawer
         isOpen={discussOpen}
         onClose={() => setDiscussOpen(false)}
@@ -641,6 +621,7 @@ export default function ReadingWorkspacePage() {
         isLaptopOrSmaller={isLaptopOrSmaller}
         activeTab={rightTab}
         onTabChange={setRightTab}
+        activeChapterId={activeChapter}
         messages={messages}
         streaming={streaming}
         discussMsg={discussMsg}
@@ -648,14 +629,19 @@ export default function ReadingWorkspacePage() {
         quotedContext={quotedContext}
         setQuotedContext={setQuotedContext}
         onSendMessage={sendMessage}
+        onStopStreaming={() => setStreaming(false)}
+        onRegenerateLast={() => sendMessage("请重新阐述关于梯度消失的核心解法")}
+        onAddTaskToPlan={(taskTitle) => {
+          setExtractedToast(`已将【${taskTitle}】成功注入计划项目执行任务树`)
+          setTimeout(() => setExtractedToast(null), 3000)
+        }}
         notes={notes}
         noteSearch={noteSearch}
         setNoteSearch={setNoteSearch}
         onTraceNote={traceNote}
         onCreateNote={(data) => createNoteMutation.mutate(data)}
+        onExtractSkill={handleExtractSkill}
       />
     </div>
   )
 }
-
-

@@ -21,8 +21,8 @@ export const MOCK_NOTES_DATA = [
   },
   {
     id: "note_03",
-    quote: "React 18 concurrent mode 通过 startTransition 标记非紧急渲染，避免阻塞主线程卡顿。",
-    content: "React 18 concurrent mode 通过 startTransition 标记非紧急渲染，避免阻塞主线程卡顿。",
+    quote: "反向传播（Backpropagation）是训练人工神经网络的核心算法，由 Rumelhart、Hinton 和 Williams 于 1986 年系统性地提出。其本质在于借助微积分中的链式求导法则 (Chain Rule)，高效且精准地计算损失函数关于神经网络中每一个可修学习参数的偏导数。",
+    content: "React 18 concurrent mode 通过 startTrans",
     anchor: "React 源码解析 Chapter 5",
     createdAt: "昨天",
     project_id: "3",
