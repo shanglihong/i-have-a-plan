@@ -144,8 +144,6 @@ export function ProjectTreeDrawer({
     if (!apiProjectsData?.items) return []
     return apiProjectsData.items.map((item) => ({
       id: item.id,
-      kb_id: item.kb_id,
-      kb_name: item.kb_name,
       title: item.title,
       type: item.type,
       status: item.status,

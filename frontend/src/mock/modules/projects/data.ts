@@ -3,8 +3,6 @@ import { Project } from "../../../shared/types";
 export const MOCK_PROJECTS_DATA: Project[] = [
   {
     id: "1",
-    kb_id: "kb_sys_01",
-    kb_name: "Linux 内核与系统底层知识库",
     title: "深入理解 Linux 内核架构与网络协议栈",
     type: "READING",
     status: "ACTIVE",
@@ -16,8 +14,6 @@ export const MOCK_PROJECTS_DATA: Project[] = [
   },
   {
     id: "2",
-    kb_id: "kb_ai_02",
-    kb_name: "AI 与 Graph RAG 知识库",
     title: "Graph RAG 知识检索与引擎落地工程",
     type: "PLAN",
     status: "ACTIVE",
@@ -29,8 +25,6 @@ export const MOCK_PROJECTS_DATA: Project[] = [
   },
   {
     id: "3",
-    kb_id: "kb_fe_03",
-    kb_name: "Web 前端架构知识库",
     title: "TypeScript & React 高级设计模式精读",
     type: "READING",
     status: "COMPLETED",
@@ -42,8 +36,6 @@ export const MOCK_PROJECTS_DATA: Project[] = [
   },
   {
     id: "4",
-    kb_id: "kb_sys_04",
-    kb_name: "Linux 内核与系统底层知识库",
     title: "ebpf 动态追踪与性能调优最佳实践",
     type: "PLAN",
     status: "SUSPENDED",

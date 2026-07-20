@@ -2,12 +2,11 @@ import { useLocation, Link } from "react-router-dom"
 import {
   LayoutDashboard,
   BookOpen,
-  ListChecks,
+  Target,
   Network,
   Cpu,
-  FolderTree,
+  Library,
   ChevronRight,
-  FolderCog,
   Sparkles,
 } from "lucide-react"
 import { useProjectsQuery } from "../../entities/project"
@@ -30,15 +29,14 @@ export function BreadcrumbNav() {
 
     if (path.startsWith("/dashboard")) {
       return [
-        { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
-        { label: "知识大盘" },
+        { label: "工作台", icon: LayoutDashboard },
       ]
     }
 
     if (path.startsWith("/knowledge-bases")) {
       return [
         { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
-        { label: "知识库管理", icon: FolderCog },
+        { label: "知识库", icon: Library },
       ]
     }
 
@@ -55,11 +53,9 @@ export function BreadcrumbNav() {
       const project = projects.find((p) => p.id === id)
 
       const items: BreadcrumbItem[] = [
-        { label: "知识库", href: "/knowledge-bases", icon: FolderTree },
+        { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
+        { label: "阅读", icon: BookOpen },
       ]
-      if (project?.kb_name) {
-        items.push({ label: project.kb_name, href: "/knowledge-bases", icon: FolderCog })
-      }
       items.push({
         label: project?.title || (id ? `精读项目 #${id}` : "未命名项目"),
         icon: BookOpen,
@@ -73,14 +69,12 @@ export function BreadcrumbNav() {
       const project = projects.find((p) => p.id === id)
 
       const items: BreadcrumbItem[] = [
-        { label: "知识库", href: "/knowledge-bases", icon: FolderTree },
+        { label: "工作台", href: "/dashboard", icon: LayoutDashboard },
+        { label: "计划", icon: Target },
       ]
-      if (project?.kb_name) {
-        items.push({ label: project.kb_name, href: "/knowledge-bases", icon: FolderCog })
-      }
       items.push({
         label: project?.title || (id ? `执行计划 #${id}` : "未命名计划"),
-        icon: ListChecks,
+        icon: Target,
       })
       return items
     }

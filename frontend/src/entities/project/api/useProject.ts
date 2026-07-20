@@ -61,12 +61,6 @@ export function useCreateProjectMutation() {
         if (payload.file) {
           formData.append("file", payload.file);
         }
-        if (payload.kb_id) {
-          formData.append("kb_id", payload.kb_id);
-        }
-        if (payload.kb_name) {
-          formData.append("kb_name", payload.kb_name);
-        }
         const res = await api.post("/projects", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
@@ -77,8 +71,6 @@ export function useCreateProjectMutation() {
           type: "PLAN",
           deadline: formattedDeadline,
           skill_id: payload.skill_id || undefined,
-          kb_id: payload.kb_id || undefined,
-          kb_name: payload.kb_name || undefined,
         };
         const res = await api.post("/projects", body);
         return res.data;

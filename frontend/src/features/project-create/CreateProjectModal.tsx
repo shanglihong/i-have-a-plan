@@ -7,7 +7,6 @@ import { DarkDatePicker, FileDropzone } from "../../shared/ui";
 import { useCreateProjectMutation } from "../../entities";
 import { ProjectTypeSelector } from "./components/ProjectTypeSelector";
 import { PresetSkillSelector } from "./components/PresetSkillSelector";
-import { KnowledgeBaseSelector } from "./components/KnowledgeBaseSelector";
 
 interface CreateProjectModalProps {
   open: boolean;
@@ -26,8 +25,6 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const [deadline, setDeadline] = useState<string>(getOneWeekLaterDateString);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedSkillId, setSelectedSkillId] = useState<string>("");
-  const [selectedKbId, setSelectedKbId] = useState<string>("kb_default");
-  const [selectedKbName, setSelectedKbName] = useState<string>("默认知识库");
   const [formError, setFormError] = useState<string | null>(null);
 
   const resetForm = () => {
@@ -35,8 +32,6 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
     setDeadline(getOneWeekLaterDateString());
     setSelectedFile(null);
     setSelectedSkillId("");
-    setSelectedKbId("kb_default");
-    setSelectedKbName("默认知识库");
     setFormError(null);
   };
 
@@ -63,8 +58,6 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
           type: "READING",
           deadline,
           file: selectedFile || undefined,
-          kb_id: selectedKbId,
-          kb_name: selectedKbName,
         },
         {
           onSuccess: () => {
@@ -85,8 +78,6 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
           type: "PLAN",
           deadline,
           skill_id: selectedSkillId || undefined,
-          kb_id: selectedKbId,
-          kb_name: selectedKbName,
         },
         {
           onSuccess: () => {
@@ -190,15 +181,6 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
                     className="w-full bg-slate-900/80 border border-slate-700/80 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/40 transition-colors"
                   />
                 </div>
-
-                {/* 知识库绑定下拉框 */}
-                <KnowledgeBaseSelector
-                  selectedKbId={selectedKbId}
-                  onSelectKb={(kbId, kbName) => {
-                    setSelectedKbId(kbId);
-                    setSelectedKbName(kbName);
-                  }}
-                />
 
                 {/* 期望截止日期 */}
                 <div>

@@ -28,8 +28,6 @@ export default function KnowledgeBaseManagerPage() {
     if (!projectsData?.items) return []
     return projectsData.items.map((item) => ({
       id: item.id,
-      kb_id: item.kb_id,
-      kb_name: item.kb_name,
       title: item.title,
       type: item.type,
       status: item.status,
@@ -56,7 +54,7 @@ export default function KnowledgeBaseManagerPage() {
     const map: Record<string, Project[]> = {}
 
     projects.forEach((p) => {
-      const name = p.kb_name || (p.tags && p.tags.length > 0 ? `${p.tags[0]} 知识库` : "默认知识库")
+      const name = p.tags && p.tags.length > 0 ? `${p.tags[0]} 知识库` : "默认知识库"
       if (!map[name]) map[name] = []
       map[name].push(p)
     })

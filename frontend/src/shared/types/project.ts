@@ -12,8 +12,6 @@ export type ProjectStatus =
 
 export interface Project {
   id: string;
-  kb_id?: string;
-  kb_name?: string;
   title: string;
   type: ProjectType;
   status: ProjectStatus;
