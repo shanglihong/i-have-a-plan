@@ -1,11 +1,10 @@
 import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
+  BookOpen,
   FileText,
   Plus,
   Search,
-  BookOpen,
-  ListChecks,
   Sparkles,
   ChevronRight,
   Folder,
@@ -19,7 +18,7 @@ import {
 import { NoteDocumentItem } from "./utils/exportUtils"
 import { NoteDocumentEditor } from "./components/NoteDocumentEditor"
 import { NotesPickerDrawer } from "./components/NotesPickerDrawer"
-import { MOCK_READING_NOTES_FALLBACK, MOCK_PROJECTS_DATA } from "../../mock"
+import { MOCK_READING_NOTES_FALLBACK } from "../../mock"
 import { NoteCardData } from "../reading/components/UnifiedNoteCard"
 
 const INITIAL_NOTE_DOCUMENTS: NoteDocumentItem[] = [
@@ -27,8 +26,9 @@ const INITIAL_NOTE_DOCUMENTS: NoteDocumentItem[] = [
     id: "doc_1",
     title: "Linux 网络协议栈与 TCP 拥塞控制推导",
     updatedAt: "10分钟前",
+    kbId: "kb_linux",
+    kbName: "Linux 内核与网络协议栈",
     projectId: "1",
-    projectName: "深入理解 Linux 内核架构与网络协议栈",
     blocks: [
       {
         id: "b1",
@@ -52,8 +52,8 @@ const INITIAL_NOTE_DOCUMENTS: NoteDocumentItem[] = [
     id: "doc_2",
     title: "Graph RAG 拓扑社区发现与知识图谱构建",
     updatedAt: "1小时前",
-    projectId: "2",
-    projectName: "Graph RAG 知识检索与引擎落地工程",
+    kbId: "kb_ai",
+    kbName: "AI 检索与知识图谱工程",
     blocks: [
       {
         id: "b3",
@@ -77,8 +77,8 @@ const INITIAL_NOTE_DOCUMENTS: NoteDocumentItem[] = [
     id: "doc_3",
     title: "React 18 并发机制与 Scheduler 调度原理",
     updatedAt: "昨天",
-    projectId: "3",
-    projectName: "TypeScript & React 高级设计模式精读",
+    kbId: "kb_frontend",
+    kbName: "TypeScript & React 高级设计模式",
     blocks: [
       {
         id: "b5",
@@ -97,8 +97,8 @@ const INITIAL_NOTE_DOCUMENTS: NoteDocumentItem[] = [
     id: "doc_4",
     title: "eBPF 字节码 JIT 编译与 Kernel Tracepoint",
     updatedAt: "3天前",
-    projectId: "4",
-    projectName: "ebpf 动态追踪与性能调优最佳实践",
+    kbId: "kb_linux",
+    kbName: "Linux 内核与网络协议栈",
     blocks: [
       {
         id: "b6",
@@ -106,28 +106,13 @@ const INITIAL_NOTE_DOCUMENTS: NoteDocumentItem[] = [
         content: "eBPF 提供安全的高效内核探针，无需重编译内核或加载内核模块即可获取调用图谱。",
       },
     ],
-  },
-  {
-    id: "doc_5",
-    title: "未分类知识点速记与闪念笔记",
-    updatedAt: "4天前",
-    blocks: [
-      {
-        id: "b7",
-        type: "text",
-        content: "待归档的通用思考与临时摘录。",
-      },
-    ],
-  },
+  }
 ]
-
-type SidebarFilterCategory = "ALL" | "READING" | "PLAN" | "UNCATEGORIZED"
 
 export default function NotesHubPage() {
   const [documents, setDocuments] = useState<NoteDocumentItem[]>(INITIAL_NOTE_DOCUMENTS)
   const [activeDocId, setActiveDocId] = useState<string>("doc_1")
   const [docSearchTerm, setDocSearchTerm] = useState("")
-  const [filterType, setFilterType] = useState<SidebarFilterCategory>("ALL")
   const [pickerDrawerOpen, setPickerDrawerOpen] = useState(false)
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({})
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -141,57 +126,39 @@ export default function NotesHubPage() {
     }))
   }
 
-  // 项目文件夹分组
+  // 知识库文件夹分组
   const projectGroups = useMemo(() => {
     const term = docSearchTerm.trim().toLowerCase()
 
     const map: Record<
       string,
-      { id: string; name: string; type?: string; docs: NoteDocumentItem[] }
+      { id: string; name: string; docs: NoteDocumentItem[] }
     > = {}
 
-    // 填入已定义的 mock 项目
-    MOCK_PROJECTS_DATA.forEach((p) => {
-      map[p.id] = {
-        id: p.id,
-        name: p.title,
-        type: p.type,
-        docs: [],
-      }
-    })
-
-    // 未分类项目分组
-    const UNKNOW_PROJECT_ID = "uncategorized"
-    map[UNKNOW_PROJECT_ID] = {
-      id: UNKNOW_PROJECT_ID,
-      name: "未分类笔记",
-      docs: [],
-    }
-
-    // 将文档分配到对应项目
+    // 将文档分配到对应知识库分组
     documents.forEach((doc) => {
       if (
         term &&
         !doc.title.toLowerCase().includes(term) &&
-        !(doc.projectName && doc.projectName.toLowerCase().includes(term))
+        !(doc.kbName && doc.kbName.toLowerCase().includes(term))
       ) {
         return
       }
 
-      const pid = doc.projectId && map[doc.projectId] ? doc.projectId : UNKNOW_PROJECT_ID
-      map[pid].docs.push(doc)
+      const kbId = doc.kbId
+      if (kbId) {
+        if (!map[kbId]) {
+          map[kbId] = { id: kbId, name: doc.kbName || kbId, docs: [] }
+        }
+        map[kbId].docs.push(doc)
+      }
     })
 
     return Object.values(map).filter((group) => {
       if (group.docs.length === 0) return false
-
-      if (filterType === "READING") return group.type === "READING"
-      if (filterType === "PLAN") return group.type === "PLAN"
-      if (filterType === "UNCATEGORIZED") return group.id === "uncategorized"
-
       return true
     })
-  }, [documents, docSearchTerm, filterType])
+  }, [documents, docSearchTerm])
 
   // 批量展开/收起全部
   const handleToggleExpandAll = () => {
@@ -219,20 +186,19 @@ export default function NotesHubPage() {
     return true
   }
 
-  const handleCreateDocument = (projectId?: string, projectName?: string) => {
-    const targetProj = MOCK_PROJECTS_DATA.find((p) => p.id === projectId)
+  const handleCreateDocument = (kbId?: string, kbName?: string) => {
     const newDoc: NoteDocumentItem = {
       id: `doc_${Date.now()}`,
       title: "新建知识输出文档",
       updatedAt: "刚刚",
-      projectId: projectId || targetProj?.id,
-      projectName: projectName || targetProj?.title,
+      kbId: kbId,
+      kbName: kbName,
       blocks: [],
     }
     setDocuments((prev) => [newDoc, ...prev])
     setActiveDocId(newDoc.id)
-    if (projectId) {
-      setExpandedProjects((prev) => ({ ...prev, [projectId]: true }))
+    if (kbId) {
+      setExpandedProjects((prev) => ({ ...prev, [kbId]: true }))
     }
   }
 
@@ -258,7 +224,6 @@ export default function NotesHubPage() {
 
   const handleResetFilters = () => {
     setDocSearchTerm("")
-    setFilterType("ALL")
   }
 
   // 匹配统计计算
@@ -335,39 +300,6 @@ export default function NotesHubPage() {
                 </button>
               )}
             </div>
-
-            {/* Type Filter Pills (Identical to KnowledgeBaseTreeDrawer) */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setFilterType("ALL")}
-                className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer text-center ${filterType === "ALL"
-                  ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
-                  : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
-                  }`}
-              >
-                全部
-              </button>
-              <button
-                onClick={() => setFilterType("READING")}
-                className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${filterType === "READING"
-                  ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-xs font-semibold"
-                  : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
-                  }`}
-              >
-                <BookOpen size={11} />
-                <span>阅读</span>
-              </button>
-              <button
-                onClick={() => setFilterType("PLAN")}
-                className={`flex-1 py-1 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center justify-center gap-1 ${filterType === "PLAN"
-                  ? "bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-xs font-semibold"
-                  : "bg-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10 border border-transparent"
-                  }`}
-              >
-                <ListChecks size={11} />
-                <span>计划</span>
-              </button>
-            </div>
           </div>
 
           {/* Documents Tree Stream (项目作为文件夹, 完全对齐 KnowledgeBaseTreeDrawer 结构) */}
@@ -382,7 +314,7 @@ export default function NotesHubPage() {
                   <FolderPlus size={22} />
                 </div>
                 <span className="text-xs text-slate-400 font-medium">未找到符合条件的笔记文档</span>
-                {(docSearchTerm || filterType !== "ALL") && (
+                {(docSearchTerm) && (
                   <button
                     onClick={handleResetFilters}
                     className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline cursor-pointer font-medium mt-1 transition-colors flex items-center gap-1"
@@ -412,20 +344,10 @@ export default function NotesHubPage() {
                           className={`text-slate-400 shrink-0 transition-transform duration-200 ${expanded ? "rotate-90 text-slate-200" : ""
                             }`}
                         />
-                        {group.type === "READING" ? (
-                          <BookOpen
-                            size={14}
-                            className={expanded ? "text-cyan-400 shrink-0" : "text-cyan-400/70 group-hover:text-cyan-300 shrink-0"}
-                          />
-                        ) : group.type === "PLAN" ? (
-                          <ListChecks
-                            size={14}
-                            className={expanded ? "text-violet-400 shrink-0" : "text-violet-400/70 group-hover:text-violet-300 shrink-0"}
-                          />
-                        ) : expanded ? (
+                        {expanded ? (
                           <FolderOpen size={14} className="text-cyan-400 shrink-0" />
                         ) : (
-                          <Folder size={14} className="text-slate-400 group-hover:text-slate-300 shrink-0" />
+                          <Folder size={14} className="text-slate-400 group-hover:text-cyan-300 shrink-0" />
                         )}
                         <span className="text-xs font-semibold truncate text-slate-200 group-hover:text-cyan-300 transition-colors">
                           {group.name}
@@ -433,10 +355,6 @@ export default function NotesHubPage() {
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0 ml-1">
-                        <span className="text-xs font-mono font-medium text-slate-400 bg-white/5 border border-white/5 px-1.5 py-0.5 rounded-full shrink-0 group-hover:border-white/10 group-hover:text-slate-300 transition-all">
-                          {group.docs.length}
-                        </span>
-
                         {!isUncategorized && (
                           <span
                             onClick={(e) => {
@@ -444,7 +362,7 @@ export default function NotesHubPage() {
                               handleCreateDocument(group.id, group.name)
                             }}
                             className="opacity-0 group-hover:opacity-100 p-1 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 rounded transition-all cursor-pointer"
-                            title={`在【${group.name}】下新建笔记`}
+                            title={`在《${group.name}》下新建笔记`}
                             role="button"
                             tabIndex={0}
                           >
@@ -467,7 +385,7 @@ export default function NotesHubPage() {
                         >
                           {group.docs.map((doc) => {
                             const isActive = activeDocId === doc.id
-                            const isPlanType = group.type === "PLAN"
+                            const isPlanType = false
 
                             return (
                               <button
@@ -520,7 +438,7 @@ export default function NotesHubPage() {
           {/* Footer Summary & Action Bar (Aligned with KnowledgeBaseTreeDrawer) */}
           <div className="px-3 py-2 border-t border-white/10 bg-slate-950/40 flex items-center justify-between shrink-0 text-xs text-slate-400 select-none">
             <span className="font-mono">
-              {projectGroups.length} 项目 / {totalMatchingDocs} 文档
+              {projectGroups.length} 知识库 / {totalMatchingDocs} 文档
             </span>
             <div className="flex items-center gap-1 text-emerald-400/90 text-[11px]">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />

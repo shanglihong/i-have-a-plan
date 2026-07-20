@@ -4,8 +4,9 @@ export interface NoteDocumentItem {
   id: string
   title: string
   updatedAt: string
+  kbId?: string
+  kbName?: string
   projectId?: string
-  projectName?: string
   blocks: Array<{
     id: string
     type: "text" | "note_card"
@@ -18,7 +19,7 @@ export function generateMarkdownFromDocument(doc: NoteDocumentItem): string {
   const lines: string[] = []
 
   lines.push(`# ${doc.title || "无标题融合笔记"}`)
-  lines.push(`> 导出时间: ${new Date().toLocaleString()} ${doc.projectName ? `| 所属知识工程: ${doc.projectName}` : ""}`)
+  lines.push(`> 导出时间: ${new Date().toLocaleString()} ${doc.kbName ? `| 所属知识库: ${doc.kbName}` : ""}`)
   lines.push("")
 
   doc.blocks.forEach((block, index) => {
