@@ -6,34 +6,49 @@ import {
   Network,
   Cpu,
   Layers,
-  FolderTree,
-  BookMarked,
+  BookOpen,
+  Target,
+  Library,
 } from "lucide-react"
 
 import {
-  KnowledgeBaseTreeDrawer,
+  ProjectTreeDrawer,
+  ProjectDrawerMode,
   GlobalSearchBar,
   NotificationDropdown,
   FontScaleSelector,
   BreadcrumbNav,
 } from "../../features"
 
+interface NavItem {
+  type: "link" | "tree-toggle"
+  to?: string
+  mode?: ProjectDrawerMode
+  icon: any
+  label: string
+}
+
 export default function RootLayout() {
   const location = useLocation()
-  const [treeDrawerOpen, setTreeDrawerOpen] = useState(false)
+  const [activeDrawerMode, setActiveDrawerMode] = useState<ProjectDrawerMode | null>(null)
 
-  // 路由变化时自动收缩知识库目录抽屉
+  // 路由变化时自动收缩阅读/计划目录抽屉
   useEffect(() => {
-    setTreeDrawerOpen(false)
+    setActiveDrawerMode(null)
   }, [location.pathname])
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { type: "link", to: "/dashboard", icon: LayoutDashboard, label: "大盘" },
-    { type: "tree-toggle", icon: FolderTree, label: "知识库" },
-    { type: "link", to: "/notes", icon: BookMarked, label: "沉淀" },
+    { type: "tree-toggle", mode: "reading", icon: BookOpen, label: "阅读" },
+    { type: "tree-toggle", mode: "plan", icon: Target, label: "计划" },
+    { type: "link", to: "/knowledge-bases", icon: Library, label: "知识库" },
     { type: "link", to: "/graph", icon: Network, label: "图谱" },
     { type: "link", to: "/skills/sandbox/skill-1", icon: Cpu, label: "技能" },
   ]
+
+  const handleToggleDrawer = (mode: ProjectDrawerMode) => {
+    setActiveDrawerMode((prev) => (prev === mode ? null : mode))
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#090d16] text-slate-100">
@@ -41,7 +56,7 @@ export default function RootLayout() {
       <aside className="w-16 flex flex-col items-center py-4 gap-1.5 border-r border-white/10 bg-[#0c111d] shrink-0 z-40 select-none">
         {/* Logo */}
         <div
-          onClick={() => setTreeDrawerOpen(false)}
+          onClick={() => setActiveDrawerMode(null)}
           className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center mb-3 cursor-pointer shadow-lg shadow-cyan-500/10 hover:opacity-90 transition-opacity"
           title="I Have A Plan"
         >
@@ -50,14 +65,23 @@ export default function RootLayout() {
 
         {navItems.map((item) => {
           const Icon = item.icon
-          if (item.type === "tree-toggle") {
-            const isTreeActive = treeDrawerOpen || location.pathname.startsWith("/project/")
+          if (item.type === "tree-toggle" && item.mode) {
+            const isTreeActive =
+              activeDrawerMode === item.mode ||
+              (item.mode === "reading" && location.pathname.startsWith("/project/read/")) ||
+              (item.mode === "plan" && location.pathname.startsWith("/project/plan/"))
+
+            const titleText =
+              activeDrawerMode === item.mode
+                ? `收起${item.label}目录`
+                : `展开${item.label}目录`
+
             return (
               <button
                 key={item.label}
-                onClick={() => setTreeDrawerOpen((prev) => !prev)}
+                onClick={() => handleToggleDrawer(item.mode!)}
                 aria-label={item.label}
-                title={treeDrawerOpen ? "收起知识库目录" : "展开知识库目录"}
+                title={titleText}
                 className={`w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all group relative cursor-pointer
                 ${isTreeActive
                     ? "bg-cyan-500/20 text-cyan-300 font-semibold"
@@ -80,7 +104,7 @@ export default function RootLayout() {
             <NavLink
               key={item.to}
               to={item.to!}
-              onClick={() => setTreeDrawerOpen(false)}
+              onClick={() => setActiveDrawerMode(null)}
               aria-label={item.label}
               className={({ isActive }) =>
                 `w-11 h-11 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all group relative cursor-pointer
@@ -111,10 +135,11 @@ export default function RootLayout() {
         <FontScaleSelector />
       </aside>
 
-      {/* Knowledge Base Tree Drawer Panel (Feature Component) */}
-      <KnowledgeBaseTreeDrawer
-        isOpen={treeDrawerOpen}
-        onClose={() => setTreeDrawerOpen(false)}
+      {/* Project Tree Drawer Panel (Feature Component) */}
+      <ProjectTreeDrawer
+        isOpen={activeDrawerMode !== null}
+        mode={activeDrawerMode || "reading"}
+        onClose={() => setActiveDrawerMode(null)}
       />
 
       {/* Main content Area */}
@@ -149,3 +174,4 @@ export default function RootLayout() {
     </div>
   )
 }
+

@@ -139,22 +139,20 @@ export default function KnowledgeBaseManagerPage() {
             <div className="flex items-center bg-slate-900 border border-white/10 rounded-xl p-1 gap-1">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === "grid"
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === "grid"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                  : "text-slate-400 hover:text-slate-200"
+                  }`}
                 title="网格视图"
               >
                 <Grid size={15} />
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === "list"
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === "list"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                  : "text-slate-400 hover:text-slate-200"
+                  }`}
                 title="列表视图"
               >
                 <List size={15} />
@@ -245,11 +243,10 @@ export default function KnowledgeBaseManagerPage() {
               return (
                 <div
                   key={kb.name}
-                  className={`p-5 rounded-2xl bg-slate-900/60 border transition-all flex flex-col justify-between group space-y-4 shadow-lg ${
-                    isDeleting
-                      ? "border-rose-500/40 bg-rose-950/20"
-                      : "border-white/10 hover:border-cyan-500/30"
-                  }`}
+                  className={`p-5 rounded-2xl bg-slate-900/60 border transition-all flex flex-col justify-between group space-y-4 shadow-lg ${isDeleting
+                    ? "border-rose-500/40 bg-rose-950/20"
+                    : "border-white/10 hover:border-cyan-500/30"
+                    }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -367,11 +364,10 @@ export default function KnowledgeBaseManagerPage() {
               return (
                 <div
                   key={kb.name}
-                  className={`p-4 rounded-xl bg-slate-900/60 border transition-all flex items-center justify-between group ${
-                    isDeleting
-                      ? "border-rose-500/40 bg-rose-950/20"
-                      : "border-white/10 hover:border-cyan-500/30"
-                  }`}
+                  className={`p-4 rounded-xl bg-slate-900/60 border transition-all flex items-center justify-between group ${isDeleting
+                    ? "border-rose-500/40 bg-rose-950/20"
+                    : "border-white/10 hover:border-cyan-500/30"
+                    }`}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shrink-0">

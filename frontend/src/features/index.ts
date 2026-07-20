@@ -5,7 +5,12 @@ export { RecentProjectsGrid, ProjectCard } from "./recent-projects";
 export { FocusProjectsList } from "./focus-projects";
 export { KnowledgeInsightsWidget } from "./knowledge-insights";
 export { SkillGraphActivityWidget } from "./skill-graph-activity";
-export { KnowledgeBaseTreeDrawer } from "./project-knowledge-base-tree";
+export {
+  ProjectTreeDrawer,
+  ProjectTreeDrawer as KnowledgeBaseTreeDrawer,
+  type ProjectDrawerMode,
+  type KnowledgeDrawerMode,
+} from "./project-tree-drawer";
 export { GlobalSearchBar } from "./global-search";
 export { NotificationDropdown } from "./notification-center";
 export { FontScaleSelector } from "./font-scale-control";
