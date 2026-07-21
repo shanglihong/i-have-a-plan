@@ -1,0 +1,37 @@
+[project]
+name = "i-have-a-plan-backend"
+version = "0.1.0"
+description = "i-have-a-plan backend service (Hexagonal Architecture + DDD)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "sqlmodel>=0.0.22",
+    "aiosqlite>=0.20",
+    "langchain>=0.3",
+    "langgraph>=0.2",
+    "pydantic-settings>=2.0",
+    "greenlet>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
