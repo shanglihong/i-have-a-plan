@@ -89,6 +89,42 @@
 | :--- | :--- | :--- | :--- |
 | `_ui_is_highlighted`| Boolean| 脉冲高亮状态 | Trace-to-source 定位时触发闪烁动效 |
 
+#### 1.3 Book（书籍 - 实体/聚合根）
+**定义**：承载物理源电子书及其全生命周期解析状态与通用解析物料的基础实体。
+
+* **(1) 实体对象 (BookDO)** - 落库模型
+
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 书籍唯一标识 (UUID) | 全局主键 |
+| `project_id` | String | 关联阅读项目 ID | 外键关联 Project |
+| `file_name` | String | 物理文件名 | - |
+| `file_type` | Enum | `PDF` / `EPUB` / `TXT` / `MD` | - |
+| `file_size` | Number | 字节大小 | - |
+| `storage_path` | String | 原书物理沙箱存储路径 | IO 定位 |
+| `content_json_path`| String| 物理切片 `parsed_content.json` 路径 | File-first IO 定位 |
+| `parsing_status` | Enum | `PENDING` / `UPLOADING` / `PARSING` / `COMPLETED` / `FAILED` | 全生命周期状态 |
+| `parsed_structure` | Object | `TocNode` 章节目录大纲树 JSON | DB 轻量索引 |
+| `total_chapters` | Number | 总章节数 | - |
+| `total_word_count` | Number | 全书总字数 | - |
+| `error_message` | String | 解析异常日志 | - |
+| `created_at` / `updated_at`| DateTime| 审计时间 | - |
+
+* **(2) 上下文对象 (BookDomain)** - 内存充血模型 (继承 DO)
+
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `toc_tree` | Array<TocNodeDomain> | 领域集合 | 从 `parsed_structure` 反序列化组装的目录树 |
+| `active_chapters` | Map<String, BookChapterDomain>| 领域缓存 | 内存中按需懒加载缓存的底层章节切片 |
+
+* **(3) 前端使用对象 (BookVO)** - 交互模型 (继承 DO 基础属性)
+
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| `_ui_active_chapter_id`| String | 当前阅读活跃章节 ID | 驱动阅读器视角定位 |
+| `_ui_reading_progress` | Number | 全书实时阅读百分比 | 进度条渲染 |
+| `_ui_is_parsing` | Boolean | 解析进度水波纹控制 | 显示解析骨架屏与 Loading |
+
 ---
 
 ### 2. 笔记与知识上下文 (Note & Knowledge Context)
@@ -106,7 +142,7 @@
 | `project_id` | String | 归属的项目 ID | 关联 Project |
 | `content_path` | String | 物理 MD 文件路径 | IO 定位 |
 | `tags` | Array<String>| 全局扁平标签 | 关联标签表 |
-| `source_anchor` | Object | 物理锚点(页码/偏移/特征字)| - |
+| `source_anchor_id` | String | 外键关联物理锚点 ID | 关联 SourceAnchor |
 
 * **(2) 上下文对象 (UnifiedReadingNoteDomain)** (继承 DO)
 
@@ -114,6 +150,7 @@
 | :--- | :--- | :--- | :--- |
 | `tag_nodes` | Array<TagSuperNode> | 领域集合 | 关联的标签实体超节点集合 |
 | `content` | String | 领域属性 | 内存读取加载的真实 Markdown 文本流 |
+| `source_anchor` | SourceAnchorDomain | 领域引用 | 精准物理原文锚点实体装载 |
 
 * **(3) 前端使用对象 (UnifiedReadingNoteVO)** (继承 DO 基础属性)
 
@@ -145,6 +182,42 @@
 | 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
 | :--- | :--- | :--- | :--- |
 | (无特殊衍生 UI 属性) | - | - | - |
+
+#### 2.3 SourceAnchor（物理原文锚点 - 实体）
+**定义**：划词记笔记与“定位原文”的核心机制，包含多维物理定位坐标与三层容错重锚定特性。
+
+* **(1) 实体对象 (SourceAnchorDO)** - 落库模型
+
+| 字段名 | 类型 | 含义描述 | 关联 / 约束 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 锚点唯一标识 | 全局主键 |
+| `book_id` | String | 关联书籍 ID | 外键关联 Book |
+| `chapter_id` | String | 所属章节 ID | - |
+| `block_id` | String | 所属段落 Block ID | 精准解算索引 |
+| `char_start_offset`| Number | Block 内起始字符偏移 | - |
+| `char_end_offset` | Number | Block 内终止字符偏移 | - |
+| `page_number` | Number | (可选) PDF 物理页码 | PDF 专属 |
+| `pdf_rects` | Object | (可选) PDF 多划词框矩形坐标 `[x,y,w,h][]` | PDF 渲染高亮 |
+| `epub_cfi` | String | (可选) EPUB CFI 字符串 | EPUB 专属 |
+| `text_snippet` | String | 选中的物理原文切片快照 | 文本校验 |
+| `prefix_context` | String | 前置 20 字符上下文 | 模糊重锚定 |
+| `suffix_context` | String | 后置 20 字符上下文 | 模糊重锚定 |
+| `content_hash` | String | 快照与上下文校验 Hash | SHA-256 |
+| `created_at` | DateTime | 物理创建时间 | - |
+
+* **(2) 上下文对象 (SourceAnchorDomain)** - 内存充血模型 (继承 DO)
+
+| 附加/覆写字段名 | 类型 | 领域属性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `target_block` | ContentBlockDomain | 领域引用 | 反解映射装载的物理正文 Block 实例 |
+| `resolution_status` | Enum | `EXACT` / `FUZZY_REANCHORED` / `STALE_FALLBACK` | 三层匹配解算后的当前状态 |
+
+* **(3) 前端使用对象 (SourceAnchorVO)** - 交互模型 (继承 DO 基础属性)
+
+| 附加/覆写字段名 | 类型 | 含义描述 | 前端交互用途 |
+| :--- | :--- | :--- | :--- |
+| `_ui_is_highlighted`| Boolean | 激活高亮状态 | Trace-to-source 定位时触发段落/文字脉冲点亮动效 |
+| `_ui_anchor_stale` | Boolean | 锚点偏移失效提示 | 当触发三层容错重锚定或段落降级时提示“原文位置微调” |
 
 ---
 

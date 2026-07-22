@@ -50,26 +50,26 @@
 ### 维度一：【知】—— 沉浸式获取与极简沉淀
 本维度的核心在于降低知识输入的阻力，打破信息孤岛。
 
-| 诉求子项 | 目标描述 | 技术与设计映射契约 |
-| :--- | :--- | :--- |
-| **1. 高效伴读与知识内化** | 在沉浸式阅读书籍或论文时，不受频繁弹窗干扰，但能在关键节点获得 AI 导师的启发式伴读与任务引导。 | * 左右分栏布局（左阅读右交互）<br>* 章节末 5% 推荐气泡<br>* 章节任务链引导 |
-| **2. 笔记孤岛整合与追溯** | 将主观阅读感悟与伴读 Agent 的客观辅导对话深度整合为统一单元，并在回顾时能一秒定位物理原文。 | * 三栏式联动工作空间（阅读-笔记-伴读）<br>* 划词与对话一键转存双通道融合<br>* Trace-to-Source 双向跳转脉冲高亮 |
+| 诉求子项                  | 目标描述                                                                                       | 技术与设计映射契约                                                                                             |
+| :------------------------ | :--------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| **1. 高效伴读与知识内化** | 在沉浸式阅读书籍或论文时，不受频繁弹窗干扰，但能在关键节点获得 AI 导师的启发式伴读与任务引导。 | * 左右分栏布局（左阅读右交互）<br>* 章节末 5% 推荐气泡<br>* 章节任务链引导                                     |
+| **2. 笔记孤岛整合与追溯** | 将主观阅读感悟与伴读 Agent 的客观辅导对话深度整合为统一单元，并在回顾时能一秒定位物理原文。    | * 三栏式联动工作空间（阅读-笔记-伴读）<br>* 划词与对话一键转存双通道融合<br>* Trace-to-Source 双向跳转脉冲高亮 |
 
 ### 维度二：【行】—— 技能编译与实战闭环
 本维度的核心在于打通“纸上谈兵”到“落地实操”的壁垒，并让经验回流。
 
-| 诉求子项 | 目标描述 | 技术与设计映射契约 |
-| :--- | :--- | :--- |
-| **3. 方法论可靠提炼** | 能将散落的笔记与章节精华，宏观打包并 100% 正确地转化为机器与人均可读的“技能模版”。 | * Trace-to-Skill 三级提炼漏斗<br>* `SKILL.md` 标准规范<br>* 物理隔离的沙箱卡片编辑器 |
+| 诉求子项                  | 目标描述                                                                              | 技术与设计映射契约                                                                                           |
+| :------------------------ | :------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------- |
+| **3. 方法论可靠提炼**     | 能将散落的笔记与章节精华，宏观打包并 100% 正确地转化为机器与人均可读的“技能模版”。    | * Trace-to-Skill 三级提炼漏斗<br>* `SKILL.md` 标准规范<br>* 物理隔离的沙箱卡片编辑器                         |
 | **4. 知行闭环与经验反哺** | 启动新项目时一键导入 Skill 模版指导实操；项目结束时引导复盘，将实战经验沉淀回知识库。 | * 计划项目初始化与 Skill 自动装载<br>* 归档时的经验复盘引导机制<br>* 经验笔记 (Experience Note) 同步喂入图谱 |
 
 ### 维度三：【悟】—— 全局俯瞰与认知进化
 本维度的核心是构建个人“第二大脑”，通过全局视角进行自我认知定位与新陈代谢。
 
-| 诉求子项 | 目标描述 | 技术与设计映射契约 |
-| :--- | :--- | :--- |
+| 诉求子项                  | 目标描述                                                                                     | 技术与设计映射契约                                                                                             |
+| :------------------------ | :------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
 | **5. 全局图谱与认知定位** | 跳出单本资料局限，在全局交互视图中俯瞰知识网络；通过知识库沉淀，看清自己的“认知坐标”与边界。 | * 独立全屏图谱视图 (Global Knowledge Graph)<br>* 标签超节点聚拢散落笔记<br>* 跨项目沉浸式浮窗预览 (Quick Peek) |
-| **6. 低成本的安全大脑** | 拥有网状联想的实体图谱且具备自我迭代能力，但不承担高昂 Token 账单，绝对保障数据隐私。 | * 闲时后台异步增量构建 Graph RAG<br>* 时序衰变与反向抑制边（知识新陈代谢）<br>* 纯本地脱敏与离线大模型支持 |
+| **6. 低成本的安全大脑**   | 拥有网状联想的实体图谱且具备自我迭代能力，但不承担高昂 Token 账单，绝对保障数据隐私。        | * 闲时后台异步增量构建 Graph RAG<br>* 时序衰变与反向抑制边（知识新陈代谢）<br>* 纯本地脱敏与离线大模型支持     |
 
 ---
 
@@ -79,103 +79,406 @@
 
 ### 1. 业务场景总览表
 
-| 业务场景 | 场景详述 | MVP 纳入范围 (In-Scope) | 排除或推迟范围 (Out-of-Scope) |
-| :--- | :--- | :--- | :--- |
-| **项目生命周期管理** | 创建管理实体，为学习或实践提供承载容器，并在完结时收口。 | * “计划项目”与特化的“阅读项目”双轨初始化<br>* 结合截止时间硬约束与关联 Agent 绑定<br>* **项目归档或完结时的复盘引导与经验抽取** | * 多端数据源（微信读书、Obsidian 等）无感实时同步（仅限本地上传及 Zotero 导入） |
-| **文档解析与渲染** | 解析用户上传的资料，为阅读与提炼准备底层物料。 | * 多格式文本解析、切片绑定与阅读进度条<br>* 级联折叠大纲树渲染 | * 复杂的跨源云端图谱合并与实时同步 |
-| **渐进式伴读与笔记捕获** | 读思记问一体，提供启发式伴读及低心智笔记沉淀。 | * 三栏式联动布局，划词 Discuss 对话<br>* 划词高亮写笔记与对话一键转笔记双通道<br>* 章节末 5% 范围弱打扰气泡提示 | * 强制弹窗打扰，或完全没有独立笔记面板、只有扁平列表导致笔记无法结构化整理的局限布局 |
+| 业务场景                     | 场景详述                                                     | MVP 纳入范围 (In-Scope)                                                                                                                                                          | 排除或推迟范围 (Out-of-Scope)                                                          |
+| :--------------------------- | :----------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| **项目生命周期管理**         | 创建管理实体，为学习或实践提供承载容器，并在完结时收口。     | * “计划项目”与特化的“阅读项目”双轨初始化<br>* 结合截止时间硬约束与关联 Agent 绑定<br>* **项目归档或完结时的复盘引导与经验抽取**                                                  | * 多端数据源（微信读书、Obsidian 等）无感实时同步（仅限本地上传及 Zotero 导入）        |
+| **文档解析与渲染**           | 解析用户上传的资料，为阅读与提炼准备底层物料。               | * 多格式文本解析、切片绑定与阅读进度条<br>* 级联折叠大纲树渲染                                                                                                                   | * 复杂的跨源云端图谱合并与实时同步                                                     |
+| **渐进式伴读与笔记捕获**     | 读思记问一体，提供启发式伴读及低心智笔记沉淀。               | * 三栏式联动布局，划词 Discuss 对话<br>* 划词高亮写笔记与对话一键转笔记双通道<br>* 章节末 5% 范围弱打扰气泡提示                                                                  | * 强制弹窗打扰，或完全没有独立笔记面板、只有扁平列表导致笔记无法结构化整理的局限布局   |
 | **全局知识库构建与图谱漫游** | 构建与可视化展示全局跨项目的笔记实体关系，提供全局俯瞰视角。 | * 基于 Dense RAG 的即时临时缓存检索问答<br>* 低频后台闲时异步增量构建跨项目的 Graph RAG 关系图谱<br>* **提供独立的交互式可视化图谱画布，节点支持点击展开与 Quick Peek 浮窗追溯** | * 每次划线实时触发 LLM 建图（避免昂贵 Token 开销）<br>* 高并发跨源云端图谱自动合并机制 |
-| **技能编译与沉淀** | 支持单点/章节/项目的宏观打包，将方法论编译为可执行的 Skill。 | * Trace-to-Skill 三级提炼漏斗，输出为 `SKILL.md`（含 YAML 元数据与 Markdown 步骤大纲） | * 无需审批的自动且静默入库运行 |
-| **沙箱编辑与审批** | 人机协同纠错与确认。 | * `skills/sandbox/` 物理隔离区<br>* 独立卡片流编辑器（拖拽排序、依赖连线）<br>* **拓扑排序阻断**：检测到环路依赖时，卡片红色发光、连线变红抖动，锁定并变灰“批准入库”按钮 | * 后台无监管全自动技能上线与入库 |
-| **计划推荐与注入** | 技能模版自动装载到计划。 | * 新建普通项目时语义检索 Skill 并推荐<br>* 大纲骨架屏渐进式分层渲染出结构化任务树 | * 允许越权或无依赖的列表直接运行 |
-| **任务执行与重调度** | 任务执行过程中的调度与异常管理。 | * 逾期冲突时的挂起重调度<br>* **超时优雅休眠**：24小时无交互自动释放会话，状态 Redis持久化，重登时毛玻璃提示，一键唤醒并水波纹重载 | * 长连接无限挂起（导致服务器死锁） |
+| **技能编译与沉淀**           | 支持单点/章节/项目的宏观打包，将方法论编译为可执行的 Skill。 | * Trace-to-Skill 三级提炼漏斗，输出为 `SKILL.md`（含 YAML 元数据与 Markdown 步骤大纲）                                                                                           | * 无需审批的自动且静默入库运行                                                         |
+| **沙箱编辑与审批**           | 人机协同纠错与确认。                                         | * `skills/sandbox/` 物理隔离区<br>* 独立卡片流编辑器（拖拽排序、依赖连线）<br>* **拓扑排序阻断**：检测到环路依赖时，卡片红色发光、连线变红抖动，锁定并变灰“批准入库”按钮         | * 后台无监管全自动技能上线与入库                                                       |
+| **计划推荐与注入**           | 技能模版自动装载到计划。                                     | * 新建普通项目时语义检索 Skill 并推荐<br>* 大纲骨架屏渐进式分层渲染出结构化任务树                                                                                                | * 允许越权或无依赖的列表直接运行                                                       |
+| **任务执行与重调度**         | 任务执行过程中的调度与异常管理。                             | * 逾期冲突时的挂起重调度<br>* **超时优雅休眠**：24小时无交互自动释放会话，状态 Redis持久化，重登时毛玻璃提示，一键唤醒并水波纹重载                                               | * 长连接无限挂起（导致服务器死锁）                                                     |
 
 ---
 
 ## 四、 核心实体与概念数据模型
 
-为确保后续系统架构与数据模型设计的一致性，本阶段定义以下核心业务实体关系模型：
+为确保后续系统架构与数据模型设计的一致性，本阶段定义以下核心业务实体关系模型与旁路消费模型：
+
+### 1. 业务关系模型图谱
+
+#### (1) 核心业务实体关系模型 (Main Business Domain)
 
 ```mermaid
 erDiagram
-    %% 项目与任务领域 (Project & Task Domain)
-    PROJECT ||--o{ TASK_CHAIN : "manages"
-    TASK_CHAIN ||--o{ TASK : "consists of"
-    TASK }o--o{ TASK : "depends on (DAG)"
+    %% 1. 项目与任务主领域 (Project & Task Main Domain)
+    PROJECT ||--o{ BOOK : "1:N 包含 / 上传"
+    PROJECT ||--o{ TASK_CHAIN : "1:N 管理任务链"
+    BOOK ||--o{ TASK_CHAIN : "1:N 派生章节任务链"
+    TASK_CHAIN ||--o{ TASK : "1:N 包含微观步骤"
+    TASK }o--o{ TASK : "N:M 依赖于 (DAG)"
 
-    %% 独立笔记领域 (Note Domain)
-    PROJECT ||--o{ UNIFIED_READING_NOTE : "contains (physical storage)"
-    PROJECT ||--o| EXPERIENCE_NOTE : "generates upon archive"
-    UNIFIED_READING_NOTE }|--|| SOURCE_ANCHOR : "binds to"
+    %% 2. 物理源文档与锚点领域 (Source Document Domain)
+    BOOK ||--o{ SOURCE_ANCHOR : "1:N 切片提供物理原文"
 
-    %% 知识图谱领域 (Graph Domain)
-    UNIFIED_READING_NOTE }o--o{ GRAPH_NODE : "extracted into (async event)"
-    EXPERIENCE_NOTE }o--o{ GRAPH_NODE : "extracted into (async event)"
-    GRAPH_NODE }o--o{ GRAPH_NODE : "falsifies/associates"
-    GRAPH_NODE }o--|| TAG_SUPER_NODE : "aligns to"
-
-    %% 技能提炼领域 (Skill Domain)
-    EXPERIENCE_NOTE }o--o{ SKILL : "extracted into / triggers mutation"
-    SKILL }o--|| SANDBOX_AREA : "isolated & checked in"
-    %% 注：Skill与Task在应用层运行时通过大模型编排调用，底层DB无强外键
+    %% 3. 通用双轨笔记与知识库领域 (Note & Knowledge Vault Domain)
+    TASK ||--o{ MATERIAL_NOTE : "1:N (可选) 包含任务思考素材"
+    SOURCE_ANCHOR ||--o{ MATERIAL_NOTE : "1:N (可选) 绑定物理段落"
+    MATERIAL_NOTE }o--o{ SYNTHESIZED_NOTE : "N:M 组合/提炼为"
+    PROJECT ||--o{ MATERIAL_NOTE : "1:N 包含素材笔记"
+    PROJECT ||--o{ SYNTHESIZED_NOTE : "1:N 包含沉淀笔记"
+    KNOWLEDGE_BASE ||--o{ SYNTHESIZED_NOTE : "1:N 归档/收录沉淀笔记"
 ```
+
+#### (2) 旁路知识图谱消费与对齐模型 (Bypass Graph Sidecar Domain)
+
+```mermaid
+erDiagram
+    %% 1. 数据源通道实体 (Data Source Ingestion)
+    BOOK ||..o{ GRAPH_NODE : "1:N 旁路闲时异步抽取图谱节点"
+    MATERIAL_NOTE ||..o{ GRAPH_NODE : "1:N 旁路闲时异步抽取图谱节点"
+    SYNTHESIZED_NOTE ||..o{ GRAPH_NODE : "1:N 旁路闲时异步抽取图谱节点"
+
+    BOOK ||..o{ SKILL : "提供原文内容按需/旁路提炼技能"
+    MATERIAL_NOTE ||..o{ SKILL : "提供素材笔记按需/旁路提炼技能"
+    SYNTHESIZED_NOTE ||..o{ SKILL : "提供沉淀笔记按需/旁路提炼技能"
+
+    %% 2. 旁路同级消费产物：技能与沙箱领域 (Skill & Sandbox Sidecar Domain)
+    SKILL }o--|| SANDBOX_AREA : "隔离与拓扑校验"
+
+    %% 3. 旁路同级消费产物：知识图谱内部对齐 (Graph Topology & Metabolism)
+    GRAPH_NODE }o--o{ GRAPH_NODE : "N:M 证伪 / 关联边 (知识新陈代谢)"
+    GRAPH_NODE }o--|| TAG_SUPER_NODE : "N:1 对齐全局标签超节点"
+    %% 注：Skill提炼与知识图谱构建为完全独立的平行旁路消费服务，两者无直接关联，各自均由内容数据源驱动
+```
+
+---
+
+### 2. 核心实体规范与业务规则
 
 ### 1. 项目实体 (Project)
 * **定义**：一切学习与执行任务的最高层级承载容器。
-* **核心属性**：`id`, `title`, `type` (READING / PLAN), `status` (ACTIVE / ARCHIVED / SUSPENDED), `deadline`, `assigned_agent_id`。
-* **业务规则**：
-  * “阅读项目”是项目的特化类型。底层完全复用项目的生命周期管理。
-  * 阅读项目关联具体的文档切片大纲树与伴读 Agent。
+* **核心属性表**：
 
-### 2. 任务/章节任务链实体 (Task / Task Chain)
-* **定义**：项目中具体的执行步骤或阅读章节任务。
-* **核心属性**：`id`, `project_id`, `title`, `sequence_order`, `status` (PENDING / RUNNING / COMPLETED / BLOCKED), `parent_task_id`, `depends_on_task_ids` (前置依赖项)。
-* **业务规则**：
-  * 在阅读项目中，任务链对应书籍/论文的章节目录。
-  * 在计划项目中，任务链是由 Skill 注入后拆解生成的结构化任务树。
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 项目全局唯一标识 |
+| `title` | String | 必填 | 项目名称 |
+| `type` | Enum | `READING` / `PLAN` | 项目类型（阅读项目 / 计划项目） |
+| `status` | Enum | `ACTIVE` / `ARCHIVED` / `SUSPENDED` | 生命周期状态 |
+| `deadline` | DateTime | 可选 | 截止时间约束 |
+| `assigned_agent_id` | String | 必填 | 绑定的沙箱伴读 Agent ID |
+| `created_at` / `updated_at` | DateTime | 必填 | 系统审计时间戳 |
 
-### 3. 技能实体 (Skill)
-* **定义**：由经验笔记或阅读笔记提炼出的一段可执行辅助脚本或 Prompt 工作流，作为 Agent 执行任务时的“外挂工具”。
-* **存储介质**：`SKILL.md` (Markdown 文本 + 头部 YAML 元数据)，存储在物理沙箱文件夹中。
-* **核心结构**：
-  * **YAML Frontmatter**：包含 `name`, `description`, `version`, `author`, `tags`。
-  * **Markdown Body**：包含具体的执行 Prompt 或脚本指令流。
+* **业务规则**：
+  * **生命周期统一**：“阅读项目”是项目的特化类型，底层完全复用项目的生命周期管理流转。
+  * **物料与 Agent 绑定**：阅读项目主关联一本或多本书籍，绑定伴读 Agent 并生成切片任务大纲树。
+
+---
+
+### 2. 任务链实体 (Task Chain) - 里程碑
+* **定义**：项目中中观层级的容器（在阅读项目中表现为章节大纲链，在计划项目中表现为阶段/功能模块任务链）。
+* **核心属性表**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 任务链唯一标识 |
+| `project_id` | String | 外键 (Project) | 归属项目 ID |
+| `book_id` | String | 可选 (Book) | 阅读项目关联的书籍 ID |
+| `chapter_id` / `section_ref` | String | 可选 | 关联书籍章节标识与阅读范围 |
+| `title` | String | 必填 | 章节/阶段里程碑标题 |
+| `sequence_order` | Number | 必填 | 中观链条的物理物理排序 |
+| `status` | Enum | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | 阶段完成状态 |
+| `type` | Enum | `READING_CHAPTER` / `PLAN_STAGE` / `DEFAULT` | 任务链业务类型 |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **业务规则 (通用容器原则)**：
+  > [!IMPORTANT]
+  > **1. 统一三层范式**：系统底层统一遵循 `Project -> Task Chain -> Task` 范式。`Task Chain` 作为通用中观容器，消除不同项目类型在 DB 与 API 上的结构差异。
+  > **2. 阅读项目表现 (1 Chapter = 1 Task Chain)**：电子书解析后的每个独立章节（Chapter）精准实例化为一个 `Task Chain`。
+  > **3. 计划项目表现**：由 Skill 模版或 LLM 解构生成的阶段性功能模块/里程碑实例化为 `Task Chain`；若为纯扁平列表，底层自动挂载隐式 `Task Chain`。
+
+---
+
+### 3. 任务实体 (Task)
+* **定义**：任务链下的具体微观可执行单元（如段落精读、划词对话、卡片写笔记、代码编写等独立步骤）。
+* **核心属性表**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 任务唯一标识 |
+| `task_chain_id` | String | 外键 (TaskChain) | 归属任务链 ID |
+| `title` | String | 必填 | 任务具体名称 |
+| `description` | String | 可选 | 任务详细执行要求与说明 |
+| `sequence_order` | Number | 必填 | 同一 TaskChain 内的序号 |
+| `status` | Enum | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | 微观任务状态 |
+| `parent_task_id` | String | 可选 (Task) | 子任务父节点 ID |
+| `depends_on_task_ids` | Array<String> | JSON 数组 | 有向无环图 (DAG) 前置依赖 Task ID 列表 |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **业务规则**：
+  * **DAG 依赖控制**：同级或跨任务链的 Task 之间可通过 `depends_on_task_ids` 建立依赖，前置任务未完成时，当前任务状态锁定为 `BLOCKED`。
+  * **Agent 调度粒度**：调度引擎与伴读 Agent 以 `Task` 为最小驱动与事件触发单元。
+
+---
+
+### 4. 书籍实体 (Book)
+* **定义**：承载原读书籍/电子文档物理文件及其全生命周期解析状态、物料拆解与目录大纲映射的核心实体。
+* **核心属性表**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 书籍唯一标识 |
+| `project_id` | String | 外键 (Project) | 关联阅读项目 ID |
+| `file_name` | String | 必填 | 原始物理文件名 |
+| `file_type` | Enum | `PDF` / `EPUB` / `TXT` / `MD` | 电子书物理格式 |
+| `file_size` | Number | 必填 | 字节大小 |
+| `storage_path` | String | 必填 | 沙箱磁盘原书物理路径 |
+| `content_json_path` | String | 必填 | 沙箱中 `parsed_content.json` 切片路径 |
+| `parsing_status` | Enum | `PENDING` / `UPLOADING` / `PARSING` / `COMPLETED` / `FAILED` | 解析全生命周期状态 |
+| `parsed_structure` | Object | JSON 结构 | 目录树 `TocNode` 数据库索引数据 |
+| `total_chapters` | Number | 必填 | 提取的总章节数 |
+| `total_word_count` | Number | 必填 | 全书总字数 |
+| `error_message` | String | 可选 | 解析异常时的报错日志 |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **通用解析数据结构契约 (Universal Parsed Book Schema)**：
+  根据 **File-first (文件优先)** 原则，电子书解析后的大体量正文数据在沙箱 `content_json_path` 落盘为 `parsed_content.json`，数据库 `Book` 记录仅存储目录大纲树索引。
+
+  > [!NOTE]
+  > **通用目录大纲树 (`TocNode`)**：
+  > 抹平 EPUB NCX/NAV 与 PDF Outline 差异的递归树结构。
+  > * `id`: 目录节点 ID (`toc_chap_01`)
+  > * `title`: 目录标题
+  > * `level`: 层级深度 (1, 2, 3...)
+  > * `target_chapter_id`: 目标章节 ID (`chapter_id`)
+  > * `target_block_id` (可选): 章节内精确跳转的段落 Block ID
+  > * `target_page` (可选): PDF 物理页码 (1-based)
+  > * `children`: `TocNode[]` 子目录列表
+
+  > [!NOTE]
+  > **章节与原子正文块切片模型 (`BookChapter` & `ContentBlock`)**：
+  > 正文按照 `BookChapter` 进行划分，各章节包含顺序排列的 `ContentBlock`（原子段落块）：
+  > * `chapter_id`: 章节/页容器 ID (`chap_01` 或 `page_12`)
+  > * `chapter_index`: 阅读物理顺序索引 (0-based)
+  > * `blocks`: `ContentBlock[]` 数组。每个 Block 包含：
+  >   * `block_id`: 段落全局唯一 ID (`b_01_005`)
+  >   * `block_type`: `HEADING` / `PARAGRAPH` / `CODE` / `IMAGE` / `TABLE` / `QUOTE`
+  >   * `sequence_index`: 章节内段落序号
+  >   * `text`: 纯文本内容 (供搜索、摘要生成与上下文注入)
+  >   * `html_or_markdown`: 格式化渲染内容 (针对 EPUB / MD)
+  >   * `page_number`: PDF 物理页码 (PDF 专属)
+  >   * `bbox`: `[x, y, w, h]` 矩形边界框坐标 (PDF 专属)
+  >   * `char_start` / `char_end`: 段落字符起止偏移量
+
+* **数据结构真实 JSON 示例 (Parsed Data Examples)**：
+
+  **(1) 数据库 `parsed_structure` 字段存储的目录树 JSON 示例**：
+  ```json
+  [
+    {
+      "id": "toc_c01",
+      "title": "第一章：领域驱动设计核心理念",
+      "level": 1,
+      "target_chapter_id": "chap_01",
+      "target_block_id": "b_01_001",
+      "target_page": 1,
+      "children": [
+        {
+          "id": "toc_c01_s01",
+          "title": "1.1 统一语言与限界上下文",
+          "level": 2,
+          "target_chapter_id": "chap_01",
+          "target_block_id": "b_01_003",
+          "target_page": 3,
+          "children": []
+        }
+      ]
+    }
+  ]
+  ```
+
+  **(2) 沙箱 `content_json_path` 下物理文件 `parsed_content.json` 示例**：
+  ```json
+  {
+    "book_id": "bk_9b8a7c6f-5e4d-3c2b-1a0f-9e8d7c6b5a4f",
+    "total_chapters": 12,
+    "chapters": [
+      {
+        "chapter_id": "chap_01",
+        "chapter_index": 0,
+        "title": "第一章：领域驱动设计核心理念",
+        "total_words": 3500,
+        "blocks": [
+          {
+            "block_id": "b_01_001",
+            "block_type": "HEADING",
+            "sequence_index": 0,
+            "text": "第一章：领域驱动设计核心理念",
+            "html_or_markdown": "<h1>第一章：领域驱动设计核心理念</h1>",
+            "page_number": 1,
+            "bbox": [50.0, 100.0, 500.0, 35.0],
+            "char_start": 0,
+            "char_end": 14
+          },
+          {
+            "block_id": "b_01_002",
+            "block_type": "PARAGRAPH",
+            "sequence_index": 1,
+            "text": "领域驱动设计 (DDD) 强调以业务领域为核心，构建清晰的限界上下文与统一语言。",
+            "html_or_markdown": "<p>领域驱动设计 (DDD) 强调以业务领域为核心，构建清晰的限界上下文与统一语言。</p>",
+            "page_number": 1,
+            "bbox": [50.0, 145.0, 500.0, 80.0],
+            "char_start": 15,
+            "char_end": 56
+          }
+        ]
+      }
+    ]
+  }
+  ```
+
+* **解析全生命周期流程**：
+  1. **上传与初始化**：上传文件入沙箱 `storage_path`，状态设为 `PENDING` -> `UPLOADING`。
+  2. **异步解析与切片**：后台解析文本、生成物理切片 `parsed_content.json` 入 `content_json_path`，状态切换为 `PARSING`。
+  3. **结构树映射与任务化**：提取目录树到 `parsed_structure`，自动为每个章节生成一个 `TASK_CHAIN`，完成后状态置为 `COMPLETED`。
+  4. **阅读与锚点服务**：为阅读器提供按章 API 拉取段落 Block 驱动虚拟列表，支持伴读 Agent 对话、划词高亮 `Source Anchor` 生成。
+  5. **归档与物理清理**：项目归档时级联清理或归档文件存储。
+
+---
+
+### 5. 物理原文锚点实体 (Source Anchor)
+* **定义**：记录素材笔记在阅读场景下对应的物理源文档中的精准段落位置、多维偏移坐标与文本快照，为划词记笔记和反向定位原文提供基准。
+* **核心属性表**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 锚点唯一标识 |
+| `book_id` | String | 外键 (Book) | 归属书籍 ID |
+| `chapter_id` | String | 必填 | 所属章节/页 ID |
+| `block_id` | String | 必填 | 归属段落 ContentBlock ID |
+| `char_start_offset` | Number | 必填 | Block 内选中文本起始字符偏移 |
+| `char_end_offset` | Number | 必填 | Block 内选中文本终止字符偏移 |
+| `page_number` | Number | 可选 (PDF 专属) | PDF 物理页码 (1-based) |
+| `pdf_rects` | Object | 可选 (PDF 专属) | PDF 多划词矩形框坐标数组 JSON |
+| `epub_cfi` | String | 可选 (EPUB 专属) | EPUB CFI 锚点定位串 |
+| `text_snippet` | String | 必填 | 划词选中的物理原文切片快照 |
+| `prefix_context` | String | 必填 | 划词前置 20 字符上下文 |
+| `suffix_context` | String | 必填 | 划词后置 20 字符上下文 |
+| `content_hash` | String | 必填 | 快照与上下文校验 SHA-256 Hash |
+| `created_at` | DateTime | 必填 | 锚点生成时间 |
+
+* **业务规则与解算机制**：
+  > [!IMPORTANT]
+  > **三层定位解算与容错机制 (Three-Tier Anchor Resolution)**：
+  > * **层级 1 (绝对定位)**：阅读器优先基于 `block_id` + `char_start_offset` / `char_end_offset`（PDF 结合 `pdf_rects`，EPUB 结合 `epub_cfi`）实现毫秒级精准点亮。
+  > * **层级 2 (上下文模糊重锚定)**：若电子书重新解析或文本微调导致字符偏移失效，系统自动使用 `text_snippet` 结合 `prefix_context` 与 `suffix_context` 进行前后 20 字符的字符串模糊匹配，重新计算并更新锚点。
+  > * **层级 3 (降级段落高亮与失效警示)**：若重锚定依旧失败，系统将高亮范围降级为 `block_id` 对应的整个段落，并在前端界面将锚点状态标记为警示，提示用户“原文本位置发生轻微变动”。
+
+---
+
+### 6. 素材笔记实体 (Material Note)
+* **定义**：原子级知识素材卡片，既可在阅读过程中基于原文片段生成，也可在 Task/计划项目执行过程中挂载到具体 Task 下记录思考。
+* **核心属性表**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 素材笔记唯一标识 |
+| `project_id` | String | 外键 (Project) | 归属项目 ID |
+| `task_id` | String | 可选 (Task) | 关联的具体 Task ID |
+| `book_id` | String | 可选 (Book) | 关联的书籍 ID |
+| `source_anchor_id` | String | 可选 (SourceAnchor) | 关联物理原文段落锚点 ID |
+| `original_snippet` | String | 可选 | 划词原文/参考资料片段快照 |
+| `paraphrase` | String | 必填 | 个人转述与理解说明 |
+| `scenario_context` | String | 可选 | 关联到自己的经历/应用情景 |
+| `tags` | Array<String> | JSON 数组 | 全局扁平标签数组 |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **业务规则**：
+  * **三位一体结构**：统一由“素材/参考片段” + “个人转述” + “知识点关联自身经历/情景”三要素构成。
+  * **非强绑定与通用复用**：`source_anchor_id` 与 `book_id` 为可选字段。在阅读项目中绑定物理锚点；在计划项目中关联 `task_id` 灵活记录思考素材。
+
+---
+
+### 7. 沉淀笔记实体 (Synthesized Note)
+* **定义**：基于若干素材笔记与结构化思考文案组合而成的独立综合知识文档，代表系统化的认知产出。
+* **核心属性表**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 沉淀笔记唯一标识 |
+| `project_id` | String | 外键 (Project) | 归属项目 ID |
+| `knowledge_base_id` | String | 可选 (KnowledgeBase) | 归属知识库 ID |
+| `title` | String | 必填 | 沉淀笔记标题 |
+| `type` | Enum | `GENERAL` / `EXPERIENCE` | 笔记类型（常规认知沉淀 / 结项经验总结） |
+| `material_note_ids` | Array<String> | JSON 数组 | 绑定的素材笔记 ID 列表 |
+| `content` | String | File-first | Markdown 物理文件相对路径或内存全文 |
+| `tags` | Array<String> | JSON 数组 | 全局扁平标签数组 |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **业务规则 (File-first 存储)**：
+  * **独立落盘**：作为标准的 Markdown 文件在物理项目或知识库目录下真实落盘。
+  * **素材聚合与追溯**：通过 `material_note_ids` 聚合多条素材笔记，前端支持逐条浮窗追溯（Trace-to-Source）。
+  * **知识库归档与经验复盘**：可归档至知识库，结项经验总结 (`EXPERIENCE`) 可触发 Skill 进化与图谱“实战验证”边标记。
+
+---
+
+### 8. 知识库实体 (Knowledge Base)
+* **定义**：独立于单一项目生命周期的长效知识资产管理容器，用于统一分类收录、管理与组织沉淀笔记。
+* **核心属性表**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 知识库唯一标识 |
+| `title` | String | 必填 | 知识库名称 |
+| `description` | String | 可选 | 知识库简述与分类说明 |
+| `category` | String | 必填 | 主导领域分类 |
+| `storage_path` | String | 必填 | 物理落盘磁盘文件夹路径 |
+| `tags` | Array<String> | JSON 数组 | 全局标签数组 |
+| `note_count` | Number | 默认 0 | 收录的沉淀笔记统计数量 |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **业务规则 (File-first 架构)**：
+  * **物理存储隔离**：每个知识库对应磁盘上一个独立的文件夹结构。
+  * **跨项目资产沉淀**：跨项目的沉淀笔记可随时归档收录，形成长效积累。
+
+---
+
+### 9. 技能实体 (Skill)
+* **定义**：由经验笔记、素材笔记或阅读原文切片提炼出的一段可执行辅助脚本或 Prompt 工作流，作为 Agent 执行任务时的“外挂工具”。
+* **存储结构 (`SKILL.md`)**：
+
+| 结构构成 | 格式 | 含义描述 |
+| :--- | :--- | :--- |
+| **YAML Frontmatter** | YAML 头部 | 包含 `name`, `description`, `version`, `author`, `tags` 元数据 |
+| **Markdown Body** | Markdown 正文 | 包含具体的 Agent 指令 Prompt 或自动化工作流脚本 |
+
 * **业务规则**：
   * **非数据库模板绑定**：Skill 在底层并非任务表的外键父级。它是应用层在“项目初始化拆解任务”或“运行时调度”时，由 LLM 动态挂载读取的工具库。
-  * **状态流转**：`sandbox` (沙箱待审批) -> `active` (批准入库已激活)。
+  * **无强依赖提炼机制**：技能提炼无强制实体依赖，可以基于素材笔记、沉淀笔记或书籍原文文本进行提炼。
+  * **生命周期状态流转**：`sandbox` (沙箱待审批) -> `active` (批准入库已激活)。
 
-### 4. 沙箱编辑区实体 (Sandbox Area)
+---
+
+### 10. 沙箱编辑区实体 (Sandbox Area)
 * **定义**：新编译技能入库前的物理隔离区与可视化校验编辑器。
-* **校验规则**：
-  * **拓扑排序 (Topological Sorting)**：载入卡片流时，必须对步骤之间的依赖关系进行拓扑排序校验。
-  * **死锁阻断**：若校验结果中存在有向环（Cycle），则判定为“依赖死锁”，标记为不合法状态。
-  * **入库门禁**：仅当合法性校验通过且用户点击“批准入库”后，Skill 状态才转为 `active` 并移出沙箱目录。
+* **核心校验规则**：
 
-### 5. 知识图谱实体 (Graph Domain)
-* **定义**：独立于笔记域的下游数据消费者。它是基于 SQLite 向量扩展 (sqlite-vec) 驱动的混合检索引擎，包含 Dense RAG 向量缓存与 Graph RAG 图谱关系。
-* **存储实体**：
-  * **图谱节点 (Graph Node)**：通过监听笔记生成的领域事件，异步调用 LLM 从笔记中抽取的原子知识实体及其关系边。
-  * **标签超节点 (Tag Super Node)**：用于将带有相同全局标签的跨项目节点逻辑聚拢。
-* **生命周期与对齐机制**：
-  * **异步事件驱动**：当笔记域发生 `NoteUpdatedEvent` 时，图谱域在闲时异步调用 LLM 进行增量建图，绝不阻塞前端的记笔记操作。
-  * **标签语义对齐 (Tag Alias)**：后台自动扫描用户标签，合并同义词节点。
-  * **知识新陈代谢 (Knowledge Metabolism)**：当新的复盘经验与旧认知冲突时，图谱生成一条“Falsifies（证伪）”边。在检索与图谱渲染时，旧认知权重自动衰减降级。
+| 校验规则 | 触发条件 | 阻断效果与交互表现 |
+| :--- | :--- | :--- |
+| **拓扑排序 (Topological Sorting)** | 载入技能卡片流时 | 对步骤之间的依赖关系进行拓扑解环校验 |
+| **死锁阻断 (Cycle Detection)** | 检测到有向环 (Cycle) | 判定为“依赖死锁”，禁用入库按钮，卡片及连线呈发光抖动警告 |
+| **入库门禁** | 拓扑校验 100% 通过 | 用户点击“批准入库”后，Skill 状态转换为 `active` 并移出沙箱目录 |
 
-### 6. 融合阅读笔记实体 (Note Domain)
-* **定义**：将基于原文的主观读书感悟与客观探讨记录进行整合的独立综合知识单元。它与具体的执行任务（Task）彻底解绑，仅作为数据资产物理挂载在 Project 文件夹下。
-* **核心属性**：`id`, `project_id`, `source_type`, `tags`, `content`, `source_anchor` (绑定的物理原文段落与偏移量)。
-* **业务规则 (File-first 存储)**：
-  * **真理之源**：笔记内容必须作为标准的 Markdown 文件真实物理落盘。SQLite 仅仅作为提供极速检索索引与元数据映射的“读缓存库”，保证笔记极高的跨系统（如 Obsidian、Notion）可移植性。
-  * **纯物理锚点 (SourceAnchor)**：笔记与子 Task 无关联，仅根据源文档的物理段落位置进行锚定，避免高频变更的任务调度导致底层笔记孤立。
-  * **物理追溯 (Trace-to-Source)**：前端可基于 `source_anchor` 精准实现跨项目的原文段落追溯（Quick Peek 沉浸式浮窗）及脉冲高亮定位。
+---
 
-### 7. 经验笔记实体 (Experience Note)
-* **定义**：在“计划项目”执行完毕或归档时，由系统引导用户复盘所产生的实战经验总结（如避坑指南、最佳实践），是实现知行闭环的关键知识单元。
-* **核心属性**：`id`, `project_id`, `associated_skill_id` (可选，关联最初生成该项目的 Skill), `tags` (全局扁平标签数组), `content` (富文本/Markdown 复盘内容)。
-* **业务规则**：
-  * **自然实体碰撞**：经验笔记在底层等同于阅读笔记，作为一等公民（First-class citizen）被送入大模型提取实体。只要经验笔记中提到了与理论书籍相同的概念词汇，大模型在图谱中会自然将其连往同一概念节点，无需强制硬编码追踪链路。
-  * **实战闭环标记**：在全局知识图谱中，源自经验笔记的实体关系边可带有特殊的视觉标识（如虚线或特殊的 Icon），直观向用户呈现“哪些认知仅仅是纸上谈兵的理论，哪些认知已经过实操检验”。
-  * **驱动工具进化 (Skill Mutation)**：当经验笔记明确指出了最初关联的 `Skill` 存在缺陷或优化空间时，系统会自动在 `SANDBOX_AREA` 沙箱区中派生出一个该 Skill 的修订分支 (Draft Branch)，由 Agent 根据复盘内容自动改写执行步骤，等待用户审批升级版本，赋予工具库自我进化的能力。
+### 11. 知识图谱实体 (Graph Domain)
+* **定义**：独立于主业务生命周期的**旁路消费服务 (Bypass Sidecar Consumer)**。基于 SQLite 向量扩展 (sqlite-vec) 驱动混合检索引擎，包含 Dense RAG 向量与 Graph RAG 图谱。
+* **核心图谱组件**：
+
+| 实体分类 | 属性与构成 | 业务用途 |
+| :--- | :--- | :--- |
+| **图谱节点 (Graph Node)** | `id`, `name`, `source_note_id`, `is_falsified` | 闲时旁路由 LLM 自动抽取的原子知识概念 |
+| **标签超节点 (Tag Super Node)** | `id`, `tag_name`, `node_ids[]` | 将相同全局标签的跨项目节点逻辑聚拢 |
+| **图谱关系边 (Graph Edge)** | `source_id`, `target_id`, `relation_type` (`ASSOCIATES` / `FALSIFIES`) | 描述概念间关联或证伪修正关系 |
+
+* **双通道旁路异步构建机制**：
+  > [!NOTE]
+  > * **旁路解耦契约**：知识图谱构建 100% 旁路运行，主业务流落盘即返回，绝不受图谱建图耗时或限额影响。
+  > * **通道 A (Book 原物料视角)**：后台自动扫描 `Book` 解析物料，提取客观书本概念实体与章节关联。
+  > * **通道 B (Note 认知视角)**：笔记产生或变更时，旁路服务提取用户的主观思考与实战经历实体。
+  > * **知识新陈代谢 (Knowledge Metabolism)**：新的复盘经验与旧认知冲突时生成 `Falsifies` 边，使旧认知权重自动衰减降级。
 
 ---
 
