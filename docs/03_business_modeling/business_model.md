@@ -151,15 +151,15 @@ erDiagram
 * **定义**：一切学习与执行任务的最高层级承载容器。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 项目全局唯一标识 |
-| `title` | String | 必填 | 项目名称 |
-| `type` | Enum | `READING` / `PLAN` | 项目类型（阅读项目 / 计划项目） |
-| `status` | Enum | `ACTIVE` / `ARCHIVED` / `SUSPENDED` | 生命周期状态 |
-| `deadline` | DateTime | 可选 | 截止时间约束 |
-| `assigned_agent_id` | String | 必填 | 绑定的沙箱伴读 Agent ID |
-| `created_at` / `updated_at` | DateTime | 必填 | 系统审计时间戳 |
+| 属性名                      | 类型     | 约束 / 可选性                       | 含义与说明                      |
+| :-------------------------- | :------- | :---------------------------------- | :------------------------------ |
+| `id`                        | String   | 主键 (UUID)                         | 项目全局唯一标识                |
+| `title`                     | String   | 必填                                | 项目名称                        |
+| `type`                      | Enum     | `READING` / `PLAN`                  | 项目类型（阅读项目 / 计划项目） |
+| `status`                    | Enum     | `ACTIVE` / `ARCHIVED` / `SUSPENDED` | 生命周期状态                    |
+| `deadline`                  | DateTime | 可选                                | 截止时间约束                    |
+| `assigned_agent_id`         | String   | 必填                                | 绑定的沙箱伴读 Agent ID         |
+| `created_at` / `updated_at` | DateTime | 必填                                | 系统审计时间戳                  |
 
 * **业务规则**：
   * **生命周期统一**：“阅读项目”是项目的特化类型，底层完全复用项目的生命周期管理流转。
@@ -171,17 +171,17 @@ erDiagram
 * **定义**：项目中中观层级的容器（在阅读项目中表现为章节大纲链，在计划项目中表现为阶段/功能模块任务链）。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 任务链唯一标识 |
-| `project_id` | String | 外键 (Project) | 归属项目 ID |
-| `book_id` | String | 可选 (Book) | 阅读项目关联的书籍 ID |
-| `chapter_id` / `section_ref` | String | 可选 | 关联书籍章节标识与阅读范围 |
-| `title` | String | 必填 | 章节/阶段里程碑标题 |
-| `sequence_order` | Number | 必填 | 中观链条的物理物理排序 |
-| `status` | Enum | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | 阶段完成状态 |
-| `type` | Enum | `READING_CHAPTER` / `PLAN_STAGE` / `DEFAULT` | 任务链业务类型 |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                       | 类型     | 约束 / 可选性                                   | 含义与说明                 |
+| :--------------------------- | :------- | :---------------------------------------------- | :------------------------- |
+| `id`                         | String   | 主键 (UUID)                                     | 任务链唯一标识             |
+| `project_id`                 | String   | 外键 (Project)                                  | 归属项目 ID                |
+| `book_id`                    | String   | 可选 (Book)                                     | 阅读项目关联的书籍 ID      |
+| `chapter_id` / `section_ref` | String   | 可选                                            | 关联书籍章节标识与阅读范围 |
+| `title`                      | String   | 必填                                            | 章节/阶段里程碑标题        |
+| `sequence_order`             | Number   | 必填                                            | 中观链条的物理物理排序     |
+| `status`                     | Enum     | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | 阶段完成状态               |
+| `type`                       | Enum     | `READING_CHAPTER` / `PLAN_STAGE` / `DEFAULT`    | 任务链业务类型             |
+| `created_at` / `updated_at`  | DateTime | 必填                                            | 审计时间戳                 |
 
 * **业务规则 (通用容器原则)**：
   > [!IMPORTANT]
@@ -195,17 +195,17 @@ erDiagram
 * **定义**：任务链下的具体微观可执行单元（如段落精读、划词对话、卡片写笔记、代码编写等独立步骤）。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 任务唯一标识 |
-| `task_chain_id` | String | 外键 (TaskChain) | 归属任务链 ID |
-| `title` | String | 必填 | 任务具体名称 |
-| `description` | String | 可选 | 任务详细执行要求与说明 |
-| `sequence_order` | Number | 必填 | 同一 TaskChain 内的序号 |
-| `status` | Enum | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | 微观任务状态 |
-| `parent_task_id` | String | 可选 (Task) | 子任务父节点 ID |
-| `depends_on_task_ids` | Array<String> | JSON 数组 | 有向无环图 (DAG) 前置依赖 Task ID 列表 |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型          | 约束 / 可选性                                   | 含义与说明                             |
+| :-------------------------- | :------------ | :---------------------------------------------- | :------------------------------------- |
+| `id`                        | String        | 主键 (UUID)                                     | 任务唯一标识                           |
+| `task_chain_id`             | String        | 外键 (TaskChain)                                | 归属任务链 ID                          |
+| `title`                     | String        | 必填                                            | 任务具体名称                           |
+| `description`               | String        | 可选                                            | 任务详细执行要求与说明                 |
+| `sequence_order`            | Number        | 必填                                            | 同一 TaskChain 内的序号                |
+| `status`                    | Enum          | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | 微观任务状态                           |
+| `parent_task_id`            | String        | 可选 (Task)                                     | 子任务父节点 ID                        |
+| `depends_on_task_ids`       | Array<String> | JSON 数组                                       | 有向无环图 (DAG) 前置依赖 Task ID 列表 |
+| `created_at` / `updated_at` | DateTime      | 必填                                            | 审计时间戳                             |
 
 * **业务规则**：
   * **DAG 依赖控制**：同级或跨任务链的 Task 之间可通过 `depends_on_task_ids` 建立依赖，前置任务未完成时，当前任务状态锁定为 `BLOCKED`。
@@ -217,21 +217,21 @@ erDiagram
 * **定义**：承载原读书籍/电子文档物理文件及其全生命周期解析状态、物料拆解与目录大纲映射的核心实体。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 书籍唯一标识 |
-| `project_id` | String | 外键 (Project) | 关联阅读项目 ID |
-| `file_name` | String | 必填 | 原始物理文件名 |
-| `file_type` | Enum | `PDF` / `EPUB` / `TXT` / `MD` | 电子书物理格式 |
-| `file_size` | Number | 必填 | 字节大小 |
-| `storage_path` | String | 必填 | 沙箱磁盘原书物理路径 |
-| `content_json_path` | String | 必填 | 沙箱中 `parsed_content.json` 切片路径 |
-| `parsing_status` | Enum | `PENDING` / `UPLOADING` / `PARSING` / `COMPLETED` / `FAILED` | 解析全生命周期状态 |
-| `parsed_structure` | Object | JSON 结构 | 目录树 `TocNode` 数据库索引数据 |
-| `total_chapters` | Number | 必填 | 提取的总章节数 |
-| `total_word_count` | Number | 必填 | 全书总字数 |
-| `error_message` | String | 可选 | 解析异常时的报错日志 |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型     | 约束 / 可选性                                                | 含义与说明                            |
+| :-------------------------- | :------- | :----------------------------------------------------------- | :------------------------------------ |
+| `id`                        | String   | 主键 (UUID)                                                  | 书籍唯一标识                          |
+| `project_id`                | String   | 外键 (Project)                                               | 关联阅读项目 ID                       |
+| `file_name`                 | String   | 必填                                                         | 原始物理文件名                        |
+| `file_type`                 | Enum     | `PDF` / `EPUB` / `TXT` / `MD`                                | 电子书物理格式                        |
+| `file_size`                 | Number   | 必填                                                         | 字节大小                              |
+| `storage_path`              | String   | 必填                                                         | 沙箱磁盘原书物理路径                  |
+| `content_json_path`         | String   | 必填                                                         | 沙箱中 `parsed_content.json` 切片路径 |
+| `parsing_status`            | Enum     | `PENDING` / `UPLOADING` / `PARSING` / `COMPLETED` / `FAILED` | 解析全生命周期状态                    |
+| `parsed_structure`          | Object   | JSON 结构                                                    | 目录树 `TocNode` 数据库索引数据       |
+| `total_chapters`            | Number   | 必填                                                         | 提取的总章节数                        |
+| `total_word_count`          | Number   | 必填                                                         | 全书总字数                            |
+| `error_message`             | String   | 可选                                                         | 解析异常时的报错日志                  |
+| `created_at` / `updated_at` | DateTime | 必填                                                         | 审计时间戳                            |
 
 * **通用解析数据结构契约 (Universal Parsed Book Schema)**：
   根据 **File-first (文件优先)** 原则，电子书解析后的大体量正文数据在沙箱 `content_json_path` 落盘为 `parsed_content.json`，数据库 `Book` 记录仅存储目录大纲树索引。
@@ -342,22 +342,22 @@ erDiagram
 * **定义**：记录素材笔记在阅读场景下对应的物理源文档中的精准段落位置、多维偏移坐标与文本快照，为划词记笔记和反向定位原文提供基准。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 锚点唯一标识 |
-| `book_id` | String | 外键 (Book) | 归属书籍 ID |
-| `chapter_id` | String | 必填 | 所属章节/页 ID |
-| `block_id` | String | 必填 | 归属段落 ContentBlock ID |
-| `char_start_offset` | Number | 必填 | Block 内选中文本起始字符偏移 |
-| `char_end_offset` | Number | 必填 | Block 内选中文本终止字符偏移 |
-| `page_number` | Number | 可选 (PDF 专属) | PDF 物理页码 (1-based) |
-| `pdf_rects` | Object | 可选 (PDF 专属) | PDF 多划词矩形框坐标数组 JSON |
-| `epub_cfi` | String | 可选 (EPUB 专属) | EPUB CFI 锚点定位串 |
-| `text_snippet` | String | 必填 | 划词选中的物理原文切片快照 |
-| `prefix_context` | String | 必填 | 划词前置 20 字符上下文 |
-| `suffix_context` | String | 必填 | 划词后置 20 字符上下文 |
-| `content_hash` | String | 必填 | 快照与上下文校验 SHA-256 Hash |
-| `created_at` | DateTime | 必填 | 锚点生成时间 |
+| 属性名              | 类型     | 约束 / 可选性    | 含义与说明                    |
+| :------------------ | :------- | :--------------- | :---------------------------- |
+| `id`                | String   | 主键 (UUID)      | 锚点唯一标识                  |
+| `book_id`           | String   | 外键 (Book)      | 归属书籍 ID                   |
+| `chapter_id`        | String   | 必填             | 所属章节/页 ID                |
+| `block_id`          | String   | 必填             | 归属段落 ContentBlock ID      |
+| `char_start_offset` | Number   | 必填             | Block 内选中文本起始字符偏移  |
+| `char_end_offset`   | Number   | 必填             | Block 内选中文本终止字符偏移  |
+| `page_number`       | Number   | 可选 (PDF 专属)  | PDF 物理页码 (1-based)        |
+| `pdf_rects`         | Object   | 可选 (PDF 专属)  | PDF 多划词矩形框坐标数组 JSON |
+| `epub_cfi`          | String   | 可选 (EPUB 专属) | EPUB CFI 锚点定位串           |
+| `text_snippet`      | String   | 必填             | 划词选中的物理原文切片快照    |
+| `prefix_context`    | String   | 必填             | 划词前置 20 字符上下文        |
+| `suffix_context`    | String   | 必填             | 划词后置 20 字符上下文        |
+| `content_hash`      | String   | 必填             | 快照与上下文校验 SHA-256 Hash |
+| `created_at`        | DateTime | 必填             | 锚点生成时间                  |
 
 * **业务规则与解算机制**：
   > [!IMPORTANT]
@@ -372,18 +372,18 @@ erDiagram
 * **定义**：原子级知识素材卡片，既可在阅读过程中基于原文片段生成，也可在 Task/计划项目执行过程中挂载到具体 Task 下记录思考。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 素材笔记唯一标识 |
-| `project_id` | String | 外键 (Project) | 归属项目 ID |
-| `task_id` | String | 可选 (Task) | 关联的具体 Task ID |
-| `book_id` | String | 可选 (Book) | 关联的书籍 ID |
-| `source_anchor_id` | String | 可选 (SourceAnchor) | 关联物理原文段落锚点 ID |
-| `original_snippet` | String | 可选 | 划词原文/参考资料片段快照 |
-| `paraphrase` | String | 必填 | 个人转述与理解说明 |
-| `scenario_context` | String | 可选 | 关联到自己的经历/应用情景 |
-| `tags` | Array<String> | JSON 数组 | 全局扁平标签数组 |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型          | 约束 / 可选性       | 含义与说明                |
+| :-------------------------- | :------------ | :------------------ | :------------------------ |
+| `id`                        | String        | 主键 (UUID)         | 素材笔记唯一标识          |
+| `project_id`                | String        | 外键 (Project)      | 归属项目 ID               |
+| `task_id`                   | String        | 可选 (Task)         | 关联的具体 Task ID        |
+| `book_id`                   | String        | 可选 (Book)         | 关联的书籍 ID             |
+| `source_anchor_id`          | String        | 可选 (SourceAnchor) | 关联物理原文段落锚点 ID   |
+| `original_snippet`          | String        | 可选                | 划词原文/参考资料片段快照 |
+| `paraphrase`                | String        | 必填                | 个人转述与理解说明        |
+| `scenario_context`          | String        | 可选                | 关联到自己的经历/应用情景 |
+| `tags`                      | Array<String> | JSON 数组           | 全局扁平标签数组          |
+| `created_at` / `updated_at` | DateTime      | 必填                | 审计时间戳                |
 
 * **业务规则**：
   * **三位一体结构**：统一由“素材/参考片段” + “个人转述” + “知识点关联自身经历/情景”三要素构成。
@@ -395,17 +395,17 @@ erDiagram
 * **定义**：基于若干素材笔记与结构化思考文案组合而成的独立综合知识文档，代表系统化的认知产出。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 沉淀笔记唯一标识 |
-| `project_id` | String | 外键 (Project) | 归属项目 ID |
-| `knowledge_base_id` | String | 可选 (KnowledgeBase) | 归属知识库 ID |
-| `title` | String | 必填 | 沉淀笔记标题 |
-| `type` | Enum | `GENERAL` / `EXPERIENCE` | 笔记类型（常规认知沉淀 / 结项经验总结） |
-| `material_note_ids` | Array<String> | JSON 数组 | 绑定的素材笔记 ID 列表 |
-| `content` | String | File-first | Markdown 物理文件相对路径或内存全文 |
-| `tags` | Array<String> | JSON 数组 | 全局扁平标签数组 |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型          | 约束 / 可选性            | 含义与说明                              |
+| :-------------------------- | :------------ | :----------------------- | :-------------------------------------- |
+| `id`                        | String        | 主键 (UUID)              | 沉淀笔记唯一标识                        |
+| `project_id`                | String        | 外键 (Project)           | 归属项目 ID                             |
+| `knowledge_base_id`         | String        | 可选 (KnowledgeBase)     | 归属知识库 ID                           |
+| `title`                     | String        | 必填                     | 沉淀笔记标题                            |
+| `type`                      | Enum          | `GENERAL` / `EXPERIENCE` | 笔记类型（常规认知沉淀 / 结项经验总结） |
+| `material_note_ids`         | Array<String> | JSON 数组                | 绑定的素材笔记 ID 列表                  |
+| `content`                   | String        | File-first               | Markdown 物理文件相对路径或内存全文     |
+| `tags`                      | Array<String> | JSON 数组                | 全局扁平标签数组                        |
+| `created_at` / `updated_at` | DateTime      | 必填                     | 审计时间戳                              |
 
 * **业务规则 (File-first 存储)**：
   * **独立落盘**：作为标准的 Markdown 文件在物理项目或知识库目录下真实落盘。
@@ -418,16 +418,16 @@ erDiagram
 * **定义**：独立于单一项目生命周期的长效知识资产管理容器，用于统一分类收录、管理与组织沉淀笔记。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 知识库唯一标识 |
-| `title` | String | 必填 | 知识库名称 |
-| `description` | String | 可选 | 知识库简述与分类说明 |
-| `category` | String | 必填 | 主导领域分类 |
-| `storage_path` | String | 必填 | 物理落盘磁盘文件夹路径 |
-| `tags` | Array<String> | JSON 数组 | 全局标签数组 |
-| `note_count` | Number | 默认 0 | 收录的沉淀笔记统计数量 |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型          | 约束 / 可选性 | 含义与说明             |
+| :-------------------------- | :------------ | :------------ | :--------------------- |
+| `id`                        | String        | 主键 (UUID)   | 知识库唯一标识         |
+| `title`                     | String        | 必填          | 知识库名称             |
+| `description`               | String        | 可选          | 知识库简述与分类说明   |
+| `category`                  | String        | 必填          | 主导领域分类           |
+| `storage_path`              | String        | 必填          | 物理落盘磁盘文件夹路径 |
+| `tags`                      | Array<String> | JSON 数组     | 全局标签数组           |
+| `note_count`                | Number        | 默认 0        | 收录的沉淀笔记统计数量 |
+| `created_at` / `updated_at` | DateTime      | 必填          | 审计时间戳             |
 
 * **业务规则 (File-first 架构)**：
   * **物理存储隔离**：每个知识库对应磁盘上一个独立的文件夹结构。
@@ -436,49 +436,138 @@ erDiagram
 ---
 
 ### 9. 技能实体 (Skill)
-* **定义**：由经验笔记、素材笔记或阅读原文切片提炼出的一段可执行辅助脚本或 Prompt 工作流，作为 Agent 执行任务时的“外挂工具”。
-* **存储结构 (`SKILL.md`)**：
+* **定义**：由经验笔记、素材笔记或阅读原文切片提炼出的一段可执行辅助脚本或 Prompt 工作流，作为 Agent 执行任务时的“外挂工具”。在业务层采用 `Skill 1 -- N SkillStep` 的聚合根与关联子实体模型。
+* **核心实体属性表 (Skill - 聚合根)**：
 
-| 结构构成 | 格式 | 含义描述 |
-| :--- | :--- | :--- |
-| **YAML Frontmatter** | YAML 头部 | 包含 `name`, `description`, `version`, `author`, `tags` 元数据 |
-| **Markdown Body** | Markdown 正文 | 包含具体的 Agent 指令 Prompt 或自动化工作流脚本 |
+| 属性名                      | 类型     | 约束 / 可选性 | 含义与说明                                                                                                  |
+| :-------------------------- | :------- | :------------ | :---------------------------------------------------------------------------------------------------------- |
+| `id`                        | String   | 主键 (UUID)   | 技能唯一标识                                                                                                |
+| `name`                      | String   | 必填          | 技能名称                                                                                                    |
+| `description`               | String   | 必填          | 技能方法论简述与应用场景                                                                                    |
+| `version`                   | String   | 必填          | 语义化版本号 (例如 `1.0.0`)                                                                                 |
+| `author`                    | String   | 必填          | 提炼者 (用户 / Agent 自动生成)                                                                              |
+| `status`                    | Enum     | 必填          | 状态枚举：`SANDBOX` (沙箱待审批) / `ACTIVE` (批准入库) / `MUTATED_DRAFT` (变异草稿) / `DEPRECATED` (已废弃) |
+| `source_type`               | Enum     | 必填          | 提炼来源：`SINGLE_NOTE` (单点) / `CHAPTER` (章节) / `BOOK_FULL` (全书)                                      |
+| `source_id`                 | String   | 可选          | 关联的源实体 ID (素材笔记 / 沉淀笔记 / 电子书 ID)                                                           |
+| `created_at` / `updated_at` | DateTime | 必填          | 审计时间戳                                                                                                  |
 
-* **业务规则**：
+* **技能步骤实体属性表 (SkillStep - 关联子实体)**：
+
+| 属性名               | 类型          | 约束 / 可选性 | 含义与说明                                    |
+| :------------------- | :------------ | :------------ | :-------------------------------------------- |
+| `id`                 | String        | 主键          | 步骤本地唯一标识 (如 `step_1`)                |
+| `skill_id`           | String        | 外键 (Skill)  | 归属的 Skill 聚合根 ID                        |
+| `title`              | String        | 必填          | 步骤名称 / 节点标题                           |
+| `instruction_prompt` | String        | 必填          | 该步骤的具体 Prompt 指令或操作大纲            |
+| `depends_on`         | Array<String> | JSON 数组     | 前置步骤 ID 数组 (用于定义步骤间的依赖有向边) |
+
+* **业务规则与拓扑解算**：
   * **非数据库模板绑定**：Skill 在底层并非任务表的外键父级。它是应用层在“项目初始化拆解任务”或“运行时调度”时，由 LLM 动态挂载读取的工具库。
   * **无强依赖提炼机制**：技能提炼无强制实体依赖，可以基于素材笔记、沉淀笔记或书籍原文文本进行提炼。
-  * **生命周期状态流转**：`sandbox` (沙箱待审批) -> `active` (批准入库已激活)。
+  * **系统拓扑校验与死锁阻断 (PA-03 契约)**：
+    * 一个 `Skill` 聚合根包含的所有 `SkillStep` 集合 $V$ 以及由 `depends_on` 产生的前置依赖关系 $E$，在内存中构建有向图 $G = (V, E)$。
+    * 沙箱阶段必须对有向图 $G$ 执行拓扑解环算法。若检测到有向环 (Cycle)，判定存在“依赖死锁”，强行阻断批准入库。
+---
+
+### 10. 沙箱实体与安全隔离中枢 (Sandbox Domain)
+* **定义**：贯穿系统运行安全隔离、审校校验、预处理暂存与隐私脱敏的核心通用支撑容器与安全隔离中枢 (Sandbox Domain)。
+* **核心属性表 (Sandbox Context - 通用上下文)**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 沙箱上下文全局唯一标识 |
+| `type` | Enum | 必填 | 沙箱职责类型：`AGENT_RUNTIME` (Agent 运行) / `SKILL_VALIDATION` (技能审校) / `BOOK_PARSING` (解析暂存) / `PRIVACY_REDACTION` (隐私脱敏) |
+| `target_entity_id` | String | 可选 | 绑定的目标实体 ID (Agent / Skill / Book / Note ID) |
+| `security_level` | Enum | 必填 | 安全隔离等级：`STRICT_ISOLATED` (独立隔离进程) / `READ_ONLY` (只读通道) / `EPHEMERAL_STAGING` (临时暂存区) |
+| `validation_status` | Enum | 必填 | 状态：`PENDING` (准备中) / `VALIDATED` (解算通过) / `DEADLOCK_BLOCKED` (死锁阻断) / `PARSED` (物料解析完成) |
+| `isolation_policy` | Object | JSON 结构 | 安全策略 (如 `no_network: true`, `no_shell: true`, `pipe_only: true`) |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **沙箱四大职责体系与业务规则**：
+
+| 职责分类 | 核心业务用途 | 核心隔离与校验机制 (契约) |
+| :--- | :--- | :--- |
+| **职责 A：Agent 安全运行沙箱** | 绑定伴读 Agent 与计划监督 Agent 运行 | **PA-05 契约**：独立受限进程，封禁 Shell 执行、外部网络调用与核心磁盘写入权限，仅保留只读与 Pipe 通信管道。 |
+| **职责 B：技能与工作流审校沙箱** | 审校与解算未入库技能卡片依赖 | **PA-03 契约**：拓扑解算算子实时检测成环死锁，若存在环路（`DEADLOCK_BLOCKED`），强行阻断批准入库。 |
+| **职责 C：物料解析与暂存沙箱** | 电子书文件上传与 `parsed_content.json` 切片暂存 | 隔离大体量原书与拆解切片物料，防止解析中途崩溃或格式坏损污染主数据库模型。 |
+| **职责 D：知识隐私与脱敏隔离沙箱** | 本地加密资产与脱敏防护 | 个人私密笔记与知识资产在喂入全局 RAG 或外挂 LLM 图谱抽取前的本地解密、脱敏与隔离防护。 |
+
+* **关键流程契约 (死锁阻断与门禁流转)**：
+  > [!CAUTION]
+  > **PA-03 死锁强行阻断**：在技能审校场景下，当 `validation_status == DEADLOCK_BLOCKED` 时，业务逻辑层强行禁用“批准入库”操作，杜绝环路依赖的技能进入线上库。
+  > **PA-05 权限越权熔断**：在 Agent 运行场景下，若检测到非法网络请求或 Shell 执行尝试，进程沙箱强制安全熔断并销毁句柄。
 
 ---
 
-### 10. 沙箱编辑区实体 (Sandbox Area)
-* **定义**：新编译技能入库前的物理隔离区与可视化校验编辑器。
-* **核心校验规则**：
+### 11. 知识图谱与混合 RAG 实体 (Graph & RAG Domain)
+* **定义**：独立于主业务生命周期的**旁路消费服务 (Bypass Sidecar Consumer)**。基于 SQLite 向量扩展 (sqlite-vec) 驱动混合检索引擎，包含 Dense RAG 向量与 Graph RAG 图谱，驱动跨项目漫游与知识新陈代谢。
 
-| 校验规则 | 触发条件 | 阻断效果与交互表现 |
-| :--- | :--- | :--- |
-| **拓扑排序 (Topological Sorting)** | 载入技能卡片流时 | 对步骤之间的依赖关系进行拓扑解环校验 |
-| **死锁阻断 (Cycle Detection)** | 检测到有向环 (Cycle) | 判定为“依赖死锁”，禁用入库按钮，卡片及连线呈发光抖动警告 |
-| **入库门禁** | 拓扑校验 100% 通过 | 用户点击“批准入库”后，Skill 状态转换为 `active` 并移出沙箱目录 |
+* **密集向量切片索引表 (VectorChunkIndex - Dense RAG 检索缓存)**：
 
----
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 向量切片全局唯一标识 |
+| `source_type` | Enum | 必填 | 切片来源类型：`BOOK_BLOCK` (图书段落块) / `NOTE_CARD` (思考笔记卡片) / `DISCUSS_MSG` (伴读对话) |
+| `source_id` | String | 必填 | 归属主体 ID (`book_id` / `note_id` / `session_id`) |
+| `block_id` | String | 可选 | 物理段落块 ID (对应 `ContentBlock.block_id`，用于原文 Trace-to-Source 闪烁高亮) |
+| `embedding` | FloatArray / Blob | 必填 | 文本切片生成的高维 Dense Vector (存入 `sqlite-vec` 虚表驱动余弦相似度检索) |
+| `text_hash` | String | 必填 | 原始文本哈希值 (SHA-256)，用于去重更新与增量缓存校验 |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
 
-### 11. 知识图谱实体 (Graph Domain)
-* **定义**：独立于主业务生命周期的**旁路消费服务 (Bypass Sidecar Consumer)**。基于 SQLite 向量扩展 (sqlite-vec) 驱动混合检索引擎，包含 Dense RAG 向量与 Graph RAG 图谱。
-* **核心图谱组件**：
+* **核心实体属性表 (GraphNode - 知识原子节点)**：
 
-| 实体分类 | 属性与构成 | 业务用途 |
-| :--- | :--- | :--- |
-| **图谱节点 (Graph Node)** | `id`, `name`, `source_note_id`, `is_falsified` | 闲时旁路由 LLM 自动抽取的原子知识概念 |
-| **标签超节点 (Tag Super Node)** | `id`, `tag_name`, `node_ids[]` | 将相同全局标签的跨项目节点逻辑聚拢 |
-| **图谱关系边 (Graph Edge)** | `source_id`, `target_id`, `relation_type` (`ASSOCIATES` / `FALSIFIES`) | 描述概念间关联或证伪修正关系 |
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 知识节点全局唯一标识 |
+| `name` | String | 必填 | 概念/实体名称 (LLM 提取的规范化原子知识点) |
+| `aliases` | Array<String> | JSON 数组 (可选) | 同义词/英文缩写/别名列表 (如 `["AI", "人工智能"]`，由 LLM 闲时归一化提炼) |
+| `source_type` | Enum | 必填 | 提炼来源：`BOOK_CHAPTER` (客观章节) / `NOTE` (主观笔记) |
+| `source_id` | String | 必填 | 关联的源实体 ID (电子书 ID 或 笔记 ID) |
+| `block_ids` | Array<String> | JSON 数组 (可选) | 提炼出该概念节点的物理切片 ID 列表 (关联 `VectorChunkIndex.block_id` / `ContentBlock.block_id`，用于 Quick Peek 反查与物理硬锚定) |
+| `status` | Enum | 必填 | 旁路生命周期状态：`PENDING_EXTRACT` (待抽取) / `EXTRACTING` (抽取中) / `MERGED` (已入库合并) / `FALSIFIED` (已证伪) / `DECAYED` (已衰变) |
+| `weight` | Float | 必填 | 节点置信度与检索权重 (范围 0.0 ~ 1.0，被证伪衰变后降低) |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
 
-* **双通道旁路异步构建机制**：
-  > [!NOTE]
-  > * **旁路解耦契约**：知识图谱构建 100% 旁路运行，主业务流落盘即返回，绝不受图谱建图耗时或限额影响。
-  > * **通道 A (Book 原物料视角)**：后台自动扫描 `Book` 解析物料，提取客观书本概念实体与章节关联。
-  > * **通道 B (Note 认知视角)**：笔记产生或变更时，旁路服务提取用户的主观思考与实战经历实体。
-  > * **知识新陈代谢 (Knowledge Metabolism)**：新的复盘经验与旧认知冲突时生成 `Falsifies` 边，使旧认知权重自动衰减降级。
+* **标签超节点属性表 (TagSuperNode - 跨项目聚拢节点)**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 超节点全局唯一标识 |
+| `tag_name` | String | 必填 | 全局标签名称 (如 `架构设计`, `状态机`) |
+| `node_ids` | Array<String> | JSON 数组 | 将相同标签下的跨项目 GraphNode 逻辑聚拢 |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **图谱关系边属性表 (GraphEdge - 关系连接)**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 关系边全局唯一标识 |
+| `source_id` | String | 外键 (GraphNode) | 起始知识节点 ID |
+| `target_id` | String | 外键 (GraphNode) | 目标知识节点 ID |
+| `relation_type` | Enum | 必填 | 关系类型：`ASSOCIATES` (概念关联) / `FALSIFIES` (证伪修正) |
+| `weight` | Float | 必填 | 边权重 (关联强度或反驳强度) |
+| `created_at` | DateTime | 必填 | 审计时间戳 |
+
+* **双通道旁路异步构建与业务规则**：
+  * **旁路解耦契约**：知识图谱构建 100% 旁路运行，主业务流落盘即返回，绝不受图谱建图耗时或 API 限额影响。
+  * **Dense RAG 向量即时切片与物理存储分离契约**：
+    * **即时编码**：在 `Book` 完成解析切片落盘或新生成 `Note` 时，系统自动异步将段落切片转为高维向量写入 `sqlite-vec`（`VectorChunkIndex`）。
+    * **只存索引不冗余原文**：向量库仅保存 `embedding` 与反查指针（`source_id` + `block_id`），真实长文本 100% 留在磁盘沙箱 `parsed_content.json` 中，避免主库与向量库膨胀。
+  * **语义实体链接与同义词对齐契约 (Semantic Entity Linking)**：
+    * **闲时对齐**：LLM 旁路分析器在提炼概念实体时，自动将表达同一含义的别名与英文缩写归一化写入 `aliases`。
+    * **多重匹配链路**：图拓扑检索避免单纯的 `name` 字符串精确匹配，按优先级采用：
+      1. **切片反查**：基于 Dense RAG 检索命中的 `block_id` 反查对应的 `GraphNode.block_ids`（最精准）。
+      2. **别名模糊匹配**：对比 `name` 和 `aliases` 集合。
+      3. **节点语义向量链接**：针对未命中实体执行基于节点名称与描述的 Embedding 相似度检索，彻底解决同义词漏召回问题。
+  * **通道 A (Book 原物料视角)**：后台自动扫描 `Book` 解析切片，提取客观书本概念实体与章节上下文关联。
+  * **通道 B (Note 认知视角)**：笔记产生或变更时，旁路服务抽取用户主观思考、经验总结与实战卡片实体。
+  * **低 Token 成本闲时同步 (PA-02 契约)**：杜绝高频实时构建。由低频后台闲时任务调度，或由用户在归档项目时/手动点击“闲时同步”触发抽取。
+  * **知识新陈代谢 (Knowledge Metabolism) 规则**：
+    * 当新生成的实战复盘笔记与已有理论节点产生矛盾时，LLM 旁路分析器自动建立 `FALSIFIES` 关系边。
+    * 被证伪节点状态扭转为 `FALSIFIED`，触发衰变后转为 `DECAYED`。其检索权重 `weight` 自动衰减（如降至 0.4 以下），在网状画布中表现为透明度暗化与视觉弱化。
+  * **全局图谱漫游与 Quick Peek 契约 (PA-07)**：
+    * 提供独立大屏可视化空间，跨项目逻辑聚拢原子节点与 `TagSuperNode`。
+    * 点击节点弹出 Quick Peek 浮窗，直接预览源笔记/图书物理上下文，禁止粗暴的跨项目全页跳转。
 
 ---
 
