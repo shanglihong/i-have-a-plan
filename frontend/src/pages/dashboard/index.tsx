@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Network, Sparkles } from "lucide-react";
+import { Network, Sparkles, BookOpen, ListChecks } from "lucide-react";
 
+import { ProjectType } from "../../shared/types";
 import { useProjectsQuery, useResumeProjectMutation } from "../../entities";
 import {
   DashboardStatsGrid,
@@ -14,6 +15,7 @@ import {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const [createType, setCreateType] = useState<ProjectType>("READING");
   const [createOpen, setCreateOpen] = useState(false);
 
   const [suspendedStates, setSuspendedStates] = useState<Record<string, boolean>>({
@@ -35,6 +37,11 @@ export default function DashboardPage() {
     });
   };
 
+  const handleOpenCreate = (type: ProjectType) => {
+    setCreateType(type);
+    setCreateOpen(true);
+  };
+
   return (
     <div className="h-full overflow-y-auto px-7 py-6 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent]">
       {/* Header Bar */}
@@ -53,20 +60,33 @@ export default function DashboardPage() {
             感知精读与计划里程碑，驱动沉淀为可复用的技能拓扑
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+
+        {/* 顶部操作按钮组 */}
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => navigate("/graph")}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs text-slate-300 hover:text-slate-100 bg-slate-900/80 hover:bg-slate-800 rounded-xl border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer font-semibold shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs text-slate-300 hover:text-slate-100 bg-slate-900/80 hover:bg-slate-800 rounded-xl border border-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer font-semibold shadow-sm"
           >
             <Network size={14} className="text-cyan-400" />
             知识图谱
           </button>
+
+          {/* 拆分出的新建阅读项目按钮 */}
           <button
-            onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs text-cyan-950 bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 rounded-xl font-bold shadow-md shadow-cyan-500/20 transition-all duration-200 cursor-pointer active:scale-95"
+            onClick={() => handleOpenCreate("READING")}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/35 hover:border-cyan-500/50 rounded-xl font-semibold shadow-sm transition-all duration-200 cursor-pointer active:scale-95"
           >
-            <Plus size={15} />
-            新建项目
+            <BookOpen size={14} className="text-cyan-400" />
+            新建阅读项目
+          </button>
+
+          {/* 拆分出的新建计划项目按钮 */}
+          <button
+            onClick={() => handleOpenCreate("PLAN")}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs text-violet-300 bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/35 hover:border-violet-500/50 rounded-xl font-semibold shadow-sm transition-all duration-200 cursor-pointer active:scale-95"
+          >
+            <ListChecks size={14} className="text-violet-400" />
+            新建计划项目
           </button>
         </div>
       </div>
@@ -96,6 +116,7 @@ export default function DashboardPage() {
       {/* 3. 创建项目模态框 Feature */}
       <CreateProjectModal
         open={createOpen}
+        createType={createType}
         onClose={() => setCreateOpen(false)}
       />
     </div>

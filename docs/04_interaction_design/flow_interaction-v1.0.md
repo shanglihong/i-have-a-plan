@@ -184,13 +184,13 @@ sequenceDiagram
 
 ---
 
-#### 2.3 项目完结归档、经验复盘与技能变异交互时序 (全项目通用机制)
+#### 2.3 项目完结生成复盘 Task 与归档交互时序 (全项目通用机制)
 
-展示当项目内所有 Task 完成后，系统自动推送复盘提醒，引导用户录入经验笔记（Experience Note），旁路构建 `Falsifies` 证伪边以及驱动底层 Skill 产生变异草稿（Skill Mutation）的关键交互过程。
+展示当项目内所有常规 Task 完成后，系统自动创建末尾特殊复盘 Task（类型为 `RETROSPECTIVE`），引导用户在该 Task 中录入经验笔记（Experience Note）并勾选完成，进而触发项目归档、旁路构建 `Falsifies` 证伪边以及驱动底层 Skill 产生变异草稿（Skill Mutation）的关键交互过程。
 
 > [!NOTE]
-> **全项目通用完结与复盘契约**：
-> 所有 Task 完成后推送复盘笔记为阅读项目与计划项目的通用机制。当后端检测到项目所属全部 Task 状态均变为 `COMPLETED` 时，会自动向前端推送完结提醒与 Experience Note 复盘引导。
+> **全项目通用复盘 Task 契约**：
+> 明确当项目内所有常规 Task 完成后，系统仅推送完成通知并呈现复盘引导卡片；只有在用户**点击【复盘卡片】**后，才触发发送创建请求追加生成类型为 RETROSPECTIVE 的特殊 Task。
 
 ```mermaid
 sequenceDiagram
@@ -199,14 +199,18 @@ sequenceDiagram
     participant FE as 前端
     participant BE as 后端
 
-    BE->>BE: 检测到项目内所有 Task 均已 COMPLETED
-    BE-->>FE: 推送项目完结提醒与复盘笔记 (Experience Note) 引导
+    BE->>BE: 检测到项目内所有常规 Task 均已 COMPLETED
+    BE-->>FE: 推送全任务已完成通知与新增复盘 Task 卡片
 
-    User->>FE: 点击 [归档项目] 并提交复盘经验 (Experience Note)
-    FE->>BE: 提交归档与复盘数据
-    BE->>BE: 保存复盘数据，释放 Agent 句柄 (状态转 ARCHIVED)
+    User->>FE: 点击进入 [项目复盘 Task]
+    FE->>FE: 展示复盘导引卡片与项目历史笔记/Trace 汇总（复盘可以参考之前的任务卡片的笔记以及Trace信息）
+
+    User->>FE: 在复盘 Task 中录入复盘经验笔记 (Experience Note) 并勾选完成
+    FE->>BE: 提交复盘 Task 完成与复盘笔记数据
+    BE->>BE: 保存复盘笔记实体，复盘 Task 状态转 COMPLETED
+    BE->>BE: 释放 Agent 资源句柄，项目状态转为 ARCHIVED
     BE->>BE: 异步通知知识图谱提取实体 (PA-02) 与触发 Skill 变异草稿生成
-    BE-->>FE: 返回归档成功通知 (页面转为强只读状态)
+    BE-->>FE: 返回项目归档成功通知 (页面转为强只读状态)
 ```
 
 ---
@@ -366,5 +370,3 @@ sequenceDiagram
     User->>FE: 阅览完毕后关闭浮窗
     FE->>FE: 销毁浮窗恢复图谱视口
 ```
-
----

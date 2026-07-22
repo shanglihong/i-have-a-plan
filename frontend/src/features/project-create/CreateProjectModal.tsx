@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, AlertCircle } from "lucide-react";
+import { X, Plus, AlertCircle, BookOpen, ListChecks, Info } from "lucide-react";
 
 import { ProjectType } from "../../shared/types";
 import { DarkDatePicker, FileDropzone } from "../../shared/ui";
 import { useCreateProjectMutation } from "../../entities";
-import { ProjectTypeSelector } from "./components/ProjectTypeSelector";
 import { PresetSkillSelector } from "./components/PresetSkillSelector";
 
 interface CreateProjectModalProps {
   open: boolean;
   onClose: () => void;
+  createType?: ProjectType; // "READING" | "PLAN"
 }
 
 const getOneWeekLaterDateString = () => {
@@ -19,13 +19,22 @@ const getOneWeekLaterDateString = () => {
   return date.toISOString().split("T")[0];
 };
 
-export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
-  const [createType, setCreateType] = useState<ProjectType>("READING");
+export function CreateProjectModal({
+  open,
+  onClose,
+  createType = "READING",
+}: CreateProjectModalProps) {
   const [projectTitle, setProjectTitle] = useState("");
   const [deadline, setDeadline] = useState<string>(getOneWeekLaterDateString);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedSkillId, setSelectedSkillId] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setFormError(null);
+    }
+  }, [open, createType]);
 
   const resetForm = () => {
     setProjectTitle("");
@@ -38,13 +47,14 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const createProjectMutation = useCreateProjectMutation();
   const isPending = createProjectMutation.isPending;
 
-  // focus ring 颜色跟随当前选中的项目类型
-  const focusRingClass =
-    createType === "READING"
-      ? "focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/40"
-      : "focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40";
+  const isReading = createType === "READING";
 
-  const accentColor = createType === "READING" ? "text-cyan-400" : "text-violet-400";
+  // focus ring 颜色与强调色
+  const focusRingClass = isReading
+    ? "focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/40"
+    : "focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/40";
+
+  const accentColor = isReading ? "text-cyan-400" : "text-violet-400";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,12 +65,12 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
       return;
     }
 
-    if (createType === "READING" && !selectedFile) {
+    if (isReading && !selectedFile) {
       setFormError("阅读项目必须上传关联文档（PDF / MD / TXT）");
       return;
     }
 
-    if (createType === "READING") {
+    if (isReading) {
       createProjectMutation.mutate(
         {
           title: projectTitle,
@@ -123,7 +133,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-950/70 p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-950/70 p-4"
           onClick={onClose}
         >
           <motion.div
@@ -131,26 +141,45 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.96, opacity: 0, y: 8 }}
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            className="glass rounded-2xl p-6 w-full max-w-[500px] shadow-2xl my-8 border border-white/10"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-project-title"
+            className="glass rounded-2xl p-6 w-full max-w-[480px] max-h-[85vh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent] shadow-2xl my-auto border border-white/10 relative"
             onClick={(e) => e.stopPropagation()}
           >
             <form onSubmit={handleSubmit}>
-              {/* 头部 */}
+              {/* 头部：类型图标与标题描述 */}
               <div className="flex items-start justify-between mb-5">
-                <div>
-                  <h2 className="text-[15px] font-semibold text-slate-100 leading-tight">
-                    创建项目
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    选择类型，填写基本信息后创建
-                  </p>
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                      isReading
+                        ? "bg-cyan-500/15 border-cyan-500/30 text-cyan-300"
+                        : "bg-violet-500/15 border-violet-500/30 text-violet-300"
+                    }`}
+                  >
+                    {isReading ? <BookOpen size={18} /> : <ListChecks size={18} />}
+                  </div>
+                  <div>
+                    <h2
+                      id="create-project-title"
+                      className="text-base font-bold text-slate-100 leading-tight"
+                    >
+                      创建{isReading ? "阅读精读" : "计划执行"}项目
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                      {isReading
+                        ? "上传文档资料，建立切片精读与知识图谱"
+                        : "选择技能模板，构建任务依赖拓扑与目标追踪"}
+                    </p>
+                  </div>
                 </div>
-                {/* 扩大触碰区至约 36px，符合 WCAG 最小目标尺寸 */}
+
                 <button
                   type="button"
                   onClick={onClose}
                   aria-label="关闭"
-                  className="text-slate-400 hover:text-slate-100 transition-colors p-2 -mr-1 -mt-0.5 rounded-lg hover:bg-white/8 cursor-pointer"
+                  className="text-slate-400 hover:text-slate-100 transition-colors p-1.5 -mr-1 -mt-0.5 rounded-lg hover:bg-white/8 cursor-pointer"
                 >
                   <X size={15} />
                 </button>
@@ -174,18 +203,19 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
                 )}
               </AnimatePresence>
 
-              {/* 项目类型选择 */}
-              <ProjectTypeSelector
-                selectedType={createType}
-                onSelect={(t) => {
-                  setCreateType(t);
-                  setFormError(null);
-                }}
-              />
+              {/* 阅读项目功能提示 */}
+              {isReading && (
+                <div className="mb-4 p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-start gap-2.5 text-xs text-cyan-300/90 leading-relaxed">
+                  <Info size={15} className="text-cyan-400 shrink-0 mt-0.5" />
+                  <span>
+                    提示：阅读项目生成的精读计划也将作为一个计划项目进行管理与履约追踪。
+                  </span>
+                </div>
+              )}
 
               {/* 基础信息域 */}
-              <div className="space-y-4 mb-5">
-                {/* 项目名称 —— label 与 input 关联，focus 色跟随类型 */}
+              <div className="space-y-4 mb-6">
+                {/* 项目名称 */}
                 <div>
                   <label
                     htmlFor="project-title"
@@ -202,7 +232,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
                       if (formError) setFormError(null);
                     }}
                     placeholder={
-                      createType === "READING"
+                      isReading
                         ? "如：深入理解 Linux 内核架构"
                         : "如：Graph RAG 引擎落地计划"
                     }
@@ -218,58 +248,41 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
                   <DarkDatePicker
                     value={deadline}
                     onChange={(val) => setDeadline(val)}
-                    color={createType === "READING" ? "cyan" : "violet"}
+                    color={isReading ? "cyan" : "violet"}
                   />
                 </div>
 
-                {/* 条件区块：切换时带动画 */}
-                <AnimatePresence mode="wait">
-                  {createType === "READING" && (
-                    <motion.div
-                      key="file-upload"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.18 }}
-                    >
-                      <label className="text-xs text-slate-300 mb-1.5 block font-medium">
-                        关联文档{" "}
-                        <span className="text-cyan-400">*</span>
-                        <span className="text-slate-400 font-normal ml-1">
-                          PDF / MD / TXT
-                        </span>
-                      </label>
-                      <FileDropzone
-                        selectedFile={selectedFile}
-                        onFileSelect={handleFileChange}
-                        onFileRemove={() => setSelectedFile(null)}
-                      />
-                    </motion.div>
-                  )}
-
-                  {createType === "PLAN" && (
-                    <motion.div
-                      key="skill-selector"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.18 }}
-                    >
-                      <PresetSkillSelector
-                        selectedSkillId={selectedSkillId}
-                        onSelectSkill={(id) => setSelectedSkillId(id)}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* 专一表单区块 */}
+                {isReading ? (
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1.5 block font-medium">
+                      关联文档 <span className="text-cyan-400">*</span>
+                      <span className="text-slate-400 font-normal ml-1">
+                        PDF / MD / TXT
+                      </span>
+                    </label>
+                    <FileDropzone
+                      selectedFile={selectedFile}
+                      onFileSelect={handleFileChange}
+                      onFileRemove={() => setSelectedFile(null)}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <PresetSkillSelector
+                      selectedSkillId={selectedSkillId}
+                      onSelectSkill={(id) => setSelectedSkillId(id)}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* 操作按钮组 */}
-              <div className="flex gap-2 pt-1">
+              <div className="flex gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-2.5 text-sm text-slate-400 bg-white/5 rounded-lg hover:bg-white/10 hover:text-slate-200 transition-all cursor-pointer"
+                  className="flex-1 py-2.5 text-sm text-slate-400 bg-white/5 rounded-lg hover:bg-white/10 hover:text-slate-200 transition-all cursor-pointer font-medium"
                 >
                   取消
                 </button>
@@ -278,10 +291,10 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
                   disabled={isPending}
                   whileTap={!isPending ? { scale: 0.97 } : {}}
                   transition={{ duration: 0.12 }}
-                  className={`flex-1 py-2.5 text-sm rounded-lg font-medium transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    createType === "READING"
-                      ? "text-cyan-300 bg-cyan-500/20 hover:bg-cyan-500/30 ring-1 ring-cyan-500/40"
-                      : "text-violet-300 bg-violet-500/20 hover:bg-violet-500/30 ring-1 ring-violet-500/40"
+                  className={`flex-1 py-2.5 text-sm rounded-lg font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    isReading
+                      ? "text-cyan-950 bg-cyan-400 hover:bg-cyan-300 font-bold shadow-lg shadow-cyan-500/20"
+                      : "text-violet-950 bg-violet-400 hover:bg-violet-300 font-bold shadow-lg shadow-violet-500/20"
                   } ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {isPending ? (
@@ -299,8 +312,8 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
                     </span>
                   ) : (
                     <>
-                      <Plus size={14} />
-                      创建{createType === "READING" ? "阅读" : "计划"}项目
+                      <Plus size={15} />
+                      创建{isReading ? "阅读" : "计划"}项目
                     </>
                   )}
                 </motion.button>
