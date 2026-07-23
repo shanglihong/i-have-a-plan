@@ -248,10 +248,14 @@ class ProjectRepositoryPort(ABC):
     @abstractmethod
     def list_by_status(self, status: str, page: int, size: int) -> tuple[List[Project], int]: ...
 
-class BookDomainPort(ABC):
-    """依赖 Book 领域的外部防腐接口 (仅关注功能)"""
+class ProjectEventBusPort(ABC):
+    """Project 领域事件发布与订阅防腐接口"""
     @abstractmethod
-    def parse_and_get_toc(self, file_bytes: bytes) -> tuple[str, Dict[str, Any]]: ...
+    def publish_book_parse_requested(self, project_id: str, file_bytes: bytes) -> None: ...
+    @abstractmethod
+    def publish_project_created_notice(self, project_id: str, status: str) -> None: ...
+    @abstractmethod
+    def publish_archived_event(self, project_id: str, experience_content: Optional[str]) -> None: ...
 
 class AgentDomainPort(ABC):
     """依赖 Agent 领域的外部防腐接口 (仅关注功能)"""
@@ -259,11 +263,6 @@ class AgentDomainPort(ABC):
     def release_agent_resource(self, project_id: str) -> bool: ...
     @abstractmethod
     def restore_agent_resource(self, project_id: str) -> bool: ...
-
-class ProjectEventBusPort(ABC):
-    """Project 领域广播外部事件的防腐接口"""
-    @abstractmethod
-    def publish_archived_event(self, project_id: str, experience_content: Optional[str]) -> None: ...
 ```
 
 ---
