@@ -1,7 +1,7 @@
-# 2.4 技能提炼与沙箱验证模块 API 规范 (Skills & Sandbox)
+# 2.6 技能提炼与沙箱验证 API 规范 (Skill Domain)
 
 > [!NOTE]
-> 本模块定义了技能向量检索、Trace-to-Skill 提炼编译以及沙箱拓扑环路校验 (PA-03 门禁) 的核心接口。
+> 本模块定义了技能向量检索、Trace-to-Skill 提炼编译以及沙箱拓扑环路校验 (PA-03 门禁) 的核心接口，属于技能与沙箱领域 (`domain/skill`)。
 
 ---
 

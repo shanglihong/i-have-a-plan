@@ -65,15 +65,17 @@
 
 ## 二、 模块化 API 接口索引目录
 
-具体的 API 接口契约均已按领域划分存放在 [modules/](./modules/) 目录下：
+具体的 API 接口契约均已按 **DDD 业务领域划分** 物理拆分存放于 [modules/](./modules/) 目录下：
 
-| 模块序号 | 模块规范文档 (点击查看明细) | 业务领域与核心职责 | 包含的接口概览 |
+| 领域分类 | 规范文档 (点击查看明细) | 业务领域与核心职责 | 包含的接口概览 |
 | :--- | :--- | :--- | :--- |
-| **2.1** | **[01_projects_lifecycle.md](./modules/01_projects_lifecycle.md)** | **项目与生命周期** | `POST /api/projects` (创建双轨项目)<br>`GET /api/projects` (获取项目列表)<br>`POST /api/projects/{id}/archive` (归档)<br>`POST /api/projects/{id}/suspend` (休眠)<br>`POST /api/projects/{id}/resume` (唤醒) |
-| **2.2** | **[02_documents_and_graph.md](./modules/02_documents_and_graph.md)** | **文档解析与知识图谱** | `GET /api/projects/{id}/parse-stream` (解析 SSE)<br>`POST /api/graph/sync` (触发闲时建图)<br>`GET /api/graph/peek` (Quick Peek 追溯) |
-| **2.3** | **[03_discuss_and_notes.md](./modules/03_discuss_and_notes.md)** | **伴读对话与融合笔记** | `POST /api/discuss` (伴读对话 SSE)<br>`POST /api/notes` (创建融合笔记)<br>`GET /api/projects/{id}/notes` (获取笔记列表) |
-| **2.4** | **[04_skills_and_sandbox.md](./modules/04_skills_and_sandbox.md)** | **技能提炼与沙箱验证** | `GET /api/skills/search` (语义检索技能)<br>`POST /api/skills/compile` (提炼编译 SSE)<br>`POST /api/skills/{id}/approve` (PA-03 门禁校验) |
-| **2.5** | **[05_tasks_and_planning.md](./modules/05_tasks_and_planning.md)** | **计划与任务调度** | `POST /api/tasks/reschedule` (拓扑顺延计算)<br>`PATCH /api/tasks/{id}` (更新原子任务状态) |
-| **2.6** | **[06_dashboard_aggregation.md](./modules/06_dashboard_aggregation.md)** | **大盘工作台与汇总统计** | `GET /api/dashboard/stats` (工作台指标汇总)<br>`GET /api/notes/featured` (大盘精选金句笔记)<br>`GET /api/skills/active` (活跃技能引擎列表) |
-| **2.7** | **[07_global_search.md](./modules/07_global_search.md)** | **全站全局搜索** | `GET /api/search` (聚合全站全局搜索) |
-| **2.8** | **[08_knowledge_bases.md](./modules/08_knowledge_bases.md)** | **知识库管理与目录** | `GET /api/knowledge-bases` (获取知识库列表)<br>`POST /api/knowledge-bases` (新建知识库)<br>`PUT /api/knowledge-bases/{id}` (更新知识库)<br>`DELETE /api/knowledge-bases/{id}` (删除知识库) |
+| **项目与任务领域** | **[project_api.md](./modules/project/project_api.md)** | **项目生命周期** | `POST /api/projects` (创建双轨项目)<br>`GET /api/projects` (获取项目列表)<br>`POST /api/projects/{id}/archive` (归档)<br>`POST /api/projects/{id}/suspend` (休眠)<br>`POST /api/projects/{id}/resume` (唤醒) |
+| **项目与任务领域** | **[task_api.md](./modules/project/task_api.md)** | **任务顺延与状态调度** | `POST /api/tasks/reschedule` (拓扑顺延计算)<br>`PATCH /api/tasks/{id}` (更新原子任务状态) |
+| **书籍与物理锚点领域** | **[document_api.md](./modules/book/document_api.md)** | **文档流式解析** | `GET /api/projects/{id}/parse-stream` (解析与大纲 SSE) |
+| **笔记与知识库领域** | **[note_api.md](./modules/note/note_api.md)** | **伴读对话与融合笔记** | `POST /api/discuss` (伴读对话 SSE)<br>`POST /api/notes` (创建融合笔记)<br>`GET /api/projects/{id}/notes` (获取笔记列表) |
+| **笔记与知识库领域** | **[knowledge_base_api.md](./modules/note/knowledge_base_api.md)** | **知识库管理与目录** | `GET /api/knowledge-bases` (获取知识库列表)<br>`POST /api/knowledge-bases` (新建知识库)<br>`PUT /api/knowledge-bases/{id}` (更新知识库)<br>`DELETE /api/knowledge-bases/{id}` (删除知识库) |
+| **技能与沙箱领域** | **[skill_api.md](./modules/skill/skill_api.md)** | **技能提炼与沙箱验证** | `GET /api/skills/search` (语义检索技能)<br>`POST /api/skills/compile` (提炼编译 SSE)<br>`POST /api/skills/{id}/approve` (PA-03 门禁校验) |
+| **旁路图谱与向量领域** | **[graph_api.md](./modules/graph/graph_api.md)** | **旁路图谱与追溯** | `POST /api/graph/sync` (触发闲时建图)<br>`GET /api/graph/peek` (Quick Peek 追溯) |
+| **工作台与全局服务** | **[dashboard_api.md](./modules/system/dashboard_api.md)** | **大盘工作台与汇总统计** | `GET /api/dashboard/stats` (工作台指标汇总)<br>`GET /api/notes/featured` (大盘精选金句笔记)<br>`GET /api/skills/active` (活跃技能引擎列表) |
+| **工作台与全局服务** | **[search_api.md](./modules/system/search_api.md)** | **全站全局搜索** | `GET /api/search` (聚合全站全局搜索) |
+
