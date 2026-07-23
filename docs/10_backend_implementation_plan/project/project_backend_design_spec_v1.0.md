@@ -112,58 +112,113 @@ graph TD
 
 ### 1. 双轨项目创建内部交互流
 
+项目创建分为对话交互自动建树的 `PLAN` 模式与**事件驱动异步解耦**的 `READING` 模式。为保证清晰度，分别进行链路绘制：
+
+#### (1) 计划项目 (`PLAN` 模式) 对话建树与激活交互流
+
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Caller as 接入层 / 外部调用方
+    actor Caller as 前端 / 客户端
+    participant REST as 接入层 REST API
     participant UC as CreateProjectUseCase
     participant Factory as ProjectFactory
     participant Agg as Project 聚合根
-    participant BookPort as BookDomainPort (外部)
     participant Repo as ProjectRepositoryPort
+    participant AgentDomain as Agent 领域 (外部组装能力)
+    participant TaskUC as CompletePlanTaskUseCase
+    participant EventBus as EventBus (领域事件总线)
+    participant NoticeService as NotificationService (页面消息通知领域)
 
-    Caller->>UC: create_project(cmd)
-    
-    alt 模式 A: 计划项目 (PLAN)
-        UC->>Factory: build_plan_project(title, deadline, skill_id)
-        Factory->>Agg: new Project(type=PLAN, status=INIT)
-        Factory-->>UC: project_agg
-    else 模式 B: 阅读项目 (READING)
-        UC->>BookPort: parse_and_get_toc(file_bytes)
-        Note over BookPort: 仅关注功能：Book 领域返回解析出的 TocTree
-        BookPort-->>UC: book_id, toc_tree
-        UC->>Factory: build_reading_project(title, book_id, toc_tree)
-        Factory->>Agg: new Project(type=READING, status=INIT)
-        Factory->>Agg: attach_task_chains(toc_tree)
-        Note over Agg: 领域内逻辑：根据目录树生成 TaskChain(READING_CHAPTER)
-        Factory-->>UC: project_agg
-    end
-
-    UC->>Agg: transit_to_active()
-    Note over Agg: 状态机动作：校验初始化完整性，INIT -> ACTIVE
+    Note over Caller, AgentDomain: 步骤 1: 创建 INIT 项目并根据选择的 Skill 组装 Agent 返回
+    Caller->>REST: POST /api/projects { title, type="PLAN", skill_id }
+    REST->>UC: create_plan_project(cmd)
+    UC->>Factory: build_plan_project(title, deadline)
+    Factory->>Agg: new Project(type=PLAN, status=INIT)
+    UC->>AgentDomain: assemble_and_bind_agent(project_id, skill_id)
+    Note over AgentDomain: 仅关注能力：Agent 领域根据 skill_id 组装监督 Agent 句柄
+    AgentDomain-->>UC: assigned_agent_id
+    UC->>Agg: bind_agent(assigned_agent_id)
     UC->>Repo: save(project_agg)
-    Repo-->>UC: saved_agg
-    UC-->>Caller: ProjectResponseDTO
+    UC-->>REST: ProjectResponseDTO (status=INIT, assigned_agent_id)
+    REST-->>Caller: 201 Created (status=INIT)
+
+    Note over Caller, NoticeService: 步骤 2: 对话完成自动生成任务树，挂载扭转 ACTIVE 并发送页面通知
+    Caller->>AgentDomain: 工作台对话 (沟通计划目标...)
+    AgentDomain->>TaskUC: dialogue_completed(project_id, generated_task_tree)
+    TaskUC->>Repo: find_by_id(project_id)
+    Repo-->>TaskUC: project_agg
+    TaskUC->>Agg: attach_task_tree(generated_task_tree)
+    Note over Agg: 领域内逻辑：自动挂载生成的 TaskChain 及微观 Task 树
+    TaskUC->>Agg: transit_to_active()
+    Note over Agg: 状态机扭转: INIT -> ACTIVE
+    TaskUC->>Repo: save(project_agg)
+
+    TaskUC->>EventBus: publish(ProjectCreatedEvent(project_id, status=ACTIVE))
+    EventBus-->>NoticeService: 监听 ProjectCreatedEvent
+    NoticeService->>NoticeService: 创建并持久化 Notification 消息实体 (type=PROJECT_READY)
+    NoticeService-->>Caller: 通过 SSE/WebSocket 实时推送 Notification 消息通知至页面
+    TaskUC-->>AgentDomain: success
+    AgentDomain-->>Caller: 对话完成，推送 ACTIVE 项目与任务树
+```
+
+#### (2) 阅读项目 (`READING` 模式) 事件总线解耦流
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Caller as 前端 / 客户端
+    participant REST as 接入层 REST API
+    participant UC as CreateProjectUseCase
+    participant Factory as ProjectFactory
+    participant Agg as Project 聚合根
+    participant Repo as ProjectRepositoryPort
+    participant EventBus as EventBus (领域事件总线)
+    participant BookDomain as Book 领域 (外部解析能力)
+    participant Handler as OnBookParsedEventHandler (Project 领域)
+    participant NoticeService as NotificationService (页面消息通知领域)
+
+    Note over Caller, EventBus: 阶段 1: 同步受理并发布领域事件至事件总线
+    Caller->>REST: POST /api/projects (multipart/form-data)
+    REST->>UC: create_reading_project(cmd, file_bytes)
+    UC->>Factory: build_reading_project(title)
+    Factory->>Agg: new Project(type=READING, status=INIT)
+    UC->>Repo: save(project_agg)
+    UC->>EventBus: publish(BookParseRequestedEvent(project_id, file_bytes))
+    Note over EventBus: 领域事件总线解耦：通知 Book 领域解析文件
+    UC-->>REST: ProjectResponseDTO (status=INIT)
+    REST-->>Caller: 201 Created (status=INIT, 提示正在后台解析)
+
+    Note over EventBus, BookDomain: 阶段 2: Book 领域响应事件提供异步解析能力
+    EventBus-->>BookDomain: 派发 BookParseRequestedEvent
+    Note over BookDomain: Book 领域执行异步解析 (内部细节不展开)
+    BookDomain->>EventBus: publish(BookParsedEvent(project_id, book_id, toc_tree))
+
+    Note over EventBus, NoticeService: 阶段 3: Project 领域就绪 -> 持久化 Notification 实体并推送页面
+    EventBus-->>Handler: 订阅并接收 BookParsedEvent
+    Handler->>Repo: find_by_id(project_id)
+    Repo-->>Handler: project_agg
+    Handler->>Agg: attach_task_chains(toc_tree)
+    Note over Agg: 领域内逻辑：根据目录树实例化 TaskChain(READING_CHAPTER)
+    Handler->>Agg: transit_to_active()
+    Note over Agg: 状态机扭转: INIT -> ACTIVE
+    Handler->>Repo: save(project_agg)
+    
+    Handler->>EventBus: publish(ProjectCreatedEvent(project_id, status=ACTIVE))
+    EventBus-->>NoticeService: 监听 ProjectCreatedEvent
+    NoticeService->>NoticeService: 创建并持久化 Notification 消息实体
+    Note over NoticeService: 产生 Notification 实体 (type=PROJECT_READY, status=UNREAD)
+    NoticeService-->>Caller: 通过 SSE/WebSocket 实时推送 Notification 至前端页面
 ```
 
 ---
 
 ### 2. 状态机流转与休眠/唤醒内部交互
 
-#### (1) 项目领域内状态机变迁规则
+> [!NOTE]
+> 项目实体及其挂载的 `TaskChain` / `Task` 服务端状态机与流转逻辑，严格遵循并直接复用 [系统交互状态规范](../../04_interaction_design/flow_state_spec-v1.0.md#L11) 的定义，本文档不再重复绘制状态变迁图。
 
-```mermaid
-stateDiagram-v2
-    [*] --> INIT : 领域工厂实例化
-    INIT --> ACTIVE : 任务树挂载就绪 (transit_to_active)
-    ACTIVE --> SUSPENDED : 触发休眠 (suspend)
-    SUSPENDED --> ACTIVE : 触发唤醒 (resume)
-    ACTIVE --> ARCHIVED : 触发归档 (archive)
-    ARCHIVED --> ACTIVE : 重新激活 (reactivate)
-    ARCHIVED --> [*]
-```
-
-#### (2) 24h 超时休眠与一键唤醒内部流转
+#### 24h 超时休眠与一键唤醒内部流转
 
 ```mermaid
 sequenceDiagram

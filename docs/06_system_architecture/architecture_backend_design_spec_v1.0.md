@@ -23,10 +23,10 @@
 
 | 架构分层 | 核心职责 | 防腐接口 (Ports) 放置与约束 |
 | :--- | :--- | :--- |
-| **1. 领域层 (Domain Layer)** | 纯业务大脑（实体 `Project`, `TaskChain`, `Task`, `Book`, `SourceAnchor`, `MaterialNote`, `SynthesizedNote`, `KnowledgeBase`, `Skill`, `SkillStep`, `SandboxContext` 及 DAG/锚点/拓扑算法） | 定义 **Domain Ports**（如 `RepositoryPort`），绝对隔离框架与物理 I/O |
-| **2. 应用层 (Application Layer)** | 业务外观与中枢（编排伴读、物料解析、Trace-to-Skill 编译、结项归档等用例） | 定义 **Application Ports**（如 `LLMPort`, `SandboxPort`），编排领域逻辑 |
-| **3. 基础设施层 (Infrastructure Layer)** | 被动适配器（磁盘文件存储、SQLite 引擎、受限沙箱进程、大模型通信） | 实现 Ports 接口，仅作为被动支撑方 |
-| **4. 接入层 (Driving Adapters)** | 主动适配器（FastAPI REST API、SSE 推流、静态资源挂载） | 转换外部请求为领域语言，驱动 App 层 |
+| **1. 领域层 (Domain Layer)** | 纯业务大脑（实体 `Project`, `TaskChain`, `Task`, `Book`, `SourceAnchor`, `MaterialNote`, `SynthesizedNote`, `KnowledgeBase`, `Skill`, `SkillStep`, `SandboxContext`, `Notification` 及 DAG/锚点/拓扑算法） | 定义 **Domain Ports**（如 `RepositoryPort`），绝对隔离框架与物理 I/O |
+| **2. 应用层 (Application Layer)** | 业务外观与中枢（编排伴读、物料解析、Trace-to-Skill 编译、结项归档、消息通知派发等用例） | 定义 **Application Ports**（如 `LLMPort`, `SandboxPort`），编排领域逻辑 |
+| **3. 基础设施层 (Infrastructure Layer)** | 被动适配器（磁盘文件存储、SQLite 引擎、受限沙箱进程、大模型通信、消息通知轮询/推流通道） | 实现 Ports 接口，仅作为被动支撑方 |
+| **4. 接入层 (Driving Adapters)** | 主动适配器（FastAPI REST API、SSE 流式推流/通知、静态资源挂载） | 转换外部请求为领域语言，驱动 App 层 |
 | **5. 旁路消费服务 (Sidecar Engine)** | 独立旁路引擎（Dense RAG 编码、Graph RAG 闲时建图与新陈代谢） | 监听领域事件，100% 异步独立执行，主业务 API 零等待 |
 
 ---
@@ -39,7 +39,7 @@
 graph TD
     subgraph DrivingAdapters ["主动适配器 接入层"]
         REST["REST API - FastAPI"]
-        SSE["SSE Streaming - FastAPI"]
+        SSE["SSE Streaming / Notification Push - FastAPI"]
         UI["Web UI 挂载 - StaticFiles"]
     end
 
@@ -50,6 +50,7 @@ graph TD
             UC3["结项归档与经验沉淀流"]
             UC4["项目初始化与 Skill 任务拆解流"]
             UC5["文档解析切片与大纲映射流"]
+            UC6["异步消息通知与就绪派发流"]
         end
 
         subgraph DomainLayer ["领域层 Domain Layer"]
@@ -57,6 +58,7 @@ graph TD
             BND["书籍与物理锚点领域 - Book, TocNode, SourceAnchor"]
             NTD["笔记与知识库领域 - MaterialNote, SynthesizedNote"]
             SCS["技能与沙箱审校领域 - Skill, SkillStep, SandboxContext"]
+            NTF["消息通知领域 - Notification"]
             EventBus["领域内部事件分发中枢"]
         end
         
@@ -211,11 +213,19 @@ graph TD
         GraphEdge["GraphEdge - ASSOCIATES / FALSIFIES"]
     end
 
+    subgraph NotificationDomain ["消息通知领域"]
+        Notification["Notification - 页面消息通知实体"]
+    end
+
     Project -->|"1:N 包含"| Book
     Project -->|"1:N 管理"| TaskChain
     Book -->|"1:N 派生"| TaskChain
     TaskChain -->|"1:N 包含"| Task
     Task -->|"N:M 依赖 DAG"| Task
+
+    Project -.->|"触发通知"| Notification
+    Book -.->|"解析触发"| Notification
+    Task -.->|"逾期触发"| Notification
 
     Book -->|"1:N 选词生成"| SourceAnchor
     SourceAnchor -->|"1:N 绑定"| MaterialNote

@@ -119,6 +119,9 @@ erDiagram
     PROJECT ||--o{ MATERIAL_NOTE : "1:N 包含素材笔记"
     PROJECT ||--o{ SYNTHESIZED_NOTE : "1:N 包含沉淀笔记"
     KNOWLEDGE_BASE ||--o{ SYNTHESIZED_NOTE : "1:N 归档/收录沉淀笔记"
+
+    %% 4. 消息通知与提醒领域 (Notification Domain)
+    PROJECT ||--o{ NOTIFICATION : "1:N (可选) 关联/触发页面通知"
 ```
 
 #### (2) 旁路知识图谱消费与对齐模型 (Bypass Graph Sidecar Domain)
@@ -568,6 +571,29 @@ erDiagram
   * **全局图谱漫游与 Quick Peek 契约 (PA-07)**：
     * 提供独立大屏可视化空间，跨项目逻辑聚拢原子节点与 `TagSuperNode`。
     * 点击节点弹出 Quick Peek 浮窗，直接预览源笔记/图书物理上下文，禁止粗暴的跨项目全页跳转。
+
+---
+
+### 12. 消息通知实体 (Notification)
+* **定义**：记录系统异步处理结果、状态变更通知、操作就绪提醒以及系统告警的消息通知实体，用于实时推送至前端页面或在通知中心进行异步展现。
+* **核心属性表**：
+
+| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 消息通知全局唯一标识 |
+| `title` | String | 必填 | 消息通知标题 |
+| `content` | String | 必填 | 消息正文文本 / JSON 载荷 |
+| `type` | Enum | 必填 | 消息类型：`PROJECT_READY` (项目初始化就绪) / `BOOK_PARSED` (电子书解析完成) / `TASK_OVERDUE` (任务逾期提醒) / `SYSTEM_ALERT` (系统异常告警) |
+| `level` | Enum | 必填 | 消息级别：`INFO` (提示) / `SUCCESS` (成功) / `WARNING` (警告) / `ERROR` (错误) |
+| `status` | Enum | 必填 | 读取状态：`UNREAD` (未读) / `READ` (已读) / `DISMISSED` (已忽略) |
+| `target_entity_type` | String | 可选 | 关联实体类型 (如 `PROJECT`, `BOOK`, `TASK`) |
+| `target_entity_id` | String | 可选 | 关联实体 ID (用于页面点击消息直接精准定位跳转) |
+| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+
+* **业务规则与推送机制**：
+  * **异步通信桥梁**：当后台异步任务（如电子书解析完成、项目状态自动扭转为 `ACTIVE`、24h 会话超时挂起等）处理完毕后，持久化落盘 `Notification` 记录。
+  * **多通道页面推送**：后端支持通过 SSE (Server-Sent Events) / WebSocket 向前端页面实时推送，或由前端通知中心定时轮询/拉取。
+  * **跳转定位契约**：携带 `target_entity_type` 与 `target_entity_id`，支持用户在前端通知面板中点击消息后一键定位跳转至对应的项目大盘、任务节点或图书阅读页面。
 
 ---
 
