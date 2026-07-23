@@ -22,13 +22,13 @@
 
 项目领域作为容器服务，向接入层 (REST API) 及其他领域（Book 领域、Note 领域、Skill 领域、Agent 领域、Graph 领域）提供以下核心能力契约：
 
-| 领域服务名称 | 调用的目标领域 / 模块 | 服务能力描述 | 领域契约与约束 |
-| :--- | :--- | :--- | :--- |
-| **项目双轨创建服务** <br>`CreateProjectService` | 接入层 REST API / <br>Book 领域 (物料挂载) | 提供 `PLAN` 与 `READING` 项目的初始化创建。对于 `READING` 项目，通过消息总线通知 Book 领域解析并挂载 `TaskChain` 树。 | 成功后向全局广播 `ProjectCreatedEvent` |
-| **状态生命周期管理服务** <br>`ProjectStateService` | 接入层 REST API / <br>离线包退出守护进程 | 提供项目的启动 (`ACTIVE`)、休眠 (`SUSPENDED`)、唤醒 (`RESUME`) 与归档 (`ARCHIVED`) 转换。控制内部状态机合法性与退出挂起。 | 离线包退出时自动刷盘；唤醒联动 Agent 句柄重建 |
-| **任务树挂载与调度服务** <br>`TaskChainTreeService` | Skill 领域 (技能注入) / <br>Book 领域 (章节生成) | 允许外部领域向特定 `Project` 注入 `TaskChain` 节点或 `Task` 微观步骤，并提供 DAG 依赖校验与进度计算。 | 维护 `Project -> TaskChain -> Task` 归属索引与拓扑状态 |
-| **项目上下文元数据查询** <br>`ProjectQueryService` | Note 领域 (笔记归属) / <br>Graph 领域 (溯源定位) | 提供根据 `project_id` 获取项目基本属性、当前状态、绑定 Agent ID 及聚合进度的查询接口。 | 高频查询，提供领域缓存与只读视图 DTO |
-| **项目领域事件订阅源** <br>`ProjectEventPublisher` | Graph RAG 旁路领域 / <br>消息通知领域 | 发布 `ProjectStatusChangedEvent` 与 `ProjectArchivedEvent`。归档事件携带结项经验总结出列。 | 100% 异步广播，不阻塞 Project 领域写入 |
+| 领域服务名称                                        | 调用的目标领域 / 模块                            | 服务能力描述                                                                                                              | 领域契约与约束                                         |
+| :-------------------------------------------------- | :----------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------- |
+| **项目双轨创建服务** <br>`CreateProjectService`     | 接入层 REST API / <br>Book 领域 (物料挂载)       | 提供 `PLAN` 与 `READING` 项目的初始化创建。对于 `READING` 项目，通过消息总线通知 Book 领域解析并挂载 `TaskChain` 树。     | 成功后向全局广播 `ProjectCreatedEvent`                 |
+| **状态生命周期管理服务** <br>`ProjectStateService`  | 接入层 REST API / <br>离线包退出守护进程         | 提供项目的启动 (`ACTIVE`)、休眠 (`SUSPENDED`)、唤醒 (`RESUME`) 与归档 (`ARCHIVED`) 转换。控制内部状态机合法性与退出挂起。 | 离线包退出时自动刷盘；唤醒联动 Agent 句柄重建          |
+| **任务树挂载与调度服务** <br>`TaskChainTreeService` | Skill 领域 (技能注入) / <br>Book 领域 (章节生成) | 允许外部领域向特定 `Project` 注入 `TaskChain` 节点或 `Task` 微观步骤，并提供 DAG 依赖校验与进度计算。                     | 维护 `Project -> TaskChain -> Task` 归属索引与拓扑状态 |
+| **项目上下文元数据查询** <br>`ProjectQueryService`  | Note 领域 (笔记归属) / <br>Graph 领域 (溯源定位) | 提供根据 `project_id` 获取项目基本属性、当前状态、绑定 Agent ID 及聚合进度的查询接口。                                    | 高频查询，提供领域缓存与只读视图 DTO                   |
+| **项目领域事件订阅源** <br>`ProjectEventPublisher`  | Graph RAG 旁路领域 / <br>消息通知领域            | 发布 `ProjectStatusChangedEvent` 与 `ProjectArchivedEvent`。归档事件携带结项经验总结出列。                                | 100% 异步广播，不阻塞 Project 领域写入                 |
 
 ---
 
@@ -110,9 +110,6 @@ graph TD
 ### 1. 双轨项目创建内部交互流
 
 项目创建分为对话交互自动建树的 `PLAN` 模式与**事件驱动异步解耦**的 `READING` 模式。
-
-> [!TIP]
-> **创建中断自愈说明**：项目创建过程中若遭遇单机软件意外关闭/断电强杀，软件冷启动时由后台修复线程 (Startup Healing Thread) 根据物理物料与意图完整度分类自愈。详细分类自愈与降级规则请参照 [四、4 冷启动修复线程自愈边界](#4-双轨创建中断分析冷启动修复线程自愈边界-self-healing-boundaries)。
 
 #### (1) 计划项目 (`PLAN` 模式) 对话建树与激活交互流
 
@@ -278,13 +275,13 @@ sequenceDiagram
 
 ##### 冷启动创建中断异常处置与消息通知矩阵
 
-| 异常中断场景 | 物理残留状态描述 | 后端自愈与处置机制 | 处置后页面消息通知 (Notification) |
-| :--- | :--- | :--- | :--- |
-| **解析中途强杀** (`READING`) | 物理文件完整存留，`Book.parsing_status=PARSING` | 重新派发 `BookParseRequestedEvent` 恢复后台解析与自动挂载 | 解析完成后由事件驱动产生 `PROJECT_READY` 消息通知 |
-| **挂载中途强杀** (`READING`) | `parsed_content.json` 已生成，`Project.status=INIT` | 读取 JSON 文件自动实例化 `TaskChain` 树并扭转为 `ACTIVE` | 产生 `PROJECT_READY` 消息通知：“电子书解析已自动修复就绪” |
-| **建树中途强杀** (`PLAN`) | 增量对话 Trace 与 Task 草稿已在 SQLite，`status=INIT` | 提取 SQLite 中已落盘的草稿建树，挂载并纠偏扭转为 `ACTIVE` | 产生 `PROJECT_READY` 消息通知：“计划任务树已自动恢复建树” |
-| **文件写入损坏** (`READING`) | 文件传输/写入中途断电，文件 Hash 不匹配 | 标记 `Book.parsing_status=FAILED` 并清理死链垃圾文件 | 产生 `PARSE_FAILED` (Warning) 消息通知：“电子书坏损，请重新上传” |
-| **未对话即强杀** (`PLAN`) | 只有 `INIT` 项目记录，无任何对话历史 | 保持 `status=INIT` 项目容器不变，无需静默通知 | 用户在大盘点击该项目时，自动分配 Agent 启动工作台对话引导 |
+| 异常中断场景                 | 物理残留状态描述                                      | 后端自愈与处置机制                                        | 处置后页面消息通知 (Notification)                                |
+| :--------------------------- | :---------------------------------------------------- | :-------------------------------------------------------- | :--------------------------------------------------------------- |
+| **解析中途强杀** (`READING`) | 物理文件完整存留，`Book.parsing_status=PARSING`       | 重新派发 `BookParseRequestedEvent` 恢复后台解析与自动挂载 | 解析完成后由事件驱动产生 `PROJECT_READY` 消息通知                |
+| **挂载中途强杀** (`READING`) | `parsed_content.json` 已生成，`Project.status=INIT`   | 读取 JSON 文件自动实例化 `TaskChain` 树并扭转为 `ACTIVE`  | 产生 `PROJECT_READY` 消息通知：“电子书解析已自动修复就绪”        |
+| **建树中途强杀** (`PLAN`)    | 增量对话 Trace 与 Task 草稿已在 SQLite，`status=INIT` | 提取 SQLite 中已落盘的草稿建树，挂载并纠偏扭转为 `ACTIVE` | 产生 `PROJECT_READY` 消息通知：“计划任务树已自动恢复建树”        |
+| **文件写入损坏** (`READING`) | 文件传输/写入中途断电，文件 Hash 不匹配               | 标记 `Book.parsing_status=FAILED` 并清理死链垃圾文件      | 产生 `PARSE_FAILED` (Warning) 消息通知：“电子书坏损，请重新上传” |
+| **未对话即强杀** (`PLAN`)    | 只有 `INIT` 项目记录，无任何对话历史                  | 保持 `status=INIT` 项目容器不变，无需静默通知             | 用户在大盘点击该项目时，自动分配 Agent 启动工作台对话引导        |
 
 ---
 
@@ -403,12 +400,12 @@ class ProjectEventBusPort(ABC):
 
 ### 1. REST 路由与领域 UseCase 映射表
 
-| REST 路由 | HTTP Method | 请求 Payload 格式 | 成功响应状态码 | Project 领域 UseCase 映射 |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/projects` | `POST` | `application/json` (PLAN) <br> `multipart/form-data` (READING) | `201 Created` | `CreateProjectUseCase.execute()` |
-| `/api/projects` | `GET` | Query Params (`?status=ACTIVE&page=1&size=20`) | `200 OK` | `ProjectQueryUseCase.list_projects()` |
-| `/api/projects/{id}/archive` | `POST` | `application/json` (`experience_content`) | `200 OK` | `ManageProjectStateUseCase.archive()` |
-| `/api/projects/{id}/reactivate` | `POST` | 无 Body | `200 OK` | `ManageProjectStateUseCase.reactivate()` |
+| REST 路由                       | HTTP Method | 请求 Payload 格式                                              | 成功响应状态码 | Project 领域 UseCase 映射                |
+| :------------------------------ | :---------- | :------------------------------------------------------------- | :------------- | :--------------------------------------- |
+| `/api/projects`                 | `POST`      | `application/json` (PLAN) <br> `multipart/form-data` (READING) | `201 Created`  | `CreateProjectUseCase.execute()`         |
+| `/api/projects`                 | `GET`       | Query Params (`?status=ACTIVE&page=1&size=20`)                 | `200 OK`       | `ProjectQueryUseCase.list_projects()`    |
+| `/api/projects/{id}/archive`    | `POST`      | `application/json` (`experience_content`)                      | `200 OK`       | `ManageProjectStateUseCase.archive()`    |
+| `/api/projects/{id}/reactivate` | `POST`      | 无 Body                                                        | `200 OK`       | `ManageProjectStateUseCase.reactivate()` |
 
 ---
 
@@ -455,22 +452,22 @@ class ProjectResponseDTO(BaseModel):
 
 ### 1. 领域内部异常与 HTTP 错误映射
 
-| 领域异常类 (Domain Exception) | 异常触发场景 | 映射 HTTP 状态码 | Error Code Payload |
-| :--- | :--- | :--- | :--- |
-| `ProjectNotFoundException` | 查询或变更不存在的 `project_id` | `404 Not Found` | `PROJECT_NOT_FOUND` |
-| `InvalidStateTransitionException` | 对已 `ARCHIVED` 的项目尝试重复归档 | `409 Conflict` | `INVALID_STATE_TRANSITION` |
-| `ExternalServiceFailureException` | 调用 Book 领域解析或 Agent 领域加载失败 | `502 Bad Gateway` | `EXTERNAL_DOMAIN_ERROR` |
-| `DuplicateProjectTitleException` | 创建同名活跃项目 (同名约束) | `400 Bad Request` | `DUPLICATE_PROJECT_TITLE` |
+| 领域异常类 (Domain Exception)     | 异常触发场景                            | 映射 HTTP 状态码  | Error Code Payload         |
+| :-------------------------------- | :-------------------------------------- | :---------------- | :------------------------- |
+| `ProjectNotFoundException`        | 查询或变更不存在的 `project_id`         | `404 Not Found`   | `PROJECT_NOT_FOUND`        |
+| `InvalidStateTransitionException` | 对已 `ARCHIVED` 的项目尝试重复归档      | `409 Conflict`    | `INVALID_STATE_TRANSITION` |
+| `ExternalServiceFailureException` | 调用 Book 领域解析或 Agent 领域加载失败 | `502 Bad Gateway` | `EXTERNAL_DOMAIN_ERROR`    |
+| `DuplicateProjectTitleException`  | 创建同名活跃项目 (同名约束)             | `400 Bad Request` | `DUPLICATE_PROJECT_TITLE`  |
 
 ---
 
 ### 2. 领域状态跳转防阻断矩阵
 
-| 源状态 \ 目标状态 | `INIT` | `ACTIVE` | `ARCHIVED` |
-| :--- | :--- | :--- | :--- |
-| **`INIT`** | 阻断 (409) | **允许 (200 - 建树就绪)** | 阻断 (409) |
-| **`ACTIVE`** | 阻断 (409) | 阻断 (409) | **允许 (200 - 结项归档)** |
-| **`ARCHIVED`** | 阻断 (409) | **允许 (200 - 重新激活)** | 阻断 (409) |
+| 源状态 \ 目标状态 | `INIT`     | `ACTIVE`                  | `ARCHIVED`                |
+| :---------------- | :--------- | :------------------------ | :------------------------ |
+| **`INIT`**        | 阻断 (409) | **允许 (200 - 建树就绪)** | 阻断 (409)                |
+| **`ACTIVE`**      | 阻断 (409) | 阻断 (409)                | **允许 (200 - 结项归档)** |
+| **`ARCHIVED`**    | 阻断 (409) | **允许 (200 - 重新激活)** | 阻断 (409)                |
 
 ---
 
@@ -485,11 +482,11 @@ class ProjectResponseDTO(BaseModel):
 
 #### 单机离线包异常处置矩阵
 
-| 场景 | 异常点 (Failure Scenario) | Project 领域处置行为 (Domain Self-Healing) | 业务状态最终结果 | 页面提示与通知 |
-| :--- | :--- | :--- | :--- | :--- |
-| **软件正常退出** | 用户点击应用 `X` 按钮关闭软件 | 业务数据已 100% 实时写入 SQLite。主进程极速退出，项目在 SQLite 中维持真实 `ACTIVE` 状态。 | 保持 `ACTIVE` | 0.1s 极速响应退出，再次打开正常访问。 |
-| **软件异常强杀/断电** | 电脑断电或任务管理器强杀进程 | 对话与任务数据在产生时已即刻落盘 SQLite。再次打开时无数据丢失，项目依然保持 `ACTIVE`。 | 保持 `ACTIVE` | 再次进入项目，展示 100% 完整历史数据与进度。 |
-| **本地数据库坏损** | SQLite 数据库文件损坏 | 启动或载入时捕获 `DatabaseCorruptedException`，从 WAL/快照恢复 SQLite 数据库。 | 恢复为 `ACTIVE` | 产生 `SYSTEM_ALERT` Warning 消息通知：“本地数据库已自动修复恢复”。 |
+| 场景                  | 异常点 (Failure Scenario)     | Project 领域处置行为 (Domain Self-Healing)                                                | 业务状态最终结果 | 页面提示与通知                                                     |
+| :-------------------- | :---------------------------- | :---------------------------------------------------------------------------------------- | :--------------- | :----------------------------------------------------------------- |
+| **软件正常退出**      | 用户点击应用 `X` 按钮关闭软件 | 业务数据已 100% 实时写入 SQLite。主进程极速退出，项目在 SQLite 中维持真实 `ACTIVE` 状态。 | 保持 `ACTIVE`    | 0.1s 极速响应退出，再次打开正常访问。                              |
+| **软件异常强杀/断电** | 电脑断电或任务管理器强杀进程  | 对话与任务数据在产生时已即刻落盘 SQLite。再次打开时无数据丢失，项目依然保持 `ACTIVE`。    | 保持 `ACTIVE`    | 再次进入项目，展示 100% 完整历史数据与进度。                       |
+| **本地数据库坏损**    | SQLite 数据库文件损坏         | 启动或载入时捕获 `DatabaseCorruptedException`，从 WAL/快照恢复 SQLite 数据库。            | 恢复为 `ACTIVE`  | 产生 `SYSTEM_ALERT` Warning 消息通知：“本地数据库已自动修复恢复”。 |
 
 > [!TIP]
 > 关于双轨项目创建中断场景与冷启动修复线程 (Startup Healing Thread) 的详细序列图与自愈矩阵，请直接参照 [二、1 (3) 创建中断场景与冷启动修复线程交互流](#3-创建中断场景与冷启动修复线程-startup-healing-thread-交互流)。

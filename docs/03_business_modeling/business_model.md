@@ -21,9 +21,9 @@
 * **业务痛点**：将非结构化方法论转换为结构化技能模版（包含依赖关系的任务步骤）时，大模型极易产生“编译幻觉”。如果生成的步骤包含循环依赖（如步骤 A 依赖步骤 B，步骤 B 又依赖步骤 A）或关键参数缺失，将导致执行端 Agent 解析并制定计划时发生逻辑死锁或系统崩溃。
 * **建模要求**：需在编译层与入库层之间建立物理隔离的“沙箱技能区”，并通过拓扑排序等算法对步骤依赖进行严格的合法性校验。
 
-### 4. 长周期执行中的状态死锁与会话开销
-* **业务痛点**：计划项目的执行往往跨越较长周期，若为用户保持无限期的 LLM 会话长连接，会造成服务器资源的极大消耗与连接死锁；但若直接清除会话，又会导致上下文丢失，影响任务执行的连续性。
-* **建模要求**：建立“超时自动休眠挂起”与“一键状态重载唤醒”的会话生命周期管理机制机制。
+### 4. 长周期执行中的会话开销与数据安全
+* **业务痛点**：计划项目的执行往往跨越较长周期，若为用户保持无限期的 LLM 会话长连接，会造成服务器与本地进程资源的消耗；但若直接清除会话，又可能导致上下文丢失。
+* **建模要求**：采用“对话实时增量落盘”与“Agent 句柄 Lazy Load 内存释放”机制。业务持久化状态极简为 `[INIT, ACTIVE, ARCHIVED]`，软件退出或闲置时仅在物理层解绑 Agent 句柄，数据库状态维持真实的 `ACTIVE` 语义，实现零数据丢失与极速关闭。
 
 ### 5. 伴读 Agent 的特权注入与越权执行风险
 * **业务痛点**：用户上传的电子书或外部文献中可能暗含针对 LLM 的恶意注入指令（Prompt Injection）。若伴读 Agent 拥有本地 Shell 调用、网络请求或敏感 API 执行权限，恶意指令将直接威胁用户本地系统与数据安全。
@@ -154,15 +154,15 @@ erDiagram
 * **定义**：一切学习与执行任务的最高层级承载容器。
 * **核心属性表**：
 
-| 属性名                      | 类型     | 约束 / 可选性                       | 含义与说明                      |
-| :-------------------------- | :------- | :---------------------------------- | :------------------------------ |
-| `id`                        | String   | 主键 (UUID)                         | 项目全局唯一标识                |
-| `title`                     | String   | 必填                                | 项目名称                        |
-| `type`                      | Enum     | `READING` / `PLAN`                  | 项目类型（阅读项目 / 计划项目） |
-| `status`                    | Enum     | `ACTIVE` / `ARCHIVED` / `SUSPENDED` | 生命周期状态                    |
-| `deadline`                  | DateTime | 可选                                | 截止时间约束                    |
-| `assigned_agent_id`         | String   | 必填                                | 绑定的沙箱伴读 Agent ID         |
-| `created_at` / `updated_at` | DateTime | 必填                                | 系统审计时间戳                  |
+| 属性名                      | 类型     | 约束 / 可选性                  | 含义与说明                      |
+| :-------------------------- | :------- | :----------------------------- | :------------------------------ |
+| `id`                        | String   | 主键 (UUID)                    | 项目全局唯一标识                |
+| `title`                     | String   | 必填                           | 项目名称                        |
+| `type`                      | Enum     | `READING` / `PLAN`             | 项目类型（阅读项目 / 计划项目） |
+| `status`                    | Enum     | `INIT` / `ACTIVE` / `ARCHIVED` | 生命周期状态 (极简三态模型)     |
+| `deadline`                  | DateTime | 可选                           | 截止时间约束                    |
+| `assigned_agent_id`         | String   | 必填                           | 绑定的沙箱伴读 Agent ID         |
+| `created_at` / `updated_at` | DateTime | 必填                           | 系统审计时间戳                  |
 
 * **业务规则**：
   * **生命周期统一**：“阅读项目”是项目的特化类型，底层完全复用项目的生命周期管理流转。
@@ -476,24 +476,24 @@ erDiagram
 * **定义**：贯穿系统运行安全隔离、审校校验、预处理暂存与隐私脱敏的核心通用支撑容器与安全隔离中枢 (Sandbox Domain)。
 * **核心属性表 (Sandbox Context - 通用上下文)**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 沙箱上下文全局唯一标识 |
-| `type` | Enum | 必填 | 沙箱职责类型：`AGENT_RUNTIME` (Agent 运行) / `SKILL_VALIDATION` (技能审校) / `BOOK_PARSING` (解析暂存) / `PRIVACY_REDACTION` (隐私脱敏) |
-| `target_entity_id` | String | 可选 | 绑定的目标实体 ID (Agent / Skill / Book / Note ID) |
-| `security_level` | Enum | 必填 | 安全隔离等级：`STRICT_ISOLATED` (独立隔离进程) / `READ_ONLY` (只读通道) / `EPHEMERAL_STAGING` (临时暂存区) |
-| `validation_status` | Enum | 必填 | 状态：`PENDING` (准备中) / `VALIDATED` (解算通过) / `DEADLOCK_BLOCKED` (死锁阻断) / `PARSED` (物料解析完成) |
-| `isolation_policy` | Object | JSON 结构 | 安全策略 (如 `no_network: true`, `no_shell: true`, `pipe_only: true`) |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型     | 约束 / 可选性 | 含义与说明                                                                                                                              |
+| :-------------------------- | :------- | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                        | String   | 主键 (UUID)   | 沙箱上下文全局唯一标识                                                                                                                  |
+| `type`                      | Enum     | 必填          | 沙箱职责类型：`AGENT_RUNTIME` (Agent 运行) / `SKILL_VALIDATION` (技能审校) / `BOOK_PARSING` (解析暂存) / `PRIVACY_REDACTION` (隐私脱敏) |
+| `target_entity_id`          | String   | 可选          | 绑定的目标实体 ID (Agent / Skill / Book / Note ID)                                                                                      |
+| `security_level`            | Enum     | 必填          | 安全隔离等级：`STRICT_ISOLATED` (独立隔离进程) / `READ_ONLY` (只读通道) / `EPHEMERAL_STAGING` (临时暂存区)                              |
+| `validation_status`         | Enum     | 必填          | 状态：`PENDING` (准备中) / `VALIDATED` (解算通过) / `DEADLOCK_BLOCKED` (死锁阻断) / `PARSED` (物料解析完成)                             |
+| `isolation_policy`          | Object   | JSON 结构     | 安全策略 (如 `no_network: true`, `no_shell: true`, `pipe_only: true`)                                                                   |
+| `created_at` / `updated_at` | DateTime | 必填          | 审计时间戳                                                                                                                              |
 
 * **沙箱四大职责体系与业务规则**：
 
-| 职责分类 | 核心业务用途 | 核心隔离与校验机制 (契约) |
-| :--- | :--- | :--- |
-| **职责 A：Agent 安全运行沙箱** | 绑定伴读 Agent 与计划监督 Agent 运行 | **PA-05 契约**：独立受限进程，封禁 Shell 执行、外部网络调用与核心磁盘写入权限，仅保留只读与 Pipe 通信管道。 |
-| **职责 B：技能与工作流审校沙箱** | 审校与解算未入库技能卡片依赖 | **PA-03 契约**：拓扑解算算子实时检测成环死锁，若存在环路（`DEADLOCK_BLOCKED`），强行阻断批准入库。 |
-| **职责 C：物料解析与暂存沙箱** | 电子书文件上传与 `parsed_content.json` 切片暂存 | 隔离大体量原书与拆解切片物料，防止解析中途崩溃或格式坏损污染主数据库模型。 |
-| **职责 D：知识隐私与脱敏隔离沙箱** | 本地加密资产与脱敏防护 | 个人私密笔记与知识资产在喂入全局 RAG 或外挂 LLM 图谱抽取前的本地解密、脱敏与隔离防护。 |
+| 职责分类                           | 核心业务用途                                    | 核心隔离与校验机制 (契约)                                                                                   |
+| :--------------------------------- | :---------------------------------------------- | :---------------------------------------------------------------------------------------------------------- |
+| **职责 A：Agent 安全运行沙箱**     | 绑定伴读 Agent 与计划监督 Agent 运行            | **PA-05 契约**：独立受限进程，封禁 Shell 执行、外部网络调用与核心磁盘写入权限，仅保留只读与 Pipe 通信管道。 |
+| **职责 B：技能与工作流审校沙箱**   | 审校与解算未入库技能卡片依赖                    | **PA-03 契约**：拓扑解算算子实时检测成环死锁，若存在环路（`DEADLOCK_BLOCKED`），强行阻断批准入库。          |
+| **职责 C：物料解析与暂存沙箱**     | 电子书文件上传与 `parsed_content.json` 切片暂存 | 隔离大体量原书与拆解切片物料，防止解析中途崩溃或格式坏损污染主数据库模型。                                  |
+| **职责 D：知识隐私与脱敏隔离沙箱** | 本地加密资产与脱敏防护                          | 个人私密笔记与知识资产在喂入全局 RAG 或外挂 LLM 图谱抽取前的本地解密、脱敏与隔离防护。                      |
 
 * **关键流程契约 (死锁阻断与门禁流转)**：
   > [!CAUTION]
@@ -507,49 +507,49 @@ erDiagram
 
 * **密集向量切片索引表 (VectorChunkIndex - Dense RAG 检索缓存)**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 向量切片全局唯一标识 |
-| `source_type` | Enum | 必填 | 切片来源类型：`BOOK_BLOCK` (图书段落块) / `NOTE_CARD` (思考笔记卡片) / `DISCUSS_MSG` (伴读对话) |
-| `source_id` | String | 必填 | 归属主体 ID (`book_id` / `note_id` / `session_id`) |
-| `block_id` | String | 可选 | 物理段落块 ID (对应 `ContentBlock.block_id`，用于原文 Trace-to-Source 闪烁高亮) |
-| `embedding` | FloatArray / Blob | 必填 | 文本切片生成的高维 Dense Vector (存入 `sqlite-vec` 虚表驱动余弦相似度检索) |
-| `text_hash` | String | 必填 | 原始文本哈希值 (SHA-256)，用于去重更新与增量缓存校验 |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型              | 约束 / 可选性 | 含义与说明                                                                                      |
+| :-------------------------- | :---------------- | :------------ | :---------------------------------------------------------------------------------------------- |
+| `id`                        | String            | 主键 (UUID)   | 向量切片全局唯一标识                                                                            |
+| `source_type`               | Enum              | 必填          | 切片来源类型：`BOOK_BLOCK` (图书段落块) / `NOTE_CARD` (思考笔记卡片) / `DISCUSS_MSG` (伴读对话) |
+| `source_id`                 | String            | 必填          | 归属主体 ID (`book_id` / `note_id` / `session_id`)                                              |
+| `block_id`                  | String            | 可选          | 物理段落块 ID (对应 `ContentBlock.block_id`，用于原文 Trace-to-Source 闪烁高亮)                 |
+| `embedding`                 | FloatArray / Blob | 必填          | 文本切片生成的高维 Dense Vector (存入 `sqlite-vec` 虚表驱动余弦相似度检索)                      |
+| `text_hash`                 | String            | 必填          | 原始文本哈希值 (SHA-256)，用于去重更新与增量缓存校验                                            |
+| `created_at` / `updated_at` | DateTime          | 必填          | 审计时间戳                                                                                      |
 
 * **核心实体属性表 (GraphNode - 知识原子节点)**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 知识节点全局唯一标识 |
-| `name` | String | 必填 | 概念/实体名称 (LLM 提取的规范化原子知识点) |
-| `aliases` | Array<String> | JSON 数组 (可选) | 同义词/英文缩写/别名列表 (如 `["AI", "人工智能"]`，由 LLM 闲时归一化提炼) |
-| `source_type` | Enum | 必填 | 提炼来源：`BOOK_CHAPTER` (客观章节) / `NOTE` (主观笔记) |
-| `source_id` | String | 必填 | 关联的源实体 ID (电子书 ID 或 笔记 ID) |
-| `block_ids` | Array<String> | JSON 数组 (可选) | 提炼出该概念节点的物理切片 ID 列表 (关联 `VectorChunkIndex.block_id` / `ContentBlock.block_id`，用于 Quick Peek 反查与物理硬锚定) |
-| `status` | Enum | 必填 | 旁路生命周期状态：`PENDING_EXTRACT` (待抽取) / `EXTRACTING` (抽取中) / `MERGED` (已入库合并) / `FALSIFIED` (已证伪) / `DECAYED` (已衰变) |
-| `weight` | Float | 必填 | 节点置信度与检索权重 (范围 0.0 ~ 1.0，被证伪衰变后降低) |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型          | 约束 / 可选性    | 含义与说明                                                                                                                               |
+| :-------------------------- | :------------ | :--------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                        | String        | 主键 (UUID)      | 知识节点全局唯一标识                                                                                                                     |
+| `name`                      | String        | 必填             | 概念/实体名称 (LLM 提取的规范化原子知识点)                                                                                               |
+| `aliases`                   | Array<String> | JSON 数组 (可选) | 同义词/英文缩写/别名列表 (如 `["AI", "人工智能"]`，由 LLM 闲时归一化提炼)                                                                |
+| `source_type`               | Enum          | 必填             | 提炼来源：`BOOK_CHAPTER` (客观章节) / `NOTE` (主观笔记)                                                                                  |
+| `source_id`                 | String        | 必填             | 关联的源实体 ID (电子书 ID 或 笔记 ID)                                                                                                   |
+| `block_ids`                 | Array<String> | JSON 数组 (可选) | 提炼出该概念节点的物理切片 ID 列表 (关联 `VectorChunkIndex.block_id` / `ContentBlock.block_id`，用于 Quick Peek 反查与物理硬锚定)        |
+| `status`                    | Enum          | 必填             | 旁路生命周期状态：`PENDING_EXTRACT` (待抽取) / `EXTRACTING` (抽取中) / `MERGED` (已入库合并) / `FALSIFIED` (已证伪) / `DECAYED` (已衰变) |
+| `weight`                    | Float         | 必填             | 节点置信度与检索权重 (范围 0.0 ~ 1.0，被证伪衰变后降低)                                                                                  |
+| `created_at` / `updated_at` | DateTime      | 必填             | 审计时间戳                                                                                                                               |
 
 * **标签超节点属性表 (TagSuperNode - 跨项目聚拢节点)**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 超节点全局唯一标识 |
-| `tag_name` | String | 必填 | 全局标签名称 (如 `架构设计`, `状态机`) |
-| `node_ids` | Array<String> | JSON 数组 | 将相同标签下的跨项目 GraphNode 逻辑聚拢 |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型          | 约束 / 可选性 | 含义与说明                              |
+| :-------------------------- | :------------ | :------------ | :-------------------------------------- |
+| `id`                        | String        | 主键 (UUID)   | 超节点全局唯一标识                      |
+| `tag_name`                  | String        | 必填          | 全局标签名称 (如 `架构设计`, `状态机`)  |
+| `node_ids`                  | Array<String> | JSON 数组     | 将相同标签下的跨项目 GraphNode 逻辑聚拢 |
+| `created_at` / `updated_at` | DateTime      | 必填          | 审计时间戳                              |
 
 * **图谱关系边属性表 (GraphEdge - 关系连接)**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 关系边全局唯一标识 |
-| `source_id` | String | 外键 (GraphNode) | 起始知识节点 ID |
-| `target_id` | String | 外键 (GraphNode) | 目标知识节点 ID |
-| `relation_type` | Enum | 必填 | 关系类型：`ASSOCIATES` (概念关联) / `FALSIFIES` (证伪修正) |
-| `weight` | Float | 必填 | 边权重 (关联强度或反驳强度) |
-| `created_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名          | 类型     | 约束 / 可选性    | 含义与说明                                                 |
+| :-------------- | :------- | :--------------- | :--------------------------------------------------------- |
+| `id`            | String   | 主键 (UUID)      | 关系边全局唯一标识                                         |
+| `source_id`     | String   | 外键 (GraphNode) | 起始知识节点 ID                                            |
+| `target_id`     | String   | 外键 (GraphNode) | 目标知识节点 ID                                            |
+| `relation_type` | Enum     | 必填             | 关系类型：`ASSOCIATES` (概念关联) / `FALSIFIES` (证伪修正) |
+| `weight`        | Float    | 必填             | 边权重 (关联强度或反驳强度)                                |
+| `created_at`    | DateTime | 必填             | 审计时间戳                                                 |
 
 * **双通道旁路异步构建与业务规则**：
   * **旁路解耦契约**：知识图谱构建 100% 旁路运行，主业务流落盘即返回，绝不受图谱建图耗时或 API 限额影响。
@@ -578,22 +578,22 @@ erDiagram
 * **定义**：记录系统异步处理结果、状态变更通知、操作就绪提醒以及系统告警的消息通知实体，用于实时推送至前端页面或在通知中心进行异步展现。
 * **核心属性表**：
 
-| 属性名 | 类型 | 约束 / 可选性 | 含义与说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | String | 主键 (UUID) | 消息通知全局唯一标识 |
-| `title` | String | 必填 | 消息通知标题 |
-| `content` | String | 必填 | 消息正文文本 / JSON 载荷 |
-| `type` | Enum | 必填 | 消息类型：`PROJECT_READY` (项目初始化就绪) / `BOOK_PARSED` (电子书解析完成) / `TASK_OVERDUE` (任务逾期提醒) / `SYSTEM_ALERT` (系统异常告警) |
-| `level` | Enum | 必填 | 消息级别：`INFO` (提示) / `SUCCESS` (成功) / `WARNING` (警告) / `ERROR` (错误) |
-| `status` | Enum | 必填 | 读取状态：`UNREAD` (未读) / `READ` (已读) / `DISMISSED` (已忽略) |
-| `target_entity_type` | String | 可选 | 关联实体类型 (如 `PROJECT`, `BOOK`, `TASK`) |
-| `target_entity_id` | String | 可选 | 关联实体 ID (用于页面点击消息直接精准定位跳转) |
-| `created_at` / `updated_at` | DateTime | 必填 | 审计时间戳 |
+| 属性名                      | 类型     | 约束 / 可选性 | 含义与说明                                                                                                                                  |
+| :-------------------------- | :------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                        | String   | 主键 (UUID)   | 消息通知全局唯一标识                                                                                                                        |
+| `title`                     | String   | 必填          | 消息通知标题                                                                                                                                |
+| `content`                   | String   | 必填          | 消息正文文本 / JSON 载荷                                                                                                                    |
+| `type`                      | Enum     | 必填          | 消息类型：`PROJECT_READY` (项目初始化就绪) / `BOOK_PARSED` (电子书解析完成) / `TASK_OVERDUE` (任务逾期提醒) / `SYSTEM_ALERT` (系统异常告警) |
+| `level`                     | Enum     | 必填          | 消息级别：`INFO` (提示) / `SUCCESS` (成功) / `WARNING` (警告) / `ERROR` (错误)                                                              |
+| `status`                    | Enum     | 必填          | 读取状态：`UNREAD` (未读) / `READ` (已读) / `DISMISSED` (已忽略)                                                                            |
+| `target_entity_type`        | String   | 可选          | 关联实体类型 (如 `PROJECT`, `BOOK`, `TASK`)                                                                                                 |
+| `target_entity_id`          | String   | 可选          | 关联实体 ID (用于页面点击消息直接精准定位跳转)                                                                                              |
+| `created_at` / `updated_at` | DateTime | 必填          | 审计时间戳                                                                                                                                  |
 
 * **业务规则与推送机制**：
-  * **异步通信桥梁**：当后台异步任务（如电子书解析完成、项目状态自动扭转为 `ACTIVE`、24h 会话超时挂起等）处理完毕后，持久化落盘 `Notification` 记录。
-  * **多通道页面推送**：后端支持通过 SSE (Server-Sent Events) / WebSocket 向前端页面实时推送，或由前端通知中心定时轮询/拉取。
-  * **跳转定位契约**：携带 `target_entity_type` 与 `target_entity_id`，支持用户在前端通知面板中点击消息后一键定位跳转至对应的项目大盘、任务节点或图书阅读页面。
+  - **异步通信桥梁**：当后台异步任务（如电子书解析完成、对话自动建树就绪、冷启动修复自愈完成、项目状态扭转为 `ACTIVE` 等）处理完毕后，持久化落盘 `Notification` 记录。
+  - **多通道页面推送**：后端支持通过 SSE (Server-Sent Events) / WebSocket 向前端页面实时推送，或由前端通知中心定时轮询/拉取。
+  - **跳转定位契约**：携带 `target_entity_type` 与 `target_entity_id`，支持用户在前端通知面板中点击消息后一键定位跳转至对应的项目大盘、任务节点或图书阅读页面。
 
 ---
 
