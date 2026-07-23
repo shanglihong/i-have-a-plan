@@ -69,7 +69,7 @@
 
 | 领域分类 | 规范文档 (点击查看明细) | 业务领域与核心职责 | 包含的接口概览 |
 | :--- | :--- | :--- | :--- |
-| **项目与任务领域** | **[project_api.md](./modules/project/project_api.md)** | **项目生命周期** | `POST /api/projects` (创建双轨项目)<br>`GET /api/projects` (获取项目列表)<br>`POST /api/projects/{id}/archive` (归档)<br>`POST /api/projects/{id}/suspend` (休眠)<br>`POST /api/projects/{id}/resume` (唤醒) |
+| **项目与任务领域** | **[project_api.md](./modules/project/project_api.md)** | **项目生命周期** | `POST /api/projects` (创建双轨项目)<br>`GET /api/projects` (获取项目列表)<br>`GET /api/projects/{id}/detail` (项目详情与任务树)<br>`PATCH /api/projects/{id}` (修改项目元数据)<br>`POST /api/projects/{id}/archive` (归档与经验复盘) |
 | **项目与任务领域** | **[task_api.md](./modules/project/task_api.md)** | **任务顺延与状态调度** | `POST /api/tasks/reschedule` (拓扑顺延计算)<br>`PATCH /api/tasks/{id}` (更新原子任务状态) |
 | **书籍与物理锚点领域** | **[document_api.md](./modules/book/document_api.md)** | **文档流式解析** | `GET /api/projects/{id}/parse-stream` (解析与大纲 SSE) |
 | **笔记与知识库领域** | **[note_api.md](./modules/note/note_api.md)** | **伴读对话与融合笔记** | `POST /api/discuss` (伴读对话 SSE)<br>`POST /api/notes` (创建融合笔记)<br>`GET /api/projects/{id}/notes` (获取笔记列表) |

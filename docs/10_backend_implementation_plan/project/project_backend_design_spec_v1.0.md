@@ -28,7 +28,7 @@
 | **状态生命周期管理服务** <br>`ProjectStateService`  | 接入层 REST API / <br>离线包退出守护进程         | 提供项目的启动 (`ACTIVE`)、休眠 (`SUSPENDED`)、唤醒 (`RESUME`) 与归档 (`ARCHIVED`) 转换。控制内部状态机合法性与退出挂起。 | 离线包退出时自动刷盘；唤醒联动 Agent 句柄重建          |
 | **任务树挂载与调度服务** <br>`TaskChainTreeService` | Skill 领域 (技能注入) / <br>Book 领域 (章节生成) | 允许外部领域向特定 `Project` 注入 `TaskChain` 节点或 `Task` 微观步骤，并提供 DAG 依赖校验与进度计算。                     | 维护 `Project -> TaskChain -> Task` 归属索引与拓扑状态 |
 | **项目上下文元数据查询** <br>`ProjectQueryService`  | Note 领域 (笔记归属) / <br>Graph 领域 (溯源定位) | 提供根据 `project_id` 获取项目基本属性、当前状态、绑定 Agent ID 及聚合进度的查询接口。                                    | 高频查询，提供领域缓存与只读视图 DTO                   |
-| **项目领域事件订阅源** <br>`ProjectEventPublisher`  | Graph RAG 旁路领域 / <br>消息通知领域            | 发布 `ProjectStatusChangedEvent` 与 `ProjectArchivedEvent`。归档事件携带结项经验总结出列。                                | 100% 异步广播，不阻塞 Project 领域写入                 |
+| **项目领域事件订阅源** <br>`ProjectEventPublisher`  | Graph RAG 旁路领域 / <br>消息通知领域            | 发布 `ProjectStatusChangedEvent` 与 `ProjectArchivedEvent`。归档扭转后触发页面归档卡片推送，点击卡片后广播 `ExperienceNoteCreatedEvent` 驱动 Graph RAG 旁路建图。 | 100% 异步广播，不阻塞 Project 领域写入                 |
 
 ---
 
@@ -315,9 +315,12 @@ sequenceDiagram
 
 ---
 
-### 3. 项目归档与重新激活内部交互流
+### 3. 项目归档与生成经验笔记内部交互流
 
-项目完成或用户主动结项时，通过 Project 领域控制 `ACTIVE <-> ARCHIVED` 状态流转，并发布归档领域事件：
+当项目完成或用户发送归档指令时，系统分为“项目状态归档扭转”与“卡片点击生成经验笔记”两个步骤处理：
+
+1. **第一阶段 (状态归档扭转)**：发起 `POST /api/projects/{id}/archive`，Project 领域将状态从 `ACTIVE` 扭转为 `ARCHIVED` (页面转为只读)，并广播 `ProjectArchivedEvent`。`NotificationService` 接收该事件后持久化并向用户推送 `PROJECT_ARCHIVED` 消息通知卡片（卡片上带有【生成经验笔记】交互按钮）。
+2. **第二阶段 (生成经验笔记)**：用户在归档消息卡片上点击【生成经验笔记】按钮，发起 `POST /api/projects/{id}/experience-note` 请求。后端调用 Note 领域 `CreateExperienceNoteUseCase` 创建 `EXPERIENCE` 类型的沉淀笔记 (`SynthesizedNote`)，挂载至归档项目并广播 `ExperienceNoteCreatedEvent` 驱动旁路 Graph RAG 建图。
 
 ```mermaid
 sequenceDiagram
@@ -329,36 +332,42 @@ sequenceDiagram
     participant Repo as ProjectRepositoryPort (SQLite)
     participant EventBus as EventBus (领域事件总线)
     participant NoticeService as NotificationService (页面消息通知)
+    participant NoteDomain as Note 领域 (笔记沉淀能力)
 
-    alt 场景 A: 手动归档或任务全部完成自动归档
-        Caller->>REST: POST /api/projects/{id}/archive { experience_content }
-        REST->>UC: archive_project(project_id, experience_content)
-        UC->>Repo: find_by_id(project_id)
-        Repo-->>UC: project_agg
-        
-        UC->>Agg: archive(experience_content)
-        Note over Agg: 领域内逻辑：校验状态为 ACTIVE，扭转为 ARCHIVED (强只读)
-        UC->>Repo: save(project_agg)
+    Note over Caller, REST: 阶段 1: 触发归档 API，扭转项目状态并推送归档消息卡片
+    Caller->>REST: POST /api/projects/{id}/archive
+    REST->>UC: archive_project(project_id)
+    UC->>Repo: find_by_id(project_id)
+    Repo-->>UC: project_agg
+    UC->>Agg: archive()
+    Note over Agg: 状态机扭转: ACTIVE -> ARCHIVED (强只读)
+    UC->>Repo: save(project_agg)
+    UC->>EventBus: publish(ProjectArchivedEvent(project_id))
+    EventBus-->>NoticeService: 监听 ProjectArchivedEvent
+    NoticeService->>NoticeService: 持久化 Notification 实体 (type=PROJECT_ARCHIVED)
+    NoticeService-->>Caller: 实时推送归档消息卡片 (卡片含【生成经验笔记】交互按钮)
+    UC-->>REST: 200 OK (status=ARCHIVED)
+    REST-->>Caller: 200 OK (工作台转为只读呈现)
 
-        UC->>EventBus: publish(ProjectArchivedEvent(project_id, experience_content))
-        Note over EventBus: 广播归档事件：通知 Graph 领域提取经验构建 Graph RAG 节点
-        EventBus-->>NoticeService: 监听 ProjectArchivedEvent
-        NoticeService->>NoticeService: 持久化 Notification 实体 (type=PROJECT_ARCHIVED)
-        UC-->>REST: 200 OK (status=ARCHIVED)
-        REST-->>Caller: 200 OK (工作台转为只读呈现)
+    Note over Caller, NoteDomain: 阶段 2: 用户点击消息卡片按钮生成经验笔记
+    Caller->>REST: POST /api/projects/{id}/experience-note { experience_content }
+    REST->>NoteDomain: create_experience_note(project_id, experience_content)
+    NoteDomain->>NoteDomain: 创建 SynthesizedNote (type=EXPERIENCE)
+    NoteDomain-->>REST: experience_note_id
+    NoteDomain->>EventBus: publish(ExperienceNoteCreatedEvent(project_id, experience_note_id))
+    Note over EventBus: 广播笔记创建事件：通知 Graph 领域提取经验构建 Graph RAG 节点与实战边
+    REST-->>Caller: 201 Created (返回 experience_note_id)
 
-    else 场景 B: 归档项目重新激活
-        Caller->>REST: POST /api/projects/{id}/reactivate
-        REST->>UC: reactivate_project(project_id)
-        UC->>Repo: find_by_id(project_id)
-        Repo-->>UC: project_agg
-        
-        UC->>Agg: reactivate()
-        Note over Agg: 领域内逻辑：校验状态为 ARCHIVED，恢复扭转为 ACTIVE
-        UC->>Repo: save(project_agg)
-        UC-->>REST: 200 OK (status=ACTIVE)
-        REST-->>Caller: 200 OK (恢复工作台读写权限)
-    end
+    Note over Caller, REST: 阶段 3: 归档项目重新激活
+    Caller->>REST: POST /api/projects/{id}/reactivate
+    REST->>UC: reactivate_project(project_id)
+    UC->>Repo: find_by_id(project_id)
+    Repo-->>UC: project_agg
+    UC->>Agg: reactivate()
+    Note over Agg: 状态机扭转: ARCHIVED -> ACTIVE
+    UC->>Repo: save(project_agg)
+    UC-->>REST: 200 OK (status=ACTIVE)
+    REST-->>Caller: 200 OK (恢复工作台读写权限)
 ```
 
 ---
@@ -389,7 +398,7 @@ class ProjectEventBusPort(ABC):
     @abstractmethod
     def publish_project_created_notice(self, project_id: str, status: str) -> None: ...
     @abstractmethod
-    def publish_archived_event(self, project_id: str, experience_content: Optional[str]) -> None: ...
+    def publish_archived_event(self, project_id: str) -> None: ...
 ```
 
 ---
@@ -400,12 +409,13 @@ class ProjectEventBusPort(ABC):
 
 ### 1. REST 路由与领域 UseCase 映射表
 
-| REST 路由                       | HTTP Method | 请求 Payload 格式                                              | 成功响应状态码 | Project 领域 UseCase 映射                |
-| :------------------------------ | :---------- | :------------------------------------------------------------- | :------------- | :--------------------------------------- |
-| `/api/projects`                 | `POST`      | `application/json` (PLAN) <br> `multipart/form-data` (READING) | `201 Created`  | `CreateProjectUseCase.execute()`         |
-| `/api/projects`                 | `GET`       | Query Params (`?status=ACTIVE&page=1&size=20`)                 | `200 OK`       | `ProjectQueryUseCase.list_projects()`    |
-| `/api/projects/{id}/archive`    | `POST`      | `application/json` (`experience_content`)                      | `200 OK`       | `ManageProjectStateUseCase.archive()`    |
-| `/api/projects/{id}/reactivate` | `POST`      | 无 Body                                                        | `200 OK`       | `ManageProjectStateUseCase.reactivate()` |
+| REST 路由                            | HTTP Method | 请求 Payload 格式                                              | 成功响应状态码 | Project / Note 领域 UseCase 映射         |
+| :---------------------------------- | :---------- | :------------------------------------------------------------- | :------------- | :--------------------------------------- |
+| `/api/projects`                      | `POST`      | `application/json` (PLAN) <br> `multipart/form-data` (READING) | `201 Created`  | `CreateProjectUseCase.execute()`         |
+| `/api/projects`                      | `GET`       | Query Params (`?status=ACTIVE&page=1&size=20`)                 | `200 OK`       | `ProjectQueryUseCase.list_projects()`    |
+| `/api/projects/{id}/archive`         | `POST`      | 无 Body                                                        | `200 OK`       | `ManageProjectStateUseCase.archive()`    |
+| `/api/projects/{id}/experience-note` | `POST`      | `application/json` (`experience_content`)                      | `201 Created`  | `NoteDomain.create_experience_note()`   |
+| `/api/projects/{id}/reactivate`      | `POST`      | 无 Body                                                        | `200 OK`       | `ManageProjectStateUseCase.reactivate()` |
 
 ---
 
@@ -423,6 +433,9 @@ class CreatePlanProjectDTO(BaseModel):
     type: Literal["PLAN"] = "PLAN"
     deadline: Optional[datetime] = None
     skill_id: Optional[str] = None
+
+class CreateExperienceNoteDTO(BaseModel):
+    experience_content: Optional[str] = None
 
 class ProjectResponseDTO(BaseModel):
     id: str
@@ -525,8 +538,8 @@ project_state_transitions_total{from="SUSPENDED", to="ACTIVE", action="user_resu
   "project_id": "proj_998877",
   "event": "ProjectStateTransited",
   "from_status": "ACTIVE",
-  "to_status": "SUSPENDED",
-  "reason": "app_exit_flush"
+  "to_status": "ARCHIVED",
+  "reason": "user_archive_action"
 }
 ```
 
