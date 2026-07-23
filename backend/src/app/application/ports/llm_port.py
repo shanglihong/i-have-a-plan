@@ -1,30 +1,18 @@
-"""
-应用级防腐接口 - LLM Port
-
-定义应用层与大模型通信的抽象契约。
-实现方（LangChain 适配器）位于基础设施层，通过依赖注入在运行时替换。
-"""
-from __future__ import annotations
+"""应用层大模型防腐接口 (LLM Port) 模块"""
 
 from abc import ABC, abstractmethod
-from typing import AsyncIterator
+from typing import AsyncGenerator, Dict, Any, List
 
 
 class LLMPort(ABC):
-    """大模型通信接口 (Application Port)"""
+    """LLMPort 大模型通信防腐契约接口 (支持 LangChain / LangGraph)"""
 
     @abstractmethod
-    async def stream_chat(self, prompt: str) -> AsyncIterator[str]:
-        """
-        流式对话，返回 AsyncIterator 逐 Token 推送。
-        用于接入层 SSE 响应。
-        """
-        ...
+    async def generate_response(self, prompt: str, context: Dict[str, Any]) -> str:
+        """同步/单次 LLM 响应生成"""
+        pass
 
     @abstractmethod
-    async def chat(self, prompt: str) -> str:
-        """
-        一次性对话，返回完整响应文本。
-        用于后台守护任务（图谱构建、技能提炼）。
-        """
-        ...
+    async def stream_response(self, prompt: str, context: Dict[str, Any]) -> AsyncGenerator[str, None]:
+        """SSE 流式推流响应生成"""
+        pass

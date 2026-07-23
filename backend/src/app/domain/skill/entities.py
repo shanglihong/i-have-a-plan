@@ -1,85 +1,42 @@
-"""
-技能沙箱上下文 - 核心实体定义
+"""技能与沙箱审校领域实体模块"""
 
-Skill 生命周期：DRAFT -> SANDBOX -> ACTIVE
-  - DRAFT：提炼编译中，尚未通过门禁校验
-  - SANDBOX：进入 PA-03 门禁校验（DAG 环路检测）
-  - ACTIVE：通过验证，可被项目任务调用
-"""
-from __future__ import annotations
-
-import uuid
-from datetime import datetime
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
+from app.domain.common.base_entity import BaseEntity
 
-from sqlmodel import Field, SQLModel
 
-
-class SandboxState(str, Enum):
+class SkillStatus(str, Enum):
+    """技能审校与入库状态"""
     DRAFT = "DRAFT"
-    SANDBOX = "SANDBOX"
-    ACTIVE = "ACTIVE"
+    IN_REVIEW = "IN_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
-class Skill(SQLModel, table=True):
-    """技能模版 DO - 聚合根"""
-
-    __tablename__ = "skill"
-
-    id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        primary_key=True,
-    )
-    name: str = Field(index=True)
-    sandbox_state: SandboxState = Field(default=SandboxState.DRAFT)
-    # 物理存储路径（含 YAML 步骤定义）
-    file_path: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+@dataclass
+class SkillStep:
+    """SkillStep 步骤节点"""
+    step_num: int = 1
+    title: str = ""
+    instruction: str = ""
+    dependencies: List[int] = field(default_factory=list)
 
 
-class SkillStep(SQLModel, table=True):
-    """技能步骤 DO"""
-
-    __tablename__ = "skill_step"
-
-    id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        primary_key=True,
-    )
-    skill_id: str = Field(foreign_key="skill.id", index=True)
-    step_id: str  # 步骤本地标识（在 Skill 内唯一）
-    title: str
-    # depends_on 步骤 ID 列表，存储为 JSON 字符串
-    depends_on_json: str = Field(default="[]")
-    order_index: int = Field(default=0)
+@dataclass
+class SandboxContext:
+    """SandboxContext 沙箱隔离中枢 (四大职责隔离)"""
+    session_id: str = ""
+    is_network_allowed: bool = False
+    is_shell_allowed: bool = False
+    is_write_core_disk_allowed: bool = False
 
 
-# ---------------------------------------------------------------------------
-# Domain Objects (内存充血模型)
-# ---------------------------------------------------------------------------
-
-
-class SkillStepDomain:
-    """技能步骤充血模型 - 用于 PA-03 拓扑解环"""
-
-    def __init__(self, do: SkillStep) -> None:
-        self.do = do
-        self.depends_on_steps: list[SkillStepDomain] = []
-
-    @property
-    def step_id(self) -> str:
-        return self.do.step_id
-
-
-class SkillDomain:
-    """技能充血模型 - 装载步骤 DAG"""
-
-    def __init__(self, do: Skill) -> None:
-        self.do = do
-        self.steps: list[SkillStepDomain] = []
-
-    @property
-    def id(self) -> str:
-        return self.do.id
+@dataclass
+class Skill(BaseEntity):
+    """Skill 聚合根"""
+    name: str = ""
+    description: str = ""
+    status: SkillStatus = SkillStatus.DRAFT
+    steps: List[SkillStep] = field(default_factory=list)
+    sandbox_ctx: Optional[SandboxContext] = None

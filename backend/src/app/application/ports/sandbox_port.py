@@ -1,40 +1,16 @@
-"""
-应用级防腐接口 - Sandbox Port
+"""应用层安全沙箱防腐接口 (Sandbox Port) 模块
 
-定义应用层与本地安全沙箱的抽象契约。
-沙箱承担：目录 Chroot 隔离、工具白名单拦截、受限 I/O 代理。
-实现方位于基础设施层 (local_sandbox_adapter.py)。
+落实 PA-05 安全隔离契约。
 """
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from pathlib import Path
-
-
-class SandboxViolationError(Exception):
-    """沙箱安全拦截：非法 I/O 或超出工具白名单"""
-
-    def __init__(self, reason: str) -> None:
-        super().__init__(f"沙箱安全拦截: {reason}")
+from typing import Dict, Any
 
 
 class SandboxPort(ABC):
-    """安全沙箱接口 (Application Port)"""
+    """SandboxPort 安全沙箱控制契约接口"""
 
     @abstractmethod
-    async def write_file(self, relative_path: str, content: str) -> Path:
-        """
-        在沙箱受限目录内写入文件。
-        非法路径（如 ../escape）将触发 SandboxViolationError。
-        """
-        ...
-
-    @abstractmethod
-    async def read_file(self, relative_path: str) -> str:
-        """在沙箱受限目录内读取文件内容。"""
-        ...
-
-    @abstractmethod
-    async def validate_path(self, relative_path: str) -> bool:
-        """校验路径是否在白名单范围内，不抛异常仅返回布尔值。"""
-        ...
+    async def execute_in_sandbox(self, code: str, inputs: Dict[str, Any]) -> str:
+        """在隔离受限进程与 Pipe 管道中安全执行试运转"""
+        pass

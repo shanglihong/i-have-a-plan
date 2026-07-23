@@ -1,82 +1,44 @@
-"""
-知识图谱上下文 - 核心实体定义
+"""旁路图谱与 RAG 领域实体模块"""
 
-图谱遵循"知识代谢"机制：
-  - GraphNode：图谱节点，可被经验笔记"证伪降级"（is_falsified=True）
-  - GraphEdge：认知关系边，支持 ASSOCIATES（关联）和 FALSIFIES（证伪）两种类型
-  - TagSuperNode：标签超节点，作为图谱聚类中心
-"""
-from __future__ import annotations
-
-import uuid
-from datetime import datetime
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
-
-from sqlmodel import Field, SQLModel
+from typing import List, Optional
+from app.domain.common.base_entity import BaseEntity
 
 
 class EdgeRelationType(str, Enum):
+    """图谱边关联类型"""
     ASSOCIATES = "ASSOCIATES"
-    FALSIFIES = "FALSIFIES"
+    FALSIFIES = "FALSIFIES"  # 证明 / 证伪代谢边
 
 
-class GraphNode(SQLModel, table=True):
-    """图谱节点 DO - 聚合根"""
-
-    __tablename__ = "graph_node"
-
-    id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        primary_key=True,
-    )
-    name: str = Field(index=True)
-    source_note_id: Optional[str] = Field(default=None, index=True)
-    # 是否被经验证伪降级（前端降低透明度至 40%）
-    is_falsified: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+@dataclass
+class VectorChunkIndex(BaseEntity):
+    """VectorChunkIndex sqlite-vec 向量索引定义"""
+    content: str = ""
+    embedding: List[float] = field(default_factory=list)
+    source_file: str = ""
+    chunk_offset: int = 0
 
 
-class GraphEdge(SQLModel, table=True):
-    """图谱连线关系 DO"""
-
-    __tablename__ = "graph_edge"
-
-    id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        primary_key=True,
-    )
-    source_id: str = Field(foreign_key="graph_node.id", index=True)
-    target_id: str = Field(foreign_key="graph_node.id", index=True)
-    relation_type: EdgeRelationType = Field(default=EdgeRelationType.ASSOCIATES)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+@dataclass
+class TagSuperNode(BaseEntity):
+    """TagSuperNode 标签超节点"""
+    tag_name: str = ""
 
 
-class TagSuperNode(SQLModel, table=True):
-    """标签超节点 DO（图谱聚类对齐中心）"""
-
-    __tablename__ = "tag_super_node"
-
-    id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        primary_key=True,
-    )
-    name: str = Field(index=True, unique=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+@dataclass
+class GraphNode(BaseEntity):
+    """GraphNode 知识原子节点"""
+    label: str = ""
+    properties: dict = field(default_factory=dict)
+    super_node_id: Optional[str] = None
 
 
-# ---------------------------------------------------------------------------
-# Domain Objects (内存充血模型)
-# ---------------------------------------------------------------------------
-
-
-class GraphNodeDomain:
-    """图谱节点充血模型 - 装载邻居节点（邻接表）"""
-
-    def __init__(self, do: GraphNode) -> None:
-        self.do = do
-        self.related_nodes: list[GraphNodeDomain] = []
-
-    @property
-    def id(self) -> str:
-        return self.do.id
+@dataclass
+class GraphEdge(BaseEntity):
+    """GraphEdge 认知边"""
+    source_node_id: str = ""
+    target_node_id: str = ""
+    relation_type: EdgeRelationType = EdgeRelationType.ASSOCIATES
+    weight: float = 1.0
