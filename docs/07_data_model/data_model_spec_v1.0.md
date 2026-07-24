@@ -187,7 +187,9 @@
 | `task_id` | String | 可选 (Task) | 关联的具体 Task ID |
 | `book_id` | String | 可选 (Book) | 关联的书籍 ID |
 | `source_anchor_id` | String | 可选 (SourceAnchor) | 关联物理原文段落锚点 ID |
-| `original_snippet` | String | 可选 | 划词原文/参考资料片段快照 |
+| `discuss_message_id` | String | 可选 (DiscussMessage) | 关联的伴读对话消息 ID (一键转存来源) |
+| `source_type` | Enum | 必填 | 笔记来源：`MANUAL_HIGHLIGHT` (划词笔记) / `COMPANION_CONVERTED` (伴读转存笔记) |
+| `original_snippet` | String | 可选 | 划词原文/伴读参考对话快照 |
 | `paraphrase` | String | 必填 | 个人转述与理解说明 |
 | `scenario_context` | String | 可选 | 关联到自己的经历/应用情景 |
 | `tags` | Array<String> | JSON 数组 | 全局扁平标签数组 |
@@ -518,6 +520,36 @@
 | `_ui_line_style` | String | 连线视觉样式 | `ASSOCIATES` 渲染实线；`FALSIFIES` 渲染灰色/红色虚线 |
 | `_ui_line_color` | String | 连线颜色 | 结合 `relation_type` 计算出的 HEX 颜色串 |
 
+#### 4.5 AgentSession（Agent 会话 - 实体）与 AgentMessage（Agent 消息 - 实体）
+**定义**：管理用户与伴读/监督 Agent 的对话会话及对话流历史记录（包含伴读解惑与 Task 自动拆解建树）。
+
+* **(1) Agent 会话对象 (AgentSessionDO)** - 落库模型
+
+| 字段名 | 类型 | 约束 / 可选性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | Agent 会话全局唯一标识 |
+| `project_id` | String | 外键 (Project) | 归属项目 ID |
+| `book_id` | String | 可选 (Book) | 关联图书 ID |
+| `task_id` | String | 可选 (Task) | 关联 Task ID |
+| `agent_id` | String | 必填 | 绑定的沙箱 Agent ID (`assigned_agent_id`) |
+| `skill_id` | String | 可选 (Skill) | 挂载的 Skill 模板 ID |
+| `mode` | Enum | 必填 | 业务工作模式：`READING_COMPANION` (伴读解惑) / `TASK_BREAKDOWN` (Task 自动拆解建树) |
+| `status` | Enum | `ACTIVE` / `CLOSED` | 会话状态 |
+| `created_at` / `updated_at` | DateTime | 必填 | 系统审计时间戳 |
+
+* **(2) Agent 消息对象 (AgentMessageDO)** - 落库模型
+
+| 字段名 | 类型 | 约束 / 可选性 | 含义描述 |
+| :--- | :--- | :--- | :--- |
+| `id` | String | 主键 (UUID) | 消息全局唯一标识 |
+| `session_id` | String | 外键 (AgentSession) | 归属 Agent 会话 ID |
+| `sender_type` | Enum | `USER` / `AGENT` / `SYSTEM_TRIGGER` | 消息发送方 |
+| `content` | String | 必填 | 消息文本内容 (包含 Markdown / JSON 结构化任务树) |
+| `action_cards` | Array<Object> | JSON 数组 | 动态附带的交互动作卡片（如启发追问、费曼重述、一键转笔记、任务树卡片） |
+| `source_anchor_id` | String | 可选 (SourceAnchor) | 消息绑定的物理原文划词/段落锚点 ID |
+| `trigger_type` | Enum | `DISCUSS` / `CHAPTER_END_95` / `USER_PROMPT` | 触发模式：划词解惑 / 章节 95% 主动推送 / 用户发起拆解 |
+| `created_at` | DateTime | 必填 | 发送时间戳 |
+
 ---
 
 ## 四、 实体关系汇总与约束对照
@@ -538,3 +570,6 @@
 | `GraphNode` | 图谱与检索上下文 | 级联删除关联的 `GraphEdge` | SQLite 数据表 |
 | `TagSuperNode` | 图谱与检索上下文 | 孤立超节点自动物理清除 | SQLite 数据表 |
 | `GraphEdge` | 图谱与检索上下文 | 硬删除连线 | SQLite 数据表 |
+| `AgentSession` | 统一 Agent 领域 | 级联删除下属 `AgentMessage` 记录并释放沙箱句柄 | SQLite 数据表 |
+| `AgentMessage` | 统一 Agent 领域 | 清除 `VectorChunkIndex` 并断开关联的 `MaterialNote` | SQLite 数据表 |
+

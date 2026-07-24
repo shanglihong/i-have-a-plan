@@ -122,6 +122,12 @@ erDiagram
 
     %% 4. 消息通知与提醒领域 (Notification Domain)
     PROJECT ||--o{ NOTIFICATION : "1:N (可选) 关联/触发页面通知"
+
+    %% 5. AI 沙箱 Agent 领域 (Agent Domain)
+    PROJECT ||--o{ AGENT_SESSION : "1:N 包含 Agent 会话 (伴读 / Task 拆解)"
+    AGENT_SESSION ||--o{ AGENT_MESSAGE : "1:N 产生对话流消息"
+    SOURCE_ANCHOR ||--o{ AGENT_MESSAGE : "1:N (可选) 绑定划词锚点"
+    AGENT_MESSAGE ||--o| MATERIAL_NOTE : "1:1 (可选) 一键转存思考笔记"
 ```
 
 #### (2) 旁路知识图谱消费与对齐模型 (Bypass Graph Sidecar Domain)
@@ -597,13 +603,56 @@ erDiagram
 
 ---
 
+### 13. AI 沙箱 Agent 领域实体 (AgentSession & AgentMessage)
+* **定义**：负责统一管理伴读对话与 Task 自动拆解建树的 Agent 会话上下文 (`AgentSession`) 聚合根，以及对话流消息 (`AgentMessage`) 实体。
+* **Agent 会话实体属性表 (AgentSession)**：
+
+| 属性名                      | 类型     | 约束 / 可选性    | 含义与说明                                                                      |
+| :-------------------------- | :------- | :--------------- | :------------------------------------------------------------------------------ |
+| `id`                        | String   | 主键 (UUID)      | Agent 会话全局唯一标识                                                          |
+| `project_id`                | String   | 外键 (Project)   | 归属项目 ID                                                                     |
+| `book_id`                   | String   | 可选 (Book)      | 关联图书 ID                                                                     |
+| `task_id`                   | String   | 可选 (Task)      | 关联 Task ID                                                                    |
+| `agent_id`                  | String   | 必填             | 绑定的沙箱 Agent ID (`assigned_agent_id`)                                       |
+| `skill_id`                  | String   | 可选 (Skill)     | 挂载的 Skill 模板 ID                                                            |
+| `mode`                      | Enum     | 必填             | 业务工作模式：`READING_COMPANION` (阅读伴读解惑) / `TASK_BREAKDOWN` (Task 自动拆解建树) |
+| `status`                    | Enum     | 必填             | 会话状态：`ACTIVE` (激活) / `CLOSED` (已关停)                                   |
+| `created_at` / `updated_at` | DateTime | 必填             | 系统审计时间戳                                                                  |
+
+* **Agent 对话消息实体属性表 (AgentMessage)**：
+
+| 属性名             | 类型          | 约束 / 可选性 | 含义与说明                                                                                              |
+| :----------------- | :------------ | :------------ | :------------------------------------------------------------------------------------------------------ |
+| `id`               | String        | 主键 (UUID)   | 消息全局唯一标识                                                                                        |
+| `session_id`       | String        | 外键          | 归属 Agent 会话 ID                                                                                     |
+| `sender_type`      | Enum          | 必填          | 消息发送方：`USER` (用户) / `AGENT` (Agent) / `SYSTEM_TRIGGER` (系统主动推送)                            |
+| `content`          | String        | 必填          | 消息正文文本 (Markdown / 结构化 JSON 回答)                                                               |
+| `action_cards`     | Array<Object> | JSON 数组     | 动态附带的交互操作卡片 (如启发追问 `FEYNMAN_TEST`、转笔记 `CONVERT_TO_NOTE`、任务树卡片 `TASK_TREE`)   |
+| `source_anchor_id` | String        | 可选          | 关联的物理原文锚点 ID                                                                                   |
+| `trigger_type`     | Enum          | 必填          | 触发模式：`DISCUSS` (划词解惑) / `CHAPTER_END_95` (章节 95% 主动推送) / `USER_PROMPT` (用户发起拆解)     |
+| `created_at`       | DateTime      | 必填          | 发送时间戳                                                                                              |
+
+* **Agent 领域业务规则与契约**：
+  * **受限沙箱运行 (PA-05)**：统管伴读 Agent 与 Task 拆解 Agent 的受限沙箱 Runner，封禁 Shell 执行、外部网络访问与核心磁盘写权限，仅通过隔离管道（Pipe）传输结构化文本。
+  * **统一 Dynamic Context 与 Skill 组装**：ContextBuilder 根据 `mode` 和 `skill_id` 提取 `SKILL.md` 指令、图书切片与章节 Summary 组装统一 Prompt。
+  * **对话流内部主动推送**：当滚动视图达到章节末尾 5%（95% 滚动位置）时，在侧边栏插入启发性小结与测试卡片，每个章节限制主动推送 1 次。
+  * **对话转思考笔记沉淀**：伴读/回答卡片一键转存为 `MaterialNote`，后端自动绑定 `discuss_message_id`、写入 `source_type="COMPANION_CONVERTED"`，并持久化 `SourceAnchor` 快照。
+
+---
+
 ## 五、 系统设计前置技术与交互契约
 
 后续的详细设计阶段必须强制遵守以下技术与交互红线契约：
 
 > [!CAUTION]
 > **安全隔离契约 (PA-05)**：
-> 伴读 Agent 的运行权限必须受限于物理沙箱。严禁伴读 Agent 拥有调用外部网络、执行本地 Shell 命令或写入系统核心文件的特权。其全部输入输出均必须通过隔离的管道（Pipe）且仅向控制台输出纯文字。
+> 伴读 Agent 的运行权限必须受限于物理沙箱。严禁伴读 Agent 拥有调用外部网络、执行本地 Shell 命令或写入系统核心文件的特权。其全部输入输出均必须通过隔离的管道（Pipe）且仅向控制台输出纯文字与结构化 JSON。
+
+> [!IMPORTANT]
+> **伴读 Agent 动态上下文与推送契约 (PA-08)**：
+> 1. **分层 ContextBuilder 策略**：划词 Discuss 时仅送入选中文本+邻近 3 段 Block；章节总结推送时送入章节 Summary+历史笔记；超出章节范围的深度提问才触发全书 Vector RAG 检索。
+> 2. **对话流内部主动推送**：伴读 Agent 不使用阻塞式弹窗。推送分为回复末尾附带 Action Cards（启发追问/重述测试）以及在滚动进度达 95%（章节末尾 5%）时向对话流底部派发 Active Message。
+> 3. **懒加载与生命周期**：项目创建时（`POST /api/projects`）分配绑定 `assigned_agent_id` 契约标识，首次发起伴读对话请求时在沙箱中动态懒加载拉起 Agent 上下文。
 
 > [!WARNING]
 > **环路依赖阻断契约 (PA-03)**：

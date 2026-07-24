@@ -129,6 +129,55 @@ sequenceDiagram
 
 ---
 
+#### 1.5 AI 伴读与沙箱 Agent 双模交互时序
+
+展示用户在阅读正文时发起划词 Discuss 被动解答（含 SSE 流式响应与 Action Cards 附带）、章节末尾 5% 范围触发对话流内部主动推送（Active Messages），以及伴读对话一键转存思考笔记与双向高亮追溯的完整交互过程。
+
+> [!IMPORTANT]
+> **伴读交互原则 (PA-05 & PA-08)**：
+> 1. **对话流内部主动推送**：伴读 Agent 避免在主视图中使用阻塞式弹窗打扰用户。章节末尾 5%（95% 滚动位置）的主动推送直接插入侧边栏对话流底部，单章限制推送 1 次。
+> 2. **智能转笔记与双向追溯**：伴读回答卡片一键转化为 `MaterialNote`（`source_type="COMPANION_CONVERTED"`），后端自动持久化关联的 `SourceAnchor` 物理原文快照，支持阅读器与笔记面板的双向闪烁跳转。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 用户
+    participant FE as 前端
+    participant BE as 后端
+    participant Runner as Agent 沙箱 (PA-05)
+
+    alt 场景 A: 划词 Discuss 被动解答 (SSE 流式响应)
+        User->>FE: 划选正文文本并点击 [Discuss with AI]
+        FE->>BE: 发起流式对话 POST /api/v1/agent/chat/stream (mode="READING_COMPANION", trigger_type="DISCUSS")
+        BE->>BE: ContextBuilder 组装动态 Prompt (选中文本 + 邻近 Block + 章节 Summary)
+        BE->>Runner: 通过受限 Pipe 通道发送 Prompt
+        loop SSE Token 增量推送
+            Runner-->>BE: 产生 Token Chunk
+            BE-->>FE: SSE 推送 event: message, data: { type: "TOKEN", content: Chunk }
+            FE->>FE: 实时增量渲染伴读回答
+        end
+        Runner-->>BE: 产生 Action Cards (启发追问 / 一键转笔记)
+        BE-->>FE: SSE 推送 event: message, data: { type: "ACTION_CARDS", cards: [...] }
+        BE-->>FE: SSE 推送 event: done
+    else 场景 B: 章节末尾 5% 对话流主动推送 (Active Message)
+        FE->>FE: 监听阅读器滚动进度达到 95% (章节末尾 5% 范围)
+        FE->>BE: 发起流式对话 POST /api/v1/agent/chat/stream (mode="READING_COMPANION", trigger_type="CHAPTER_END_95")
+        BE->>BE: 校验单章单次频控规则，组装章节 Summary 上下文
+        BE->>Runner: 执行沙箱提问组装
+        Runner-->>BE: 返回启发性小结与费曼重述测试卡片
+        BE-->>FE: 返回 Active Message 数据包
+        FE->>FE: 在伴读侧边栏对话流底部插入主动推送消息 (无打扰静默呈现)
+    else 场景 C: 伴读对话一键转存思考笔记 (AgentMessage -> MaterialNote)
+        User->>FE: 点击伴读回复卡片下方的 [转存为笔记]
+        FE->>BE: 提交转存请求 POST /api/v1/agent/message/convert-to-note (携带 message_id 与转述)
+        BE->>BE: 创建 MaterialNote (source_type="COMPANION_CONVERTED") 并持久化 SourceAnchor
+        BE-->>FE: 返回 note_id 与创建成功通知 (201 Created)
+        FE->>FE: 侧边栏笔记面板实时插入新笔记卡片，支持点击 [定位原文] 触发物理高亮
+    end
+```
+
+---
+
 ### 2. 计划项目交互
 
 #### 2.1 计划项目初始化与 Skill 任务拆解交互时序

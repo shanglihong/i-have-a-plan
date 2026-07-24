@@ -175,15 +175,19 @@ sequenceDiagram
     participant Handler as OnBookParsedEventHandler (Project 领域)
     participant NoticeService as NotificationService (页面消息通知领域)
 
-    Note over Caller, EventBus: 阶段 1: 同步受理并发布领域事件至事件总线
+    Note over Caller, EventBus: 阶段 1: 同步受理、绑定 assigned_agent_id 并发布领域事件至事件总线
     Caller->>REST: POST /api/projects (multipart/form-data)
     REST->>UC: create_reading_project(cmd, file_bytes)
     UC->>Factory: build_reading_project(title)
     Factory->>Agg: new Project(type=READING, status=INIT)
+    UC->>AgentDomain: assemble_and_bind_companion_agent(project_id, skill_id)
+    Note over AgentDomain: 逻辑绑定：获取伴读 Agent 策略配置并生成 assigned_agent_id（不立即拉起物理沙箱）
+    AgentDomain-->>UC: assigned_agent_id
+    UC->>Agg: bind_agent(assigned_agent_id)
     UC->>Repo: save(project_agg)
     UC->>EventBus: publish(BookParseRequestedEvent(project_id, file_bytes))
     Note over EventBus: 领域事件总线解耦：通知 Book 领域解析文件
-    UC-->>REST: ProjectResponseDTO (status=INIT)
+    UC-->>REST: ProjectResponseDTO (status=INIT, assigned_agent_id)
     REST-->>Caller: 201 Created (status=INIT, 提示正在后台解析)
 
     Note over EventBus, BookDomain: 阶段 2: Book 领域响应事件提供异步解析能力
