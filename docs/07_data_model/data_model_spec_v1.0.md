@@ -411,6 +411,9 @@
 #### 4.1 VectorChunkIndex（密集向量切片索引 - 实体）
 **定义**：驱动 Dense RAG 即时检索缓存的核心索引实体，存入 `sqlite-vec` 虚表。
 
+> [!NOTE]
+> **Dense RAG 向量切片纯粹性契约**：`sqlite-vec` 虚表仅存储物理图书段落切片 (`BOOK_BLOCK`) 与笔记卡片 (`NOTE_CARD`) 的原始真实切片向量，坚决不塞入任何派生摘要或合成中间向量，保障 Dense RAG 检索集合的绝对纯粹性与高确定性。
+
 * **(1) 实体对象 (VectorChunkIndexDO)** - 落库模型
 
 | 字段名 | 类型 | 约束 / 可选性 | 含义描述 |

@@ -559,9 +559,10 @@ erDiagram
 
 * **双通道旁路异步构建与业务规则**：
   * **旁路解耦契约**：知识图谱构建 100% 旁路运行，主业务流落盘即返回，绝不受图谱建图耗时或 API 限额影响。
-  * **Dense RAG 向量即时切片与物理存储分离契约**：
-    * **即时编码**：在 `Book` 完成解析切片落盘或新生成 `Note` 时，系统自动异步将段落切片转为高维向量写入 `sqlite-vec`（`VectorChunkIndex`）。
-    * **只存索引不冗余原文**：向量库仅保存 `embedding` 与反查指针（`source_id` + `block_id`），真实长文本 100% 留在磁盘沙箱 `parsed_content.json` 中，避免主库与向量库膨胀。
+  * **Dense RAG 向量切片纯粹性与物理存储分离契约**：
+    * **只存物理切片纯粹向量**：`sqlite-vec` 虚表 (`VectorChunkIndex`) 仅存储物理图书段落切片 (`BOOK_BLOCK`) 与笔记卡片 (`NOTE_CARD`) 的原始真实切片向量，坚决不塞入任何派生摘要或中间合成向量，保障 Dense RAG 检索集合的绝对纯粹性与高确定性。
+    * **即时与闲时 Cron 批量编码**：在 `Book` 完成解析切片落盘或新生成 `Note` 时，仅将待处理事件投递至 Graph 侧独立队列表 `graph_pending_blocks`，由闲时 Cron 定时任务批量调用 Embedding API 写入 `sqlite-vec`，最大化控制 API Token 成本。
+    * **只存索引不冗余原文**：向量库仅保存 `embedding` 与反查指针（`source_id` + `block_id`），真实长文本 100% 留在磁盘沙箱 `parsed_content.json` 或笔记中，避免向量库膨胀。
   * **语义实体链接与同义词对齐契约 (Semantic Entity Linking)**：
     * **闲时对齐**：LLM 旁路分析器在提炼概念实体时，自动将表达同一含义的别名与英文缩写归一化写入 `aliases`。
     * **多重匹配链路**：图拓扑检索避免单纯的 `name` 字符串精确匹配，按优先级采用：

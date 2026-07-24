@@ -318,6 +318,11 @@ class BookEventBusPort(ABC):
     """Book 领域事件发布防腐接口"""
     @abstractmethod
     def publish_book_parsed(self, book_id: str, project_id: str, toc_tree: List[Dict[str, Any]]) -> None: ...
+
+    @abstractmethod
+    def publish_book_deleted(self, book_id: str, project_id: str) -> None:
+        """广播 BookDeletedEvent/BookBlockDeletedEvent 驱动 Graph 侧向量清理与孤儿节点修剪"""
+        ...
 ```
 
 ---

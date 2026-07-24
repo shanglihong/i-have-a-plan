@@ -204,9 +204,11 @@ class SynthesizedNoteDO:
 
 | 事件名称 | 触发时机 | 携带载荷数据 | 订阅方与后续动作 |
 | :--- | :--- | :--- | :--- |
-| `MaterialNoteCreatedEvent` | 素材笔记捕获并落库成功 | `note_id`, `project_id`, `task_id`, `timestamp` | 日志审计、旁路 Graph 实体提取 |
-| `SynthesizedNoteCreatedEvent` | 综合沉淀笔记合并落盘成功 | `note_id`, `project_id`, `knowledge_base_id`, `file_path` | 全局向量索引建立、日志审计 |
-| `ExperienceNoteCreatedEvent` | 结项复盘经验笔记生成落地 | `note_id`, `project_id`, `file_path`, `timestamp` | **触发 Graph 领域旁路建图 (Falsifies 边标记) 与 Skill 领域变异进化** |
+| `MaterialNoteCreatedEvent` | 素材笔记捕获并落库成功 | `note_id`, `project_id`, `task_id`, `timestamp` | 仅做日志审计与 `graph_processed = FALSE` 标记，**向量化与 Graph 建图交由闲时 Cron 批量处理以节省 Token** |
+| `SynthesizedNoteCreatedEvent` | 综合沉淀笔记合并落盘成功 | `note_id`, `project_id`, `knowledge_base_id`, `file_path` | 仅做知识库记录与待处理标记，**向量化与 Graph 建图交由闲时 Cron 批量处理** |
+| `ExperienceNoteCreatedEvent` | 结项复盘经验笔记生成落地 | `note_id`, `project_id`, `file_path`, `timestamp` | **触发 Graph 领域闲时 Cron 增量建图 (Falsifies 边标记) 与 Skill 领域变异进化** |
+| `MaterialNoteDeletedEvent` | 素材笔记物理/逻辑删除 | `note_id`, `project_id`, `block_id`, `timestamp` | **触发 Graph 领域与 sqlite-vec 向量清理、孤儿节点修剪** |
+| `SynthesizedNoteDeletedEvent` | 沉淀/经验笔记物理删除 | `note_id`, `project_id`, `file_path`, `timestamp` | **触发 Graph 领域与 sqlite-vec 向量清理、知识库关联解绑** |
 
 ---
 
