@@ -18,9 +18,9 @@ frontend-dev:
 backend-install:
 	cd backend && uv sync
 
-# 本地启动后端开发服务器（加载 .env 环境变量）
+# 本地启动后端开发服务器
 backend-dev:
-	cd backend && PYTHONPATH=src ./.venv/bin/uvicorn app.main:app --reload --env-file ../.env --port 8000
+	cd backend && PYTHONPATH=src ./.venv/bin/uvicorn app.main:app --reload --port 8000
 
 # 运行后端自动化测试套件
 backend-test:
