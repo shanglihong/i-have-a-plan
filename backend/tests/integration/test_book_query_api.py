@@ -58,7 +58,11 @@ async def test_get_book_metadata_api_not_found(client):
     response = await client.get("/api/books/bk_not_exist_404")
     assert response.status_code == 404
     res_json = response.json()
-    assert res_json["detail"]["code"] == 404
+    assert res_json["status"] == 404
+    assert res_json["type"] == "https://i-have-a-plan/errors/book-not-found"
+    assert res_json["title"] == "Book Not Found"
+    assert "未找到图书" in res_json["detail"]
+    assert res_json["extension_fields"]["error_code"] == "BOOK_NOT_FOUND"
 
 
 @pytest.mark.asyncio
@@ -139,7 +143,11 @@ async def test_get_chapter_content_api_chapter_not_found(client, test_session, s
         response = await client.get("/api/books/bk_api_test_01/chapters/chap_invalid")
         assert response.status_code == 404
         res_json = response.json()
-        assert res_json["detail"]["code"] == 404
+        assert res_json["status"] == 404
+        assert res_json["type"] == "https://i-have-a-plan/errors/chapter-not-found"
+        assert res_json["title"] == "Chapter Not Found"
+        assert "未找到章节" in res_json["detail"]
+        assert res_json["extension_fields"]["error_code"] == "CHAPTER_NOT_FOUND"
     finally:
         if os.path.exists(temp_json_path):
             os.remove(temp_json_path)

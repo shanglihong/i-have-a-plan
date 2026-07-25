@@ -1,22 +1,19 @@
-"""沙箱文件存储适配器 (File-first 原子落盘与盘查)"""
+"""图书文件存储适配器 (File-first 原子落盘与读取)"""
 
 import hashlib
 import json
 import os
 import shutil
-import uuid
 from typing import Optional, Dict, List, Any
 from app.domain.book.ports import BookFileStoragePort
 
-from collections import OrderedDict
-
-BASE_SANDBOX_DIR = os.getenv("SANDBOX_DIR", ".sandbox/books")
+DEFAULT_STORAGE_DIR = os.getenv("BOOK_STORAGE_DIR", os.getenv("SANDBOX_DIR", ".storage/books"))
 
 
 class LocalBookFileStorageAdapter(BookFileStoragePort):
-    """基于本地文件系统的沙箱适配器"""
+    """基于本地文件系统的图书存储适配器"""
 
-    def __init__(self, base_dir: str = BASE_SANDBOX_DIR):
+    def __init__(self, base_dir: str = DEFAULT_STORAGE_DIR):
         self.base_dir = base_dir
         os.makedirs(self.base_dir, exist_ok=True)
 
@@ -81,9 +78,12 @@ class LocalBookFileStorageAdapter(BookFileStoragePort):
             return False
         return True
 
-    async def delete_book_sandbox_dir(self, storage_path: str) -> None:
+    async def delete_book_dir(self, storage_path: str) -> None:
+        """清理图书存储目录"""
         if not storage_path:
             return
         book_dir = self._get_dir_from_storage_path(storage_path)
         if os.path.exists(book_dir):
             shutil.rmtree(book_dir, ignore_errors=True)
+
+

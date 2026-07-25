@@ -1,8 +1,8 @@
 """应用层 DTO 定义 (Book Domain)"""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
-from app.domain.book.entities import Book
+from app.domain.book.entities import Book, BookFileType
 
 
 class BookResponseDTO(BaseModel):
@@ -68,7 +68,29 @@ class TocResponseDTO(BaseModel):
 class CreateBookRequestDTO(BaseModel):
     project_id: str = Field(..., description="关联的项目 ID")
     file_name: str = Field(..., description="物理文件名")
-    file_type: str = Field(..., description="文件格式类型 (PDF, EPUB, TXT, MD)")
+    file_type: BookFileType = Field(..., description="文件格式类型 (PDF, EPUB, TXT, MD)")
     file_size: Optional[int] = Field(default=0, description="文件字节大小")
     storage_path: Optional[str] = Field(default="", description="物理存储/沙箱相对路径")
+
+    @field_validator("file_type", mode="before")
+    @classmethod
+    def normalize_file_type(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            v_upper = v.strip().upper()
+            if v_upper in BookFileType.__members__:
+                return BookFileType[v_upper]
+            return v_upper
+        return v
+
+    @field_validator("storage_path")
+    @classmethod
+    def validate_storage_path(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return ""
+        v = v.strip()
+        if ".." in v:
+            raise ValueError("storage_path 包含了非法的相对路径跳转字符 ('..')")
+        return v
+
+
 

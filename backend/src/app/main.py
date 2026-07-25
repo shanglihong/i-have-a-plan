@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from app.infrastructure.db.session import init_db
 from app.api.routers.book import router as book_router
+from app.api.error_handler import register_error_handlers
 
 
 @asynccontextmanager
@@ -23,6 +24,9 @@ def create_app() -> FastAPI:
         description="i-have-a-plan 后端系统 API",
         lifespan=lifespan
     )
+
+    # 注册全局异常处理器
+    register_error_handlers(app)
 
     # 挂载 Book 领域路由
     app.include_router(book_router)

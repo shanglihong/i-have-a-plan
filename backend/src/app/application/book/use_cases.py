@@ -5,7 +5,7 @@ from typing import Optional, List, Dict, Any
 from app.domain.book.entities import Book, BookFileType, ParsingStatus
 from app.domain.book.services import (
     BookParsingEngineService,
-    BookSandboxHealingService,
+    BookHealingDomainService,
     BookTocQueryDomainService,
     BookChapterContentDomainService,
     BookCreationDomainService
@@ -66,44 +66,12 @@ class ParseBookUseCase:
 
     async def execute_parse_file(
         self,
-        project_id: str,
-        file_name: str,
-        src_file_path: str,
-        book_id: Optional[str] = None
+        book_id: str
     ) -> BookResponseDTO:
         """
         触发原书保存至沙箱并执行解析引擎
         """
-        actual_book_id = book_id or f"bk_{uuid.uuid4().hex[:8]}"
-        storage_path = src_file_path
-
-        ext = file_name.split(".")[-1].upper() if "." in file_name else "TXT"
-        file_type = BookFileType.TXT
-        if ext in BookFileType.__members__:
-            file_type = BookFileType(ext)
-
-        existing_book = await self.repository.find_by_id(actual_book_id)
-        if not existing_book:
-            book = Book(
-                id=actual_book_id,
-                project_id=project_id,
-                file_name=file_name,
-                file_type=file_type,
-                file_size=0,
-                storage_path=storage_path,
-                content_json_path="",
-                parsing_status=ParsingStatus.PENDING
-            )
-        else:
-            book = existing_book
-            book.file_name = file_name
-            book.file_type = file_type
-            book.storage_path = storage_path
-            book.parsing_status = ParsingStatus.PENDING
-
-        await self.repository.save(book)
-
-        parsed_book = await self.parsing_engine.parse_book(book.id)
+        parsed_book = await self.parsing_engine.parse_book(book_id)
         return BookResponseDTO.from_domain(parsed_book)
 
 
@@ -143,13 +111,13 @@ class GetChapterContentUseCase:
 
         blocks_dtos = [
             ContentBlockDTO(
-                block_id=b.get("block_id", ""),
-                block_type=b.get("block_type", "PARAGRAPH"),
-                sequence_index=b.get("sequence_index", 0),
-                text=b.get("text", ""),
-                html_or_markdown=b.get("html_or_markdown"),
-                page_number=b.get("page_number"),
-                bbox=b.get("bbox")
+                block_id=b.block_id,
+                block_type=b.block_type.value if hasattr(b.block_type, "value") else str(b.block_type),
+                sequence_index=b.sequence_index,
+                text=b.text,
+                html_or_markdown=b.html_or_markdown,
+                page_number=b.page_number,
+                bbox=b.bbox
             )
             for b in content.blocks
         ]
@@ -166,10 +134,10 @@ class GetChapterContentUseCase:
         )
 
 
-class BookSandboxHealingUseCase:
-    """沙箱自愈校验用例"""
+class BookHealingUseCase:
+    """图书文件物理状态自愈校验用例"""
 
-    def __init__(self, healing_service: BookSandboxHealingService):
+    def __init__(self, healing_service: BookHealingDomainService):
         self.healing_service = healing_service
 
     async def execute(self, book_id: str) -> Dict[str, Any]:
@@ -179,3 +147,5 @@ class BookSandboxHealingUseCase:
             "status": status_code,
             "book": BookResponseDTO.from_domain(book) if book else None
         }
+
+

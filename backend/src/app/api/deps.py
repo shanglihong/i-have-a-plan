@@ -17,7 +17,7 @@ from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAda
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 from app.domain.book.services import (
     BookParsingEngineService,
-    BookSandboxHealingService,
+    BookHealingDomainService,
     BookTocQueryDomainService,
     BookChapterContentDomainService,
     BookCreationDomainService
@@ -27,13 +27,13 @@ from app.application.book.use_cases import (
     GetBookMetadataUseCase,
     GetBookTocUseCase,
     GetChapterContentUseCase,
-    BookSandboxHealingUseCase,
+    BookHealingUseCase,
     CreateBookUseCase
 )
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """提供数据库 Session（每次请求独立）"""
+    """提供数据库 Session, 每次请求独立"""
     async for session in get_async_session():
         yield session
 
@@ -47,7 +47,7 @@ async def get_book_use_cases(session: AsyncSession = Depends(get_async_session))
     file_storage = LocalBookFileStorageAdapter()
 
     parsing_engine = BookParsingEngineService(repository, file_storage, global_event_bus)
-    healing_service = BookSandboxHealingService(repository, file_storage, parsing_engine)
+    healing_service = BookHealingDomainService(repository, file_storage, parsing_engine)
     toc_query_service = BookTocQueryDomainService(repository)
     content_query_service = BookChapterContentDomainService(repository, file_storage)
     creation_service = BookCreationDomainService(repository)
@@ -58,6 +58,6 @@ async def get_book_use_cases(session: AsyncSession = Depends(get_async_session))
         "get_metadata_use_case": GetBookMetadataUseCase(repository),
         "get_toc_use_case": GetBookTocUseCase(toc_query_service),
         "get_content_use_case": GetChapterContentUseCase(content_query_service),
-        "healing_use_case": BookSandboxHealingUseCase(healing_service)
+        "healing_use_case": BookHealingUseCase(healing_service)
     }
 

@@ -1,4 +1,4 @@
-"""沙箱自愈与损坏校验服务"""
+"""图书文件自愈与损坏校验服务"""
 
 import logging
 from typing import Optional, Tuple
@@ -9,8 +9,8 @@ from app.domain.book.services.parsing_engine_service import BookParsingEngineSer
 logger = logging.getLogger(__name__)
 
 
-class BookSandboxHealingService:
-    """沙箱自愈与损坏校验服务"""
+class BookHealingDomainService:
+    """图书文件自愈与损坏校验领域服务"""
 
     def __init__(
         self,
@@ -24,7 +24,7 @@ class BookSandboxHealingService:
 
     async def verify_and_heal_book(self, book_id: str) -> Tuple[HealingStatus, Optional[Book]]:
         """
-        校验单个书籍的物理沙箱，若异常则尝试自动自愈修复
+        校验单个书籍的物理文件，若异常则尝试自动自愈修复
         Returns: (status_code, book_entity)
             status_code: HealingStatus
         """
@@ -37,7 +37,7 @@ class BookSandboxHealingService:
         if not raw_intact:
             book.fail_parsing()
             await self.repository.save(book)
-            await self.file_storage.delete_book_sandbox_dir(book.storage_path)
+            await self.file_storage.delete_book_dir(book.storage_path)
             return HealingStatus.CORRUPTED, book
 
         # 原书完好，校验解析 JSON 文件
@@ -57,3 +57,4 @@ class BookSandboxHealingService:
                 return HealingStatus.CORRUPTED, book
 
         return HealingStatus.INTACT, book
+

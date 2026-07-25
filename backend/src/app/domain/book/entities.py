@@ -94,7 +94,8 @@ class ChapterContent:
     has_more: bool
     prev_chapter_id: Optional[str] = None
     next_chapter_id: Optional[str] = None
-    blocks: List[Dict[str, Any]] = field(default_factory=list)
+    blocks: List[ContentBlock] = field(default_factory=list)
+
 
 
 

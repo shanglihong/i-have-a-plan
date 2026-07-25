@@ -42,7 +42,7 @@ class BookFileStoragePort(ABC):
 
     @abstractmethod
     async def read_chapter_blocks(self, content_json_path: str, chapter_id: str) -> List[Dict[str, Any]]:
-        """从沙箱磁盘读取指定章节的正文原子 ContentBlock 数组"""
+        """从磁盘读取指定章节的正文原子 ContentBlock 数组"""
         ...
 
     @abstractmethod
@@ -52,13 +52,14 @@ class BookFileStoragePort(ABC):
 
     @abstractmethod
     async def check_file_hash_and_existence(self, file_path: str) -> bool:
-        """校验沙箱物理文件是否存在且文件正常"""
+        """校验物理文件是否存在且文件正常"""
         ...
 
     @abstractmethod
-    async def delete_book_sandbox_dir(self, storage_path: str) -> None:
-        """级联清理书籍沙箱目录"""
+    async def delete_book_dir(self, storage_path: str) -> None:
+        """清理书籍存储目录"""
         ...
+
 
 
 from app.domain.common.ports import EventPublisherPort

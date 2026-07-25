@@ -1,36 +1,17 @@
 """
-接入层 - 全局 RFC 7807 异常处理器
+接入层 - 通用 RFC 7807 异常处理器
 
 所有非 2xx 响应均统一返回 RFC 7807 格式（Problem Details for HTTP APIs）。
-前端可通过 type 字段区分错误类型并处理复杂交互死锁（如沙箱拓扑环路）。
+通过自描述的 DomainException 基类，自动提取 error_type、title、status_code 和 extension_fields，
+避免在接入层为各个具体领域异常编写硬编码转换逻辑。
 """
 from __future__ import annotations
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.domain.project.domain_service import TopologyCycleError
-from app.application.ports.sandbox_port import SandboxViolationError
-
-
-class DomainException(Exception):
-    """通用领域异常基类，携带 RFC 7807 所需字段"""
-
-    def __init__(
-        self,
-        error_type: str,
-        title: str,
-        status_code: int = 400,
-        detail: str = "",
-        extension_fields: dict | None = None,
-    ) -> None:
-        self.error_type = error_type
-        self.title = title
-        self.status_code = status_code
-        self.detail = detail
-        self.extension_fields = extension_fields or {}
-        super().__init__(detail)
+from app.domain.exceptions import DomainException
 
 
 def _problem_response(
@@ -75,34 +56,37 @@ def register_error_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         return _problem_response(
             request,
-            error_type=exc.error_type,
-            title=exc.title,
+            error_type=getattr(exc, "error_type", "domain-error"),
+            title=getattr(exc, "title", "Domain Exception"),
+            status_code=getattr(exc, "status_code", status.HTTP_400_BAD_REQUEST),
+            detail=getattr(exc, "detail", str(exc)),
+            extension_fields=getattr(exc, "extension_fields", None),
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
+        detail_msg = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+        return _problem_response(
+            request,
+            error_type="http-error",
+            title="HTTP Exception",
             status_code=exc.status_code,
-            detail=exc.detail,
-            extension_fields=exc.extension_fields,
+            detail=detail_msg,
         )
 
-    @app.exception_handler(TopologyCycleError)
-    async def topology_cycle_handler(
-        request: Request, exc: TopologyCycleError
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(
+        request: Request, exc: Exception
     ) -> JSONResponse:
         return _problem_response(
             request,
-            error_type="topology-cycle",
-            title="Topological Cycle Detected",
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="依赖解析失败，检测到步骤循环依赖。",
-            extension_fields={"cycle_path": exc.cycle_path},
+            error_type="internal-server-error",
+            title="Internal Server Error",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="服务器内部发生未知错误",
         )
 
-    @app.exception_handler(SandboxViolationError)
-    async def sandbox_violation_handler(
-        request: Request, exc: SandboxViolationError
-    ) -> JSONResponse:
-        return _problem_response(
-            request,
-            error_type="sandbox-violation",
-            title="Sandbox Security Violation",
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(exc),
-        )
+
+

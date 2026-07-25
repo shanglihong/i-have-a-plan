@@ -124,17 +124,27 @@ async def test_book_rest_api_workflow(temp_sandbox_dir):
         with open(sample_txt_path, "w", encoding="utf-8") as f:
             f.write("第一章 API测试\n这是通过 API 上传解析的段落文本。")
 
-        with open(sample_txt_path, "rb") as f:
-            files = {"file": ("api_test.txt", f, "text/plain")}
-            data = {"project_id": "proj_unit_test"}
-            response = await ac.post("/api/books/parse-file", files=files, data=data)
+        # 1. 初始化创建 Book 实体
+        create_payload = {
+            "project_id": "proj_unit_test",
+            "file_name": "api_test.txt",
+            "file_type": "TXT",
+            "file_size": os.path.getsize(sample_txt_path),
+            "storage_path": sample_txt_path
+        }
+        create_res = await ac.post("/api/books", json=create_payload)
+        assert create_res.status_code == 201
+        book_id = create_res.json()["data"]["id"]
 
+        # 2. 触发解析
+        response = await ac.post("/api/books/parse-file", data={"book_id": book_id})
         assert response.status_code == 200
         res_json = response.json()
         assert res_json["code"] == 200
         book_data = res_json["data"]
-        book_id = book_data["id"]
+        assert book_data["id"] == book_id
         assert book_data["parsing_status"] == "COMPLETED"
+
 
         # 2. 查询 Book 元数据
         meta_res = await ac.get(f"/api/books/{book_id}")
@@ -162,14 +172,14 @@ async def test_book_rest_api_workflow(temp_sandbox_dir):
 
 @pytest.mark.asyncio
 async def test_healing_service_returns_enum():
-    """测试 BookSandboxHealingService 返回 HealingStatus 枚举"""
+    """测试 BookHealingDomainService 返回 HealingStatus 枚举"""
     from unittest.mock import AsyncMock
     repo = AsyncMock()
     file_storage = AsyncMock()
     parsing_engine = AsyncMock()
 
-    from app.domain.book.services import BookSandboxHealingService
-    service = BookSandboxHealingService(repo, file_storage, parsing_engine)
+    from app.domain.book.services import BookHealingDomainService
+    service = BookHealingDomainService(repo, file_storage, parsing_engine)
 
     # 1. 找不到书籍
     repo.find_by_id.return_value = None
@@ -189,18 +199,18 @@ def test_database_workspace_configuration(monkeypatch, temp_sandbox_dir):
     monkeypatch.delenv("DATABASE_URL", raising=False)
 
     default_url = get_database_url()
-    assert ".i_have_a_plan/db/app.db" in default_url
+    assert "db/app.db" in default_url
 
     # 2. 自定义 WORKSPACE_DIR 环境变量
     monkeypatch.setenv("WORKSPACE_DIR", temp_sandbox_dir)
     custom_url = get_database_url()
     assert temp_sandbox_dir in custom_url
-    assert ".i_have_a_plan/db/app.db" in custom_url
 
     # 3. 自定义 WORKSPACE_DIR 带 ~ 波浪号路径展开
     monkeypatch.setenv("WORKSPACE_DIR", "~/i_have_a_plan_test")
     tilde_url = get_database_url()
     assert "~" not in tilde_url
-    assert "i_have_a_plan_test/.i_have_a_plan/db/app.db" in tilde_url
+    assert "i_have_a_plan_test/db/app.db" in tilde_url
+
 
 

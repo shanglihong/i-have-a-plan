@@ -1,7 +1,7 @@
 """书籍领域查询服务 (Domain Services)"""
 
 from typing import List, Dict, Any, Tuple, Optional
-from app.domain.book.entities import ChapterContent
+from app.domain.book.entities import ChapterContent, ContentBlock
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.exceptions import (
     BookNotFoundException,
@@ -72,8 +72,13 @@ class BookChapterContentDomainService:
         # 3. 计算章节内 ContentBlock 分页切片
         raw_blocks = all_parsed.get(chapter_id, [])
         total_blocks = len(raw_blocks)
-        sliced_blocks = raw_blocks[offset: offset + limit]
+        sliced_raw = raw_blocks[offset: offset + limit]
         has_more = (offset + limit) < total_blocks
+
+        sliced_blocks = [
+            ContentBlock.from_dict(b) if isinstance(b, dict) else b
+            for b in sliced_raw
+        ]
 
         # 4. 计算前一章与后一章 ID
         all_chapter_ids = list(all_parsed.keys())

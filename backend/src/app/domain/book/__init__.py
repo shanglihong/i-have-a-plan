@@ -3,7 +3,7 @@
 from .entities import Book, TocNode, SourceAnchor, ContentBlock, ChapterContent, ParsingStatus, BookFileType
 from .events import BookParseRequestedEvent, BookParsedEvent, BookDeletedEvent
 from .ports import BookRepositoryPort, BookFileStoragePort, BookEventBusPort
-from .services import BookParsingEngineService, BookSandboxHealingService
+from .services import BookParsingEngineService, BookHealingDomainService
 from .exceptions import (
     BookDomainException,
     BookNotFoundException,
@@ -27,7 +27,7 @@ __all__ = [
     "BookFileStoragePort",
     "BookEventBusPort",
     "BookParsingEngineService",
-    "BookSandboxHealingService",
+    "BookHealingDomainService",
     "BookDomainException",
     "BookNotFoundException",
     "UnsupportedBookFormatException",

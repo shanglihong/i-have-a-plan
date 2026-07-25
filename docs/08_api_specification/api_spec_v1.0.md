@@ -19,16 +19,28 @@
 
 ```json
 {
-  "type": "https://api.example.com/errors/topology-cycle",
-  "title": "Topological Cycle Detected",
-  "status": 400,
-  "detail": "依赖解析失败，检测到步骤循环依赖。",
-  "instance": "/api/skills/sandbox-123/approve",
+  "type": "https://i-have-a-plan/errors/book-not-found",
+  "title": "Book Not Found",
+  "status": 404,
+  "detail": "未找到图书: bk_88776655",
+  "instance": "/api/books/bk_88776655",
   "extension_fields": {
-    "cycle_path": ["task_A", "task_B", "task_A"]
+    "error_code": "BOOK_NOT_FOUND"
   }
 }
 ```
+
+#### 常用领域异常类型映射表
+
+| 领域错误类型 | HTTP 状态码 | type 字段标识 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `BOOK_NOT_FOUND` | 404 | `https://i-have-a-plan/errors/book-not-found` | 指定图书元数据或记录不存在 |
+| `CHAPTER_NOT_FOUND` | 404 | `https://i-have-a-plan/errors/chapter-not-found` | 章节内容切片未找到 |
+| `UNSUPPORTED_BOOK_FORMAT` | 400 | `https://i-have-a-plan/errors/unsupported-book-format` | 不支持的格式类型 |
+| `INVALID_STATE_TRANSITION` | 409 | `https://i-have-a-plan/errors/invalid-state-transition` | 非法的状态机流转 |
+| `BOOK_PARSING_FAILED` | 422 | `https://i-have-a-plan/errors/book-parsing-failed` | 书籍文件解析过程失败 |
+| `validation-error` | 422 | `https://i-have-a-plan/errors/validation-error` | 请求参数校验失败 |
+| `internal-server-error` | 500 | `https://i-have-a-plan/errors/internal-server-error` | 未捕获的内部服务器错误 |
 
 ### 2. 混合分页策略数据结构
 
