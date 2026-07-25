@@ -3,12 +3,52 @@
 import uuid
 from typing import Optional, List, Dict, Any
 from app.domain.book.entities import Book, BookFileType, ParsingStatus
-from app.domain.book.services import BookParsingEngineService, BookSandboxHealingService
-from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort, BookEventBusPort
-from app.domain.book.exceptions import BookNotFoundException, BookParsingFailedException
-from app.application.book.dtos import (
-    BookResponseDTO, TocResponseDTO, ChapterContentResponseDTO, ContentBlockDTO
+from app.domain.book.services import (
+    BookParsingEngineService,
+    BookSandboxHealingService,
+    BookTocQueryDomainService,
+    BookChapterContentDomainService,
+    BookCreationDomainService
 )
+from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort, BookEventBusPort
+from app.domain.book.exceptions import (
+    BookNotFoundException,
+    BookParsingFailedException,
+    ChapterNotFoundException
+)
+from app.application.book.dtos import (
+    BookResponseDTO, TocResponseDTO, ChapterContentResponseDTO, ContentBlockDTO, CreateBookRequestDTO
+)
+
+
+class CreateBookUseCase:
+    """创建书籍用例 (解析前初始化落盘)"""
+
+    def __init__(self, creation_service: BookCreationDomainService):
+        self.creation_service = creation_service
+
+    async def execute(self, req: CreateBookRequestDTO) -> BookResponseDTO:
+        book = await self.creation_service.create_book(
+            project_id=req.project_id,
+            file_name=req.file_name,
+            file_type=req.file_type,
+            file_size=req.file_size or 0,
+            storage_path=req.storage_path or ""
+        )
+        return BookResponseDTO.from_domain(book)
+
+
+class GetBookMetadataUseCase:
+    """获取书籍描述元数据用例"""
+
+    def __init__(self, repository: BookRepositoryPort):
+        self.repository = repository
+
+    async def execute(self, book_id: str) -> BookResponseDTO:
+        book = await self.repository.find_by_id(book_id)
+        if not book:
+            raise BookNotFoundException(book_id)
+        return BookResponseDTO.from_domain(book)
 
 
 class ParseBookUseCase:
@@ -70,30 +110,22 @@ class ParseBookUseCase:
 class GetBookTocUseCase:
     """获取书籍目录大纲树用例"""
 
-    def __init__(self, repository: BookRepositoryPort):
-        self.repository = repository
+    def __init__(self, toc_query_service: BookTocQueryDomainService):
+        self.toc_query_service = toc_query_service
 
     async def execute(self, book_id: str) -> TocResponseDTO:
-        book = await self.repository.find_by_id(book_id)
-        if not book:
-            raise BookNotFoundException(book_id)
-
+        b_id, toc_tree = await self.toc_query_service.get_toc_tree(book_id)
         return TocResponseDTO(
-            book_id=book.id,
-            toc_tree=book.parsed_structure or []
+            book_id=b_id,
+            toc_tree=toc_tree
         )
 
 
 class GetChapterContentUseCase:
     """章节 ContentBlock 正文切片懒加载用例"""
 
-    def __init__(
-        self,
-        repository: BookRepositoryPort,
-        file_storage: BookFileStoragePort
-    ):
-        self.repository = repository
-        self.file_storage = file_storage
+    def __init__(self, content_service: BookChapterContentDomainService):
+        self.content_service = content_service
 
     async def execute(
         self,
@@ -102,21 +134,12 @@ class GetChapterContentUseCase:
         offset: int = 0,
         limit: int = 50
     ) -> ChapterContentResponseDTO:
-        book = await self.repository.find_by_id(book_id)
-        if not book:
-            raise BookNotFoundException(book_id)
-
-        if not book.is_completed():
-            raise BookParsingFailedException(book_id, f"图书未解析完成 (当前状态: {book.parsing_status.value})")
-
-        raw_blocks = await self.file_storage.read_chapter_blocks(
-            content_json_path=book.content_json_path,
-            chapter_id=chapter_id
+        content = await self.content_service.get_chapter_content(
+            book_id=book_id,
+            chapter_id=chapter_id,
+            offset=offset,
+            limit=limit
         )
-
-        total_blocks = len(raw_blocks)
-        sliced_raw = raw_blocks[offset: offset + limit]
-        has_more = (offset + limit) < total_blocks
 
         blocks_dtos = [
             ContentBlockDTO(
@@ -128,30 +151,17 @@ class GetChapterContentUseCase:
                 page_number=b.get("page_number"),
                 bbox=b.get("bbox")
             )
-            for b in sliced_raw
+            for b in content.blocks
         ]
 
-        all_parsed = await self.file_storage.read_all_parsed_content(book.content_json_path)
-        all_chap_ids = list(all_parsed.keys())
-        prev_id = None
-        next_id = None
-        chap_idx = 0
-
-        if chapter_id in all_chap_ids:
-            chap_idx = all_chap_ids.index(chapter_id)
-            if chap_idx > 0:
-                prev_id = all_chap_ids[chap_idx - 1]
-            if chap_idx < len(all_chap_ids) - 1:
-                next_id = all_chap_ids[chap_idx + 1]
-
         return ChapterContentResponseDTO(
-            book_id=book.id,
-            chapter_id=chapter_id,
-            chapter_index=chap_idx,
-            total_blocks=total_blocks,
-            has_more=has_more,
-            prev_chapter_id=prev_id,
-            next_chapter_id=next_id,
+            book_id=content.book_id,
+            chapter_id=content.chapter_id,
+            chapter_index=content.chapter_index,
+            total_blocks=content.total_blocks,
+            has_more=content.has_more,
+            prev_chapter_id=content.prev_chapter_id,
+            next_chapter_id=content.next_chapter_id,
             blocks=blocks_dtos
         )
 

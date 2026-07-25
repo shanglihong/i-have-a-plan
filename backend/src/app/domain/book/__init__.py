@@ -1,6 +1,6 @@
 """书籍与物理锚点领域上下文包"""
 
-from .entities import Book, TocNode, SourceAnchor, ContentBlock, ParsingStatus, BookFileType
+from .entities import Book, TocNode, SourceAnchor, ContentBlock, ChapterContent, ParsingStatus, BookFileType
 from .events import BookParseRequestedEvent, BookParsedEvent, BookDeletedEvent
 from .ports import BookRepositoryPort, BookFileStoragePort, BookEventBusPort
 from .services import BookParsingEngineService, BookSandboxHealingService
@@ -17,6 +17,7 @@ __all__ = [
     "TocNode",
     "SourceAnchor",
     "ContentBlock",
+    "ChapterContent",
     "ParsingStatus",
     "BookFileType",
     "BookParseRequestedEvent",

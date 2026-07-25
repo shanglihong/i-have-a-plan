@@ -63,3 +63,12 @@ class ChapterContentResponseDTO(BaseModel):
 class TocResponseDTO(BaseModel):
     book_id: str
     toc_tree: List[Dict[str, Any]]
+
+
+class CreateBookRequestDTO(BaseModel):
+    project_id: str = Field(..., description="关联的项目 ID")
+    file_name: str = Field(..., description="物理文件名")
+    file_type: str = Field(..., description="文件格式类型 (PDF, EPUB, TXT, MD)")
+    file_size: Optional[int] = Field(default=0, description="文件字节大小")
+    storage_path: Optional[str] = Field(default="", description="物理存储/沙箱相对路径")
+

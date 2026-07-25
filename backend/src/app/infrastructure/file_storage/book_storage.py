@@ -8,6 +8,8 @@ import uuid
 from typing import Optional, Dict, List, Any
 from app.domain.book.ports import BookFileStoragePort
 
+from collections import OrderedDict
+
 BASE_SANDBOX_DIR = os.getenv("SANDBOX_DIR", ".sandbox/books")
 
 

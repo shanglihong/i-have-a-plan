@@ -9,58 +9,49 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.utils.path import get_workspace_dir
-from app.infrastructure.db.session import get_async_session
-from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
-from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
-from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
-from app.domain.book.services import BookParsingEngineService, BookSandboxHealingService
+from app.api.deps import get_book_use_cases
 from app.domain.book.exceptions import (
     BookDomainException,
     BookNotFoundException,
     InvalidStateTransitionException,
     UnsupportedBookFormatException,
-    BookParsingFailedException
-)
-from app.application.book.use_cases import (
-    ParseBookUseCase, GetBookTocUseCase, GetChapterContentUseCase, BookSandboxHealingUseCase
+    BookParsingFailedException,
+    ChapterNotFoundException
 )
 from app.application.book.dtos import (
-    BookResponseDTO, TocResponseDTO, ChapterContentResponseDTO
+    BookResponseDTO, TocResponseDTO, ChapterContentResponseDTO, CreateBookRequestDTO
 )
 
 router = APIRouter(prefix="/api/books", tags=["Book Domain"])
 
 
-def get_book_use_cases(session: AsyncSession = Depends(get_async_session)):
-    repository = BookRepositoryAdapter(session)
-    file_storage = LocalBookFileStorageAdapter()
-    parsing_engine = BookParsingEngineService(repository, file_storage, global_event_bus)
-    healing_service = BookSandboxHealingService(repository, file_storage, parsing_engine)
 
-    return {
-        "repository": repository,
-        "file_storage": file_storage,
-        "parsing_engine": parsing_engine,
-        "healing_service": healing_service,
-        "parse_use_case": ParseBookUseCase(repository, file_storage, parsing_engine),
-        "get_toc_use_case": GetBookTocUseCase(repository),
-        "get_content_use_case": GetChapterContentUseCase(repository, file_storage),
-        "healing_use_case": BookSandboxHealingUseCase(healing_service)
-    }
+@router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def create_book(req: CreateBookRequestDTO, deps: dict = Depends(get_book_use_cases)):
+    """在文件解析之前初始化创建 Book 记录实体 (状态设为 PENDING)"""
+    create_use_case = deps["create_book_use_case"]
+    try:
+        dto: BookResponseDTO = await create_use_case.execute(req)
+        return {"code": 201, "message": "success", "data": dto.model_dump()}
+    except UnsupportedBookFormatException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": 400, "message": e.message, "data": None}
+        )
 
 
 @router.get("/{book_id}", response_model=dict)
 async def get_book_metadata(book_id: str, deps: dict = Depends(get_book_use_cases)):
     """获取书籍描述元数据、物理路径与全生命周期解析状态"""
-    repository = deps["repository"]
-    book = await repository.find_by_id(book_id)
-    if not book:
+    get_metadata_use_case = deps["get_metadata_use_case"]
+    try:
+        dto: BookResponseDTO = await get_metadata_use_case.execute(book_id)
+        return {"code": 200, "message": "success", "data": dto.model_dump()}
+    except BookNotFoundException as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": 404, "message": "BOOK_NOT_FOUND", "data": None}
+            detail={"code": 404, "message": e.message, "data": None}
         )
-    dto = BookResponseDTO.from_domain(book)
-    return {"code": 200, "message": "success", "data": dto.model_dump()}
 
 
 @router.get("/{book_id}/toc", response_model=dict)
@@ -96,6 +87,11 @@ async def get_chapter_content(
         )
         return {"code": 200, "message": "success", "data": dto.model_dump()}
     except BookNotFoundException as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": 404, "message": e.message, "data": None}
+        )
+    except ChapterNotFoundException as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": 404, "message": e.message, "data": None}

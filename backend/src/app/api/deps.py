@@ -2,8 +2,6 @@
 接入层 - FastAPI 依赖注入定义 (Depends)
 
 集中管理所有 FastAPI Depends 函数，避免路由文件直接耦合基础设施层。
-路由文件只需 from app.api.deps import get_project_use_cases 即可使用。
-
 测试时通过 app.dependency_overrides 替换 Mock 实现。
 """
 from __future__ import annotations
@@ -11,37 +9,55 @@ from __future__ import annotations
 from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.application.use_cases.project_use_cases import ProjectUseCases
-from app.infrastructure.db.database import get_session
-from app.infrastructure.db.repositories.project_repository import SqliteProjectRepository
+from app.infrastructure.db.session import get_async_session
+from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
+from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
+from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
+from app.domain.book.services import (
+    BookParsingEngineService,
+    BookSandboxHealingService,
+    BookTocQueryDomainService,
+    BookChapterContentDomainService,
+    BookCreationDomainService
+)
+from app.application.book.use_cases import (
+    ParseBookUseCase,
+    GetBookMetadataUseCase,
+    GetBookTocUseCase,
+    GetChapterContentUseCase,
+    BookSandboxHealingUseCase,
+    CreateBookUseCase
+)
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """提供数据库 Session（每次请求独立）"""
-    async for session in get_session():
+    async for session in get_async_session():
         yield session
 
 
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 
 
-async def get_project_repository(
-    session: SessionDep,
-) -> SqliteProjectRepository:
-    """提供项目仓储实例（注入当前 Session）"""
-    return SqliteProjectRepository(session=session)
+async def get_book_use_cases(session: AsyncSession = Depends(get_async_session)) -> dict:
+    """构建与提供 Book 领域用例组依赖"""
+    repository = BookRepositoryAdapter(session)
+    file_storage = LocalBookFileStorageAdapter()
 
+    parsing_engine = BookParsingEngineService(repository, file_storage, global_event_bus)
+    healing_service = BookSandboxHealingService(repository, file_storage, parsing_engine)
+    toc_query_service = BookTocQueryDomainService(repository)
+    content_query_service = BookChapterContentDomainService(repository, file_storage)
+    creation_service = BookCreationDomainService(repository)
 
-ProjectRepoDep = Annotated[SqliteProjectRepository, Depends(get_project_repository)]
+    return {
+        "parse_use_case": ParseBookUseCase(repository, file_storage, parsing_engine),
+        "create_book_use_case": CreateBookUseCase(creation_service),
+        "get_metadata_use_case": GetBookMetadataUseCase(repository),
+        "get_toc_use_case": GetBookTocUseCase(toc_query_service),
+        "get_content_use_case": GetChapterContentUseCase(content_query_service),
+        "healing_use_case": BookSandboxHealingUseCase(healing_service)
+    }
 
-
-async def get_project_use_cases(
-    repo: ProjectRepoDep,
-) -> ProjectUseCases:
-    """提供项目用例实例（组合注入仓储）"""
-    return ProjectUseCases(project_repo=repo)
-
-
-ProjectUseCasesDep = Annotated[ProjectUseCases, Depends(get_project_use_cases)]

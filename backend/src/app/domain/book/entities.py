@@ -85,6 +85,20 @@ class ContentBlock(BaseModel):
 
 
 @dataclass
+class ChapterContent:
+    """章节内容切片及关联上下文结构值对象"""
+    book_id: str
+    chapter_id: str
+    chapter_index: int
+    total_blocks: int
+    has_more: bool
+    prev_chapter_id: Optional[str] = None
+    next_chapter_id: Optional[str] = None
+    blocks: List[Dict[str, Any]] = field(default_factory=list)
+
+
+
+@dataclass
 class SourceAnchor(BaseEntity):
     """物理锚点实体"""
     book_id: str = ""

@@ -34,3 +34,10 @@ class BookParsingFailedException(BookDomainException):
     """解析过程异常"""
     def __init__(self, book_id: str, reason: str):
         super().__init__(f"图书 {book_id} 解析失败: {reason}", error_code="BOOK_PARSING_FAILED")
+
+
+class ChapterNotFoundException(BookDomainException):
+    """未找到章节内容异常"""
+    def __init__(self, chapter_id: str):
+        super().__init__(f"未找到章节: {chapter_id}", error_code="CHAPTER_NOT_FOUND")
+

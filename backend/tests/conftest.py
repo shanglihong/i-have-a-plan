@@ -23,7 +23,7 @@ async def test_engine():
     """内存 SQLite 引擎（每个测试独立）"""
     # 导入所有实体，确保元数据注册
     from app.domain.graph.entities import GraphEdge, GraphNode, TagSuperNode  # noqa
-    from app.domain.note.entities import ExperienceNote, UnifiedReadingNote  # noqa
+    from app.domain.note.entities import MaterialNote, SynthesizedNote, KnowledgeBase  # noqa
     from app.domain.project.entities import Project, Task  # noqa
     from app.domain.skill.entities import Skill, SkillStep  # noqa
     from app.infrastructure.db.models.book import BookDO  # noqa
@@ -54,14 +54,14 @@ async def client(test_session):
     通过 dependency_overrides 将数据库 Session 替换为内存测试 Session，
     完全隔离，不影响真实数据库。
     """
-    from app.api.deps import get_db_session
+    from app.infrastructure.db.session import get_async_session
 
     app = create_app()
 
     async def override_get_session():
         yield test_session
 
-    app.dependency_overrides[get_db_session] = override_get_session
+    app.dependency_overrides[get_async_session] = override_get_session
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
