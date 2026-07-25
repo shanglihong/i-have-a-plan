@@ -1,16 +1,35 @@
 """书籍与物理锚点领域上下文包"""
 
-from .entities import Book, TocNode, SourceAnchor
-from .events import BookParsed
-from .ports import BookRepositoryPort, SourceAnchorRepositoryPort
-from .services import AnchorResolutionService
+from .entities import Book, TocNode, SourceAnchor, ContentBlock, ParsingStatus, BookFileType
+from .events import BookParseRequestedEvent, BookParsedEvent, BookDeletedEvent
+from .ports import BookRepositoryPort, BookFileStoragePort, BookEventBusPort
+from .services import BookParsingEngineService, BookSandboxHealingService
+from .exceptions import (
+    BookDomainException,
+    BookNotFoundException,
+    UnsupportedBookFormatException,
+    InvalidStateTransitionException,
+    BookParsingFailedException
+)
 
 __all__ = [
     "Book",
     "TocNode",
     "SourceAnchor",
-    "BookParsed",
+    "ContentBlock",
+    "ParsingStatus",
+    "BookFileType",
+    "BookParseRequestedEvent",
+    "BookParsedEvent",
+    "BookDeletedEvent",
     "BookRepositoryPort",
-    "SourceAnchorRepositoryPort",
-    "AnchorResolutionService",
+    "BookFileStoragePort",
+    "BookEventBusPort",
+    "BookParsingEngineService",
+    "BookSandboxHealingService",
+    "BookDomainException",
+    "BookNotFoundException",
+    "UnsupportedBookFormatException",
+    "InvalidStateTransitionException",
+    "BookParsingFailedException",
 ]

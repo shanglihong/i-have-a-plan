@@ -41,7 +41,6 @@
     "total_word_count": 85400,
     "storage_path": "sandbox/books/bk_88776655/raw.pdf",
     "content_json_path": "sandbox/books/bk_88776655/parsed_content.json",
-    "error_message": null,
     "created_at": "2026-07-23T14:00:00Z",
     "updated_at": "2026-07-23T14:02:15Z"
   }

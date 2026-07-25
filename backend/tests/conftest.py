@@ -26,6 +26,7 @@ async def test_engine():
     from app.domain.note.entities import ExperienceNote, UnifiedReadingNote  # noqa
     from app.domain.project.entities import Project, Task  # noqa
     from app.domain.skill.entities import Skill, SkillStep  # noqa
+    from app.infrastructure.db.models.book import BookDO  # noqa
 
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",

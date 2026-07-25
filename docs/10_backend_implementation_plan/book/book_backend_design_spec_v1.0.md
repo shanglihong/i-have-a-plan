@@ -25,14 +25,14 @@
 
 书籍领域向接入层 (REST API) 及其他外部调用方提供以下核心能力契约：
 
-| 领域服务名称 | 调用的目标领域 / 模块 | 服务能力描述 | 领域契约与约束 |
-| :--- | :--- | :--- | :--- |
-| **异步书籍解析引擎服务** <br>`BookParsingEngineService` | EventBus 事件消费 (`BookParseRequestedEvent`) | 校验沙箱物理文件格式与 Hash，调用策略解析器切片并落盘 `parsed_content.json`，更新目录树。 | 解析完成后广播 `BookParsedEvent` |
-| **沙箱自愈与文件校验服务** <br>`BookSandboxHealingService` | 外部守护进程 / <br>冷启动修复调用方 | 提供 `verify_sandbox_file` 与 `get_parsed_toc_json` 接口，独立校验沙箱存储并清理死链文件。 | 返回 `FileIntact` 或 `FileCorrupted` 状态 |
-| **通用目录大纲查询服务** <br>`BookTocQueryService` | 接入层 REST API / <br>外部目录订阅方 | 提供 `book_id` 级别的递归 `parsed_structure` 目录大纲树查询与节点校验。 | 只读查询，读取数据库中的轻量 JSON 索引 |
-| **章节与 ContentBlock 懒加载服务** <br>`BookChapterContentService` | 接入层 REST API / <br>Agent 领域 (上下文注入) | 从沙箱磁盘读取 `parsed_content.json`，按 `chapter_id` 或 `block_id` 区间懒加载原子 ContentBlock 正文切片。 | 读取磁盘文件，不污染数据库内存，提供分页与 Chunk 提取 |
-| **物理原文锚点解算服务** <br>`SourceAnchorResolutionService` | Agent 旁路 (知识提炼) / <br>Note 领域 (离线溯源) | 接收 `SourceAnchor` 参数，执行“精准偏移 -> 20 字符上下文模糊重锚定 -> 段落降级”三层解算。UI 侧由前端 JS 内存直接计算高亮。 | 处理原文编辑微调后的漂移，自动修复锚点快照 |
-| **书籍清理与物理抹除服务** <br>`BookCleanupService` | 外部级联清理调用方 | 在书籍删除或上传覆盖时，安全级联清理 SQLite 记录及物理沙箱存储中的原书与 `parsed_content.json`。 | 保障磁盘空间回收与本地零孤岛垃圾文件 |
+| 领域服务名称                                                       | 调用的目标领域 / 模块                            | 服务能力描述                                                                                                               | 领域契约与约束                                        |
+| :----------------------------------------------------------------- | :----------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------- |
+| **异步书籍解析引擎服务** <br>`BookParsingEngineService`            | EventBus 事件消费 (`BookParseRequestedEvent`)    | 校验沙箱物理文件格式与 Hash，调用策略解析器切片并落盘 `parsed_content.json`，更新目录树。                                  | 解析完成后广播 `BookParsedEvent`                      |
+| **沙箱自愈与文件校验服务** <br>`BookSandboxHealingService`         | 外部守护进程 / <br>冷启动修复调用方              | 提供 `verify_sandbox_file` 与 `get_parsed_toc_json` 接口，独立校验沙箱存储并清理死链文件。                                 | 返回 `FileIntact` 或 `FileCorrupted` 状态             |
+| **通用目录大纲查询服务** <br>`BookTocQueryService`                 | 接入层 REST API / <br>外部目录订阅方             | 提供 `book_id` 级别的递归 `parsed_structure` 目录大纲树查询与节点校验。                                                    | 只读查询，读取数据库中的轻量 JSON 索引                |
+| **章节与 ContentBlock 懒加载服务** <br>`BookChapterContentService` | 接入层 REST API / <br>Agent 领域 (上下文注入)    | 从沙箱磁盘读取 `parsed_content.json`，按 `chapter_id` 或 `block_id` 区间懒加载原子 ContentBlock 正文切片。                 | 读取磁盘文件，不污染数据库内存，提供分页与 Chunk 提取 |
+| **物理原文锚点解算服务** <br>`SourceAnchorResolutionService`       | Agent 旁路 (知识提炼) / <br>Note 领域 (离线溯源) | 接收 `SourceAnchor` 参数，执行“精准偏移 -> 20 字符上下文模糊重锚定 -> 段落降级”三层解算。UI 侧由前端 JS 内存直接计算高亮。 | 处理原文编辑微调后的漂移，自动修复锚点快照            |
+| **书籍清理与物理抹除服务** <br>`BookCleanupService`                | 外部级联清理调用方                               | 在书籍删除或上传覆盖时，安全级联清理 SQLite 记录及物理沙箱存储中的原书与 `parsed_content.json`。                           | 保障磁盘空间回收与本地零孤岛垃圾文件                  |
 
 ---
 
@@ -132,7 +132,7 @@ graph TD
 
 > [!NOTE]
 > **解析触发入口**：
-> 接收到事件总线广播的 `BookParseRequestedEvent(project_id, file_name, file_path)`。用户在创建 `READING` 阅读项目时，由 Project 领域在文件写入沙箱后统一向事件总线广播触发。
+> 接收到事件总线广播的 `BookParseRequestedEvent(book_id, project_id, file_name, storage_path)`。用户在创建 `READING` 阅读项目时，由 Project 领域在对文件存储路径进行沙箱检查与落盘后，统一向事件总线广播触发。
 
 ```mermaid
 sequenceDiagram
@@ -145,13 +145,10 @@ sequenceDiagram
     participant Repo as BookRepositoryPort (SQLite)
     participant Publisher as BookEventBusPort (消息广播)
 
-    Note over EventBus, UC: 步骤 1: 监听到解析事件，初始化 Book 实体与沙箱物理校验
-    EventBus->>UC: on_book_parse_requested(project_id, file_name, file_path)
-    UC->>FileStore: verify_and_store_raw_file(project_id, file_name, file_path)
-    FileStore-->>UC: storage_path
-    UC->>Factory: build_book_entity(project_id, file_name, storage_path)
-    Factory->>Agg: new Book(parsing_status=PENDING)
-    UC->>Repo: save(book_agg)
+    Note over EventBus, UC: 步骤 1: 监听到解析事件，加载已通过沙箱路径校验的 Book 实体
+    EventBus->>UC: on_book_parse_requested(book_id, project_id, file_name, storage_path)
+    UC->>Repo: find_by_id(book_id)
+    Repo-->>UC: book_agg
 
     Note over UC, Factory: 步骤 2: 调用策略解析器，执行多格式拆解
     UC->>Factory: select_parser_strategy(file_type)
@@ -272,11 +269,11 @@ flowchart TD
 
 #### 三层容错重锚定降级矩阵
 
-| 匹配层级 | 匹配条件与触发逻辑 | 计算过程与校验特征 | 输出解算状态 | 前端 UI 交互与提示行为 |
-| :--- | :--- | :--- | :--- | :--- |
-| **层级 1: 精确定位** <br>(Exact Match) | `block_id` 存在，且 `char_start_offset` 至 `char_end_offset` 切片 Hash 与 `content_hash` 完全一致 | 比对 SHA-256 Hash `Hash(text_snippet) == content_hash` | `EXACT` | 精确脉冲点亮划词文字，无任何警告 |
+| 匹配层级                                           | 匹配条件与触发逻辑                                                                                             | 计算过程与校验特征                                                                                                 | 输出解算状态       | 前端 UI 交互与提示行为                                                                          |
+| :------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------- | :----------------- | :---------------------------------------------------------------------------------------------- |
+| **层级 1: 精确定位** <br>(Exact Match)             | `block_id` 存在，且 `char_start_offset` 至 `char_end_offset` 切片 Hash 与 `content_hash` 完全一致              | 比对 SHA-256 Hash `Hash(text_snippet) == content_hash`                                                             | `EXACT`            | 精确脉冲点亮划词文字，无任何警告                                                                |
 | **层级 2: 上下文模糊重锚定** <br>(Fuzzy Re-anchor) | 偏移失效，但通过 `text_snippet` + `prefix_context` + `suffix_context`（前后各 20 字符）在 Block 内滑动匹配成功 | 使用 Levenshtein 模糊匹配搜索最高置信度子串 (Confidence >= 0.8)，自动修正 `char_start_offset` 与 `char_end_offset` | `FUZZY_REANCHORED` | 脉冲点亮修正后的 DOM 节点，展示提示：“原文位置经过微调，已自动重锚定”；前端异步发请求修正数据库 |
-| **层级 3: 段落降级定位** <br>(Stale Fallback) | 目标文字被重写，上下文匹配得分 < 0.8 | 找到物理 `block_id` 容器，但无法定位具体字符范围 | `STALE_FALLBACK` | 脉冲高亮点亮整个 `ContentBlock` 段落，展示 Notice 提示：“划词文本已被修改，定位至所在段落” |
+| **层级 3: 段落降级定位** <br>(Stale Fallback)      | 目标文字被重写，上下文匹配得分 < 0.8                                                                           | 找到物理 `block_id` 容器，但无法定位具体字符范围                                                                   | `STALE_FALLBACK`   | 脉冲高亮点亮整个 `ContentBlock` 段落，展示 Notice 提示：“划词文本已被修改，定位至所在段落”      |
 
 ---
 
@@ -304,25 +301,18 @@ class BookRepositoryPort(ABC):
 class BookFileStoragePort(ABC):
     """Book 物理沙箱文件存取接口 (File-first 原则)"""
     @abstractmethod
-    def verify_and_store_raw_file(self, project_id: str, file_name: str, file_path: str) -> str: ...
-    @abstractmethod
-    def save_parsed_content_json(self, book_id: str, chapter_blocks_data: Dict[str, Any]) -> str: ...
+    def save_parsed_content_json(self, storage_path: str, chapter_blocks_data: Dict[str, Any]) -> str: ...
     @abstractmethod
     def read_chapter_blocks(self, content_json_path: str, chapter_id: str) -> List[Dict[str, Any]]: ...
     @abstractmethod
     def check_file_hash_and_existence(self, file_path: str) -> bool: ...
     @abstractmethod
-    def delete_book_sandbox_dir(self, book_id: str) -> None: ...
+    def delete_book_sandbox_dir(self, storage_path: str) -> None: ...
 
-class BookEventBusPort(ABC):
-    """Book 领域事件发布防腐接口"""
+class EventPublisherPort(ABC):
+    """通用领域事件发布抽象端口"""
     @abstractmethod
-    def publish_book_parsed(self, book_id: str, project_id: str, toc_tree: List[Dict[str, Any]]) -> None: ...
-
-    @abstractmethod
-    def publish_book_deleted(self, book_id: str, project_id: str) -> None:
-        """广播 BookDeletedEvent/BookBlockDeletedEvent 驱动 Graph 侧向量清理与孤儿节点修剪"""
-        ...
+    def publish(self, event: Any) -> None: ...
 ```
 
 ---
@@ -333,12 +323,12 @@ class BookEventBusPort(ABC):
 
 ### 1. REST 路由与领域 UseCase 映射表
 
-| REST 路由 / 触发源 | HTTP Method | 请求 Payload 格式 | 成功响应状态码 | Book 领域 UseCase / 事件映射 |
-| :--- | :--- | :--- | :--- | :--- |
-| `BookParseRequestedEvent` (事件) | `EventBus` | 事件 Body (`project_id`, `file_name`, `file_path`) | `N/A` | `ParseBookUseCase.on_book_parse_requested()` |
-| `/api/books/{book_id}` | `GET` | 无 | `200 OK` | `BookQueryUseCase.get_book_metadata()` |
-| `/api/books/{book_id}/toc` | `GET` | 无 | `200 OK` | `GetBookTocUseCase.execute()` |
-| `/api/books/{book_id}/chapters/{chapter_id}` | `GET` | Query Params (`?offset=0&limit=50`) | `200 OK` | `GetChapterContentUseCase.execute()` |
+| REST 路由 / 触发源                           | HTTP Method | 请求 Payload 格式                                  | 成功响应状态码 | Book 领域 UseCase / 事件映射                 |
+| :------------------------------------------- | :---------- | :------------------------------------------------- | :------------- | :------------------------------------------- |
+| `BookParseRequestedEvent` (事件)             | `EventBus`  | 事件 Body (`project_id`, `file_name`, `file_path`) | `N/A`          | `ParseBookUseCase.on_book_parse_requested()` |
+| `/api/books/{book_id}`                       | `GET`       | 无                                                 | `200 OK`       | `BookQueryUseCase.get_book_metadata()`       |
+| `/api/books/{book_id}/toc`                   | `GET`       | 无                                                 | `200 OK`       | `GetBookTocUseCase.execute()`                |
+| `/api/books/{book_id}/chapters/{chapter_id}` | `GET`       | Query Params (`?offset=0&limit=50`)                | `200 OK`       | `GetChapterContentUseCase.execute()`         |
 
 ---
 
@@ -402,24 +392,24 @@ class ChapterContentResponseDTO(BaseModel):
 
 ### 1. 领域内部异常与 HTTP 错误映射
 
-| 领域异常类 (Domain Exception) | 异常触发场景 | 映射 HTTP 状态码 | Error Code Payload |
-| :--- | :--- | :--- | :--- |
-| `BookNotFoundException` | 查询或获取不存在的 `book_id` | `404 Not Found` | `BOOK_NOT_FOUND` |
-| `UnsupportedBookFormatException` | 触发非 `.pdf/.epub/.txt/.md` 格式解析 | `400 Bad Request` | `UNSUPPORTED_BOOK_FORMAT` |
-| `BookParsingFailedException` | 解析引擎遇到损坏的 EPUB 结构或加密 PDF | `422 Unprocessable Entity` | `BOOK_PARSING_FAILED` |
-| `ChapterNotFoundException` | 获取不存在的 `chapter_id` 内容 | `404 Not Found` | `CHAPTER_NOT_FOUND` |
+| 领域异常类 (Domain Exception)    | 异常触发场景                           | 映射 HTTP 状态码           | Error Code Payload        |
+| :------------------------------- | :------------------------------------- | :------------------------- | :------------------------ |
+| `BookNotFoundException`          | 查询或获取不存在的 `book_id`           | `404 Not Found`            | `BOOK_NOT_FOUND`          |
+| `UnsupportedBookFormatException` | 触发非 `.pdf/.epub/.txt/.md` 格式解析  | `400 Bad Request`          | `UNSUPPORTED_BOOK_FORMAT` |
+| `BookParsingFailedException`     | 解析引擎遇到损坏的 EPUB 结构或加密 PDF | `422 Unprocessable Entity` | `BOOK_PARSING_FAILED`     |
+| `ChapterNotFoundException`       | 获取不存在的 `chapter_id` 内容         | `404 Not Found`            | `CHAPTER_NOT_FOUND`       |
 
 ---
 
 ### 2. 解析全生命周期状态跳转防阻断矩阵
 
-| 源状态 \ 目标状态 | `PENDING` | `UPLOADING` | `PARSING` | `COMPLETED` | `FAILED` |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **`PENDING`** | 阻断 (409) | **允许 (物理校验)** | 阻断 (409) | 阻断 (409) | **允许 (格式校验失败)** |
-| **`UPLOADING`** | 阻断 (409) | 阻断 (409) | **允许 (启动解析)** | 阻断 (409) | **允许 (物理校验中断)** |
-| **`PARSING`** | 阻断 (409) | 阻断 (409) | 允许 (拆解推进) | **允许 (解析成功完成)** | **允许 (提取崩溃报错)** |
-| **`COMPLETED`** | 阻断 (409) | 阻断 (409) | 阻断 (409) | 阻断 (409) | 阻断 (409) |
-| **`FAILED`** | 阻断 (409) | 阻断 (409) | **允许 (触发重新解析)** | 阻断 (409) | 阻断 (409) |
+| 源状态 \ 目标状态 | `PENDING`  | `UPLOADING`         | `PARSING`               | `COMPLETED`             | `FAILED`                |
+| :---------------- | :--------- | :------------------ | :---------------------- | :---------------------- | :---------------------- |
+| **`PENDING`**     | 阻断 (409) | **允许 (物理校验)** | 阻断 (409)              | 阻断 (409)              | **允许 (格式校验失败)** |
+| **`UPLOADING`**   | 阻断 (409) | 阻断 (409)          | **允许 (启动解析)**     | 阻断 (409)              | **允许 (物理校验中断)** |
+| **`PARSING`**     | 阻断 (409) | 阻断 (409)          | 允许 (拆解推进)         | **允许 (解析成功完成)** | **允许 (提取崩溃报错)** |
+| **`COMPLETED`**   | 阻断 (409) | 阻断 (409)          | 阻断 (409)              | 阻断 (409)              | 阻断 (409)              |
+| **`FAILED`**      | 阻断 (409) | 阻断 (409)          | **允许 (触发重新解析)** | 阻断 (409)              | 阻断 (409)              |
 
 ---
 
@@ -434,11 +424,11 @@ class ChapterContentResponseDTO(BaseModel):
 
 #### 物理沙箱文件容错处置矩阵
 
-| 场景 | 物理文件状态 | 自愈处置行为 | 最终业务状态 |
-| :--- | :--- | :--- | :--- |
-| **解析中途断电** | 原文件完整，`parsed_content.json.tmp` 残留 | 清理 `.tmp` 文件，自动重新派发 `BookParseRequestedEvent` 恢复解析 | 恢复为 `PARSING` 并自动完成转 `COMPLETED` |
-| **上传中途断电** | 原始电子书二进制 Hash 不匹配 | 清理损坏的原书文件，更新 SQLite 记录为 `FAILED` | `parsing_status = FAILED` (提示文件坏损) |
-| **正常解析完成** | 原书文件与 `parsed_content.json` 均校验通过 | 保持状态，向向量数据库及旁路建立索引 | `parsing_status = COMPLETED` |
+| 场景             | 物理文件状态                                | 自愈处置行为                                                      | 最终业务状态                              |
+| :--------------- | :------------------------------------------ | :---------------------------------------------------------------- | :---------------------------------------- |
+| **解析中途断电** | 原文件完整，`parsed_content.json.tmp` 残留  | 清理 `.tmp` 文件，自动重新派发 `BookParseRequestedEvent` 恢复解析 | 恢复为 `PARSING` 并自动完成转 `COMPLETED` |
+| **上传中途断电** | 原始电子书二进制 Hash 不匹配                | 清理损坏的原书文件，更新 SQLite 记录为 `FAILED`                   | `parsing_status = FAILED` (提示文件坏损)  |
+| **正常解析完成** | 原书文件与 `parsed_content.json` 均校验通过 | 保持状态，向向量数据库及旁路建立索引                              | `parsing_status = COMPLETED`              |
 
 ---
 

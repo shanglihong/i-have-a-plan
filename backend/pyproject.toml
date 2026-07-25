@@ -12,6 +12,10 @@ dependencies = [
     "langgraph>=0.2",
     "pydantic-settings>=2.0",
     "greenlet>=3.0",
+    "ebooklib>=0.18",
+    "beautifulsoup4>=4.12.0",
+    "pypdf>=4.0.0",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
