@@ -1,5 +1,6 @@
 """书籍解析引擎服务"""
 
+from app.domain.book.entities import HealingStatus
 import logging
 from typing import Dict, Any, List
 from app.domain.book.entities import Book, ContentBlock
@@ -50,6 +51,10 @@ class BookParsingEngineService:
         book = await self.repository.find_by_id(book_id)
         if not book:
             raise BookNotFoundException(book_id)
+
+        if book.is_completed:
+            logger.info(f"图书已解析完成，无需重复解析: book_id={book.id}")
+            return book
 
         try:
             # 1. 开始解析状态转移

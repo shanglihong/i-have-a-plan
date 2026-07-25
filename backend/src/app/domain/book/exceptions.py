@@ -1,6 +1,6 @@
 """书籍领域异常体系 (遵循自描述 RFC 7807 协议)"""
 
-from app.domain.exceptions import DomainException
+from app.domain.common.exceptions import DomainException
 
 
 class BookDomainException(DomainException):
