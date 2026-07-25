@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.utils.path import get_workspace_dir
 from app.infrastructure.db.session import get_async_session
 from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
 from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
@@ -113,15 +114,15 @@ async def parse_book_file(
     book_id: Optional[str] = Form(default=None),
     deps: dict = Depends(get_book_use_cases)
 ):
+    file_name = file.filename.split(".")[0]
+    ext = file.filename.split(".")[-1]
+
     parse_use_case = deps["parse_use_case"]
     actual_book_id = book_id or f"bk_{uuid.uuid4().hex[:8]}"
-    sandbox_dir = os.getenv("SANDBOX_DIR", ".sandbox/books")
-    book_dir = os.path.join(sandbox_dir, actual_book_id)
+    book_dir = os.path.join(get_workspace_dir(), f"projects/{project_id}/books/{actual_book_id}")
     os.makedirs(book_dir, exist_ok=True)
 
-    file_name = file.filename or "upload.txt"
-    ext = file_name.split(".")[-1] if "." in file_name else "txt"
-    sandbox_file_path = os.path.join(book_dir, f"raw.{ext}")
+    sandbox_file_path = os.path.join(book_dir, file.filename)
 
     content = await file.read()
     with open(sandbox_file_path, "wb") as f:

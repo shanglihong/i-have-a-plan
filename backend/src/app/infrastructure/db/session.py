@@ -13,14 +13,12 @@ except ImportError:
     pass
 
 
-def get_workspace_dir() -> Path:
-    """获取工作空间绝对路径"""
-    return Path(os.getenv("WORKSPACE_DIR") or os.getcwd()).expanduser().resolve()
+from app.utils.path import get_workspace_dir
 
 
 def get_database_path() -> Path:
     """获取 SQLite 数据库物理文件绝对路径"""
-    return get_workspace_dir() / ".i_have_a_plan" / "db" / "app.db"
+    return get_workspace_dir() / "db" / "app.db"
 
 
 def get_database_url() -> str:

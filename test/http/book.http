@@ -1,0 +1,35 @@
+### 1. 上传并解析 EPUB 电子书文件
+# @name parseBook
+POST http://localhost:8000/api/books/parse-file
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="乡土中国.epub"
+Content-Type: application/epub+zip
+
+< ../resources/乡土中国.epub
+--WebAppBoundary
+Content-Disposition: form-data; name="project_id"
+
+proj_default
+--WebAppBoundary
+Content-Disposition: form-data; name="book_id"
+
+bk_xiangtu_01
+--WebAppBoundary--
+
+### 2. 获取书籍详细元数据
+GET http://localhost:8000/api/books/bk_xiangtu_01
+Accept: application/json
+
+### 3. 获取书籍目录大纲树 (TOC)
+GET http://localhost:8000/api/books/bk_xiangtu_01/toc
+Accept: application/json
+
+### 4. 获取指定章节切片内容 (懒加载)
+GET http://localhost:8000/api/books/bk_xiangtu_01/chapters/chap_01?offset=0&limit=10
+Accept: application/json
+
+### 5. 触发沙箱完整性验证与自愈检查
+POST http://localhost:8000/api/books/bk_xiangtu_01/verify
+Accept: application/json
