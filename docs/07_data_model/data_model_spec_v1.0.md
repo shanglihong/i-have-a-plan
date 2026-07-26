@@ -80,7 +80,7 @@
 | `title` | String | 必填 | 章节/阶段里程碑标题 |
 | `sequence_order` | Number | 必填 | 中观链条物理排序序号 |
 | `status` | Enum | 必填 | 状态：`PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` |
-| `type` | Enum | 必填 | 业务类型：`READING_CHAPTER` / `PLAN_STAGE` / `DEFAULT` |
+| `type` | Enum | 必填 | 业务类型：`READING_CHAPTER` / `PLAN_STAGE` / `DEFAULT` / `RETROSPECTIVE` |
 | `created_at` / `updated_at` | DateTime | 必填 | 系统审计时间戳 |
 
 * **(2) 上下文对象 (TaskChainDomain)** - 内存充血模型 (继承 DO)

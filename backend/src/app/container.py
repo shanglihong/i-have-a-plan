@@ -101,7 +101,10 @@ class AppContainer:
             task_repo=self.task_repo,
             book_repo=self.book_repo,
         )
-        self.project_note_service = ExperienceNoteDomainService(repository=self.project_repo)
+        self.project_note_service = ExperienceNoteDomainService(
+            repository=self.project_repo,
+            task_repository=self.task_repo,
+        )
         self.project_healing_thread = StartupHealingThread(
             project_repo=self.project_repo,
             task_repo=self.task_repo,

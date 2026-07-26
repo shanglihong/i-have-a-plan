@@ -36,6 +36,7 @@ class TaskChainType(str, Enum):
     """任务链类型定义"""
     READING_CHAPTER = "READING_CHAPTER"
     PLAN_STAGE = "PLAN_STAGE"
+    RETROSPECTIVE = "RETROSPECTIVE"
     DEFAULT = "DEFAULT"
 
 
@@ -174,4 +175,34 @@ class Project(BaseEntity):
         self.status = ProjectStatus.ACTIVE
         self.updated_at = datetime.now(timezone.utc)
 
+    def add_retrospective_milestone(
+        self,
+        title: str = "项目复盘",
+        description: str = "录入经验笔记与总结",
+    ) -> TaskChain:
+        """追加生成复盘里程碑 (RETROSPECTIVE TaskChain)"""
+        chain_id = f"chain_retro_{self.id}"
+        task_id = f"task_retro_{self.id}"
+        sequence_order = len(self.task_chains) + 1
 
+        retro_task = Task(
+            id=task_id,
+            title=title,
+            description=description,
+            sequence_order=1,
+            status=TaskStatus.PENDING,
+        )
+
+        retro_chain = TaskChain(
+            id=chain_id,
+            project_id=self.id,
+            title=title,
+            chain_type=TaskChainType.RETROSPECTIVE,
+            sequence_order=sequence_order,
+            status=TaskStatus.PENDING,
+            tasks=[retro_task],
+        )
+
+        self.task_chains.append(retro_chain)
+        self.updated_at = datetime.now(timezone.utc)
+        return retro_chain

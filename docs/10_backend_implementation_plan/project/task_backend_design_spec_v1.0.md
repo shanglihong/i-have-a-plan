@@ -12,7 +12,7 @@
 
 Task 模块是项目领域 (Project Domain) 内部核心的中微观任务树执行与调度引擎。核心目标为：
 
-* **三层范式承载 (`Project -> TaskChain -> Task`)**：维护项目中观层级的 `TaskChain` 容器（包括阅读大纲链 `READING_CHAPTER` 和计划阶段链 `PLAN_STAGE`）与微观可执行单元 `Task`。
+* **三层范式承载 (`Project -> TaskChain -> Task`)**：维护项目中观层级的 `TaskChain` 容器（包括阅读大纲链 `READING_CHAPTER`、计划阶段链 `PLAN_STAGE` 与复盘里程碑 `RETROSPECTIVE`）与微观可执行单元 `Task`。
 * **DAG 有向无环图拓扑解算**：支持 `Task` 间通过 `depends_on_task_ids` 建立复杂前置依赖图，提供死锁/环路阻断算法及自动级联解锁机制 (`BLOCKED -> PENDING`)。
 * **素材笔记 (`MaterialNote`) 关联绑定**：支持在具体的 `Task` 下挂载划词感悟与思考素材卡片，维护任务与知识资产的强绑定语义。
 * **状态与进度内聚推导**：基于微观 Task 状态自动推导 TaskChain 及聚合根 Project 的总体进度百分比与组合状态，保证视图数据强一致性。

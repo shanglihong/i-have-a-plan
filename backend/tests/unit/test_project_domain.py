@@ -64,6 +64,23 @@ class TestProjectLifecycle:
         assert p.task_chains[0].chapter_id == "chap_01"
         assert len(p.task_chains[0].tasks) == 1
 
+    def test_add_retrospective_milestone(self) -> None:
+        """测试追加复盘里程碑领域方法"""
+        p = Project(id="proj_retro", title="复盘测试", status=ProjectStatus.ACTIVE)
+        assert len(p.task_chains) == 0
+
+        retro_chain = p.add_retrospective_milestone(
+            title="复盘总结", description="总结经验"
+        )
+        assert len(p.task_chains) == 1
+        assert retro_chain.chain_type == TaskChainType.RETROSPECTIVE
+        assert retro_chain.title == "复盘总结"
+        assert retro_chain.sequence_order == 1
+        assert len(retro_chain.tasks) == 1
+        assert retro_chain.tasks[0].title == "复盘总结"
+        assert retro_chain.tasks[0].description == "总结经验"
+        assert retro_chain.tasks[0].status == TaskStatus.PENDING
+
 
 
 class TestDAGValidation:
@@ -199,6 +216,45 @@ class TestProjectStateEvents:
         assert events_2[0].project_id == "proj_events"
         assert events_2[0].old_status == ProjectStatus.ARCHIVED.value
         assert events_2[0].new_status == ProjectStatus.ACTIVE.value
+
+
+class TestExperienceNoteDomainService:
+    """Test ExperienceNoteDomainService 挂载复盘里程碑领域服务"""
+
+    @pytest.mark.asyncio
+    async def test_create_experience_note_attaches_retrospective_milestone(self) -> None:
+        from unittest.mock import AsyncMock
+        from app.domain.project.entities import Project, ProjectStatus, TaskChainType
+        from app.domain.project.services import ExperienceNoteDomainService
+
+        mock_project_repo = AsyncMock()
+        mock_task_repo = AsyncMock()
+
+        p = Project(id="proj_note_test", title="Note Test", status=ProjectStatus.ACTIVE)
+        mock_project_repo.get_by_id.return_value = p
+        mock_task_repo.get_task_chains_by_project_id.return_value = []
+
+        service = ExperienceNoteDomainService(
+            repository=mock_project_repo,
+            task_repository=mock_task_repo,
+        )
+
+        proj_id, retro_chain_id = await service.create_experience_note(
+            project_id="proj_note_test",
+            content="实战经验心得",
+            title="结项复盘",
+        )
+
+        assert proj_id == "proj_note_test"
+        assert retro_chain_id == f"chain_retro_proj_note_test"
+        assert len(p.task_chains) == 1
+        assert p.task_chains[0].chain_type == TaskChainType.RETROSPECTIVE
+        assert p.task_chains[0].title == "结项复盘"
+        assert p.task_chains[0].tasks[0].description == "实战经验心得"
+
+        mock_task_repo.save_task_chains.assert_called_once_with("proj_note_test", p.task_chains)
+        mock_project_repo.save.assert_called_once_with(p)
+
 
 
 

@@ -9,19 +9,26 @@ class PdfParserStrategy(IBookParser):
     """PDF 解析策略"""
 
     def parse(self, file_path: str) -> Tuple[List[TocNode], Dict[str, List[ContentBlock]]]:
+        import os
         from pypdf import PdfReader
 
-        reader = PdfReader(file_path)
-        toc_tree: List[TocNode] = []
-        chapter_blocks: Dict[str, List[ContentBlock]] = {}
+        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+            raise ValueError(f"PDF 文件不存在或内容为空字节: {file_path}")
 
-        total_pages = len(reader.pages)
+        try:
+            reader = PdfReader(file_path, strict=False)
+            total_pages = len(reader.pages)
+        except Exception as e:
+            raise ValueError(f"PDF 文件损坏或解析流意外中断: {str(e)}") from e
 
         for page_idx in range(total_pages):
             page_num = page_idx + 1
             chap_id = f"chap_p{page_num:03d}"
-            page = reader.pages[page_idx]
-            raw_text = page.extract_text() or ""
+            try:
+                page = reader.pages[page_idx]
+                raw_text = page.extract_text() or ""
+            except Exception as pe:
+                raw_text = f"[第 {page_num} 页提取失败: {str(pe)}]"
             lines = [l.strip() for l in raw_text.split('\n') if l.strip()]
 
             blocks: List[ContentBlock] = []

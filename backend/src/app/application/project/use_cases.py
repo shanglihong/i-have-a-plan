@@ -249,18 +249,14 @@ class CreateExperienceNoteUseCase:
         self, project_id: str, dto: CreateExperienceNoteDTO
     ) -> ExperienceNoteResponseDTO:
         try:
-            p_id, note_id, created_at = await self.note_service.create_experience_note(
+            p_id, note_id = await self.note_service.create_experience_note(
                 project_id=project_id,
                 content=dto.experience_content or "",
             )
-            # 序列图 4 阶段 2: 广播 ExperienceNoteCreatedEvent 驱动 Graph RAG 旁路建图
-            event = ExperienceNoteCreatedEvent(project_id=p_id, experience_note_id=note_id)
-            await global_event_bus.publish(event)
 
             return ExperienceNoteResponseDTO(
                 project_id=p_id,
                 experience_note_id=note_id,
-                created_at=created_at,
             )
         except KeyError as e:
             raise HTTPException(

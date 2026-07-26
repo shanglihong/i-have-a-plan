@@ -189,7 +189,7 @@ erDiagram
 | `title`                      | String   | 必填                                            | 章节/阶段里程碑标题        |
 | `sequence_order`             | Number   | 必填                                            | 中观链条的物理物理排序     |
 | `status`                     | Enum     | `PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED` | 阶段完成状态               |
-| `type`                       | Enum     | `READING_CHAPTER` / `PLAN_STAGE` / `DEFAULT`    | 任务链业务类型             |
+| `type`                       | Enum     | `READING_CHAPTER` / `PLAN_STAGE` / `DEFAULT` / `RETROSPECTIVE` | 任务链业务类型             |
 | `created_at` / `updated_at`  | DateTime | 必填                                            | 审计时间戳                 |
 
 * **业务规则 (通用容器原则)**：

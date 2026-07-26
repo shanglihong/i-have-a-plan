@@ -101,8 +101,8 @@ class BookRepositoryAdapter(BookRepositoryPort):
 
     async def find_by_project_id(self, project_id: str) -> Optional[Book]:
         statement = select(BookDO).where(BookDO.project_id == project_id)
-        result = await self.session.exec(statement)
-        do = result.first()
+        result = await self.session.execute(statement)
+        do = result.scalars().first()
         if not do:
             return None
         return self._to_domain(do)
@@ -127,12 +127,12 @@ class BookRepositoryAdapter(BookRepositoryPort):
             statement = statement.where(BookDO.parsing_status == status_str)
 
         count_stmt = select(func.count()).select_from(statement.subquery())
-        total_res = await self.session.exec(count_stmt)
-        total = total_res.one()
+        total_res = await self.session.execute(count_stmt)
+        total = total_res.scalar_one_or_none() or 0
 
         offset = (page - 1) * size
         statement = statement.offset(offset).limit(size)
-        result = await self.session.exec(statement)
-        dos = result.all()
+        result = await self.session.execute(statement)
+        dos = result.scalars().all()
 
         return [self._to_domain(do) for do in dos], total

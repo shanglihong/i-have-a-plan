@@ -13,7 +13,10 @@ class EpubParserStrategy(IBookParser):
         from ebooklib import epub
         from bs4 import BeautifulSoup
 
-        book = epub.read_epub(file_path)
+        try:
+            book = epub.read_epub(file_path)
+        except Exception as e:
+            raise ValueError(f"EPUB 文件损坏或解析流意外中断: {str(e)}") from e
         toc_tree: List[TocNode] = []
         chapter_blocks: Dict[str, List[ContentBlock]] = {}
 

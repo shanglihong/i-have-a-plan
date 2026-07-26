@@ -187,4 +187,3 @@ class ExperienceNoteResponseDTO(BaseModel):
     """生成经验笔记响应 DTO"""
     project_id: str
     experience_note_id: str
-    created_at: datetime

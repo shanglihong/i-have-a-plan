@@ -118,6 +118,8 @@
 * **功能描述**：在指定项目下手动或通过 Agent 创建新的中观任务链容器。
 
 #### 请求载荷 (JSON)
+> `type` 可选值：`READING_CHAPTER` | `PLAN_STAGE` | `DEFAULT` | `RETROSPECTIVE`
+
 ```json
 {
   "project_id": "proj_99812",
