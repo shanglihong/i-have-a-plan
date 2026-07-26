@@ -1,0 +1,132 @@
+### 变量配置
+@baseUrl = http://localhost:8000
+@projectId = proj_xxxxxxxx
+
+
+### ==================== 创建项目 ====================
+
+### 创建计划项目 (JSON)
+POST {{baseUrl}}/api/projects
+Content-Type: application/json
+
+{
+  "title": "Q3 学习计划",
+  "project_type": "PLAN",
+  "deadline": "2026-09-30T00:00:00+08:00"
+}
+
+###
+
+### 创建阅读项目 (Form-Data 上传文件)
+POST {{baseUrl}}/api/projects
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="title"
+
+乡土中国项目
+------FormBoundary
+Content-Disposition: form-data; name="deadline"
+
+2026-09-30T00:00:00+08:00
+------FormBoundary
+Content-Disposition: form-data; name="file"; filename="乡土中国.epub"
+Content-Type: application/epub
+
+< ./乡土中国.epub
+------FormBoundary--
+
+
+### ==================== 查询项目列表 ====================
+
+### 获取全部项目 (默认分页)
+GET {{baseUrl}}/api/projects
+
+###
+
+### 按状态过滤 + 分页
+GET {{baseUrl}}/api/projects?status=ACTIVE&page=1&size=10
+
+###
+
+### 按类型过滤
+GET {{baseUrl}}/api/projects?type=PLAN
+
+###
+
+### 按类型 + 排序
+GET {{baseUrl}}/api/projects?type=READING&sort_by=updated_at&order=desc
+
+
+### ==================== 获取项目详情 ====================
+
+### 获取单个项目详情与任务树
+GET {{baseUrl}}/api/projects/{{projectId}}/detail
+
+
+### ==================== 更新项目元数据 ====================
+
+### 更新项目标题与截止时间
+PATCH {{baseUrl}}/api/projects/{{projectId}}
+Content-Type: application/json
+
+{
+  "title": "更新后的项目标题",
+  "deadline": "2026-12-31T00:00:00+08:00"
+}
+
+
+### ==================== 项目状态流转 ====================
+
+### 归档项目
+POST {{baseUrl}}/api/projects/{{projectId}}/archive
+
+###
+
+### 重激活已归档项目
+POST {{baseUrl}}/api/projects/{{projectId}}/reactivate
+
+
+### ==================== 挂载任务树 ====================
+
+### 对话完成后自动挂载任务树并激活项目
+POST {{baseUrl}}/api/projects/{{projectId}}/complete-plan-tree
+Content-Type: application/json
+
+[
+  {
+    "id": "chain_01",
+    "title": "第一阶段：基础知识",
+    "tasks": [
+      {
+        "id": "task_01",
+        "title": "阅读第1-3章",
+        "estimated_hours": 4
+      },
+      {
+        "id": "task_02",
+        "title": "完成课后习题",
+        "estimated_hours": 2
+      }
+    ]
+  }
+]
+
+
+### ==================== 生成经验笔记 ====================
+
+### 生成归档经验笔记 (空 Body 走默认值)
+POST {{baseUrl}}/api/projects/{{projectId}}/experience-note
+Content-Type: application/json
+
+{}
+
+###
+
+### 生成归档经验笔记 (带自定义参数)
+POST {{baseUrl}}/api/projects/{{projectId}}/experience-note
+Content-Type: application/json
+
+{
+  "custom_prompt": "请重点总结本次阅读中的方法论收获"
+}
