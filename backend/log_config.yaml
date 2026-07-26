@@ -2,19 +2,39 @@ version: 1
 disable_existing_loggers: false
 
 formatters:
-  default:
+  colored:
+    (): colorlog.ColoredFormatter
+    format: "%(asctime)s %(log_color)s[%(levelname)s]%(reset)s %(name)s - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+    log_colors:
+      DEBUG: cyan
+      INFO: green
+      WARNING: yellow
+      ERROR: red
+      CRITICAL: bold_red
+
+  plain:
     format: "%(asctime)s [%(levelname)s] %(name)s - %(message)s"
     datefmt: "%Y-%m-%d %H:%M:%S"
 
 handlers:
   console:
     class: logging.StreamHandler
-    formatter: default
+    formatter: colored
     stream: ext://sys.stdout
+
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: plain
+    filename: "../data/log/app.log"
+    maxBytes: 10485760               # 10 MB
+    backupCount: 5
+    encoding: utf-8
+    delay: true                      # 目录不存在时延迟创建，避免启动报错
 
 root:
   level: INFO
-  handlers: [console]
+  handlers: [console, file]
 
 loggers:
   app:
@@ -23,8 +43,8 @@ loggers:
   uvicorn.error:
     level: INFO
     propagate: false
-    handlers: [console]
+    handlers: [console, file]
   uvicorn.access:
     level: INFO
     propagate: false
-    handlers: [console]
+    handlers: [console, file]
