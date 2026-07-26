@@ -50,3 +50,18 @@ class SandboxRunnerPort(ABC):
     ) -> AsyncGenerator[Dict[str, str], None]:
         """通过 Pipe 管道向沙箱发送 Prompt，流式生成 Token 及 Action Cards"""
         pass
+
+
+class AgentDomainPort(ABC):
+    """Agent 领域组装与绑定 Outbound Port 依赖防腐接口 (暴露跨领域服务)"""
+
+    @abstractmethod
+    async def assemble_and_bind_agent(self, project_id: str, skill_id: Optional[str] = None) -> str:
+        """组装计划监督 Agent，返回 assigned_agent_id 句柄"""
+        pass
+
+    @abstractmethod
+    async def assemble_and_bind_companion_agent(self, project_id: str, skill_id: Optional[str] = None) -> str:
+        """组装伴读 Agent，返回 assigned_agent_id 句柄"""
+        pass
+

@@ -81,6 +81,7 @@
   "assigned_agent_id": "agent_read_001",
   "book_id": "bk_8f7e6d5c-4b3a-2f1e-0d9c-8b7a6f5e4d3c",
   "parsing_status": "PENDING",
+  "storage_path": "/workspace/projects/proj_1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d/linux_kernel.pdf",
   "created_at": "2026-07-23T10:00:00Z",
   "updated_at": "2026-07-23T10:00:00Z"
 }

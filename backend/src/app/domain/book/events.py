@@ -8,6 +8,25 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class BookCreatedEvent:
+    """书籍创建完成领域事件"""
+    book_id: str
+    project_id: str
+    file_name: str
+    storage_path: str
+
+    @classmethod
+    def from_book(cls, book: "Book") -> "BookCreatedEvent":
+        """基于 Book 实体快捷组装书籍创建完成事件"""
+        return cls(
+            book_id=book.id,
+            project_id=book.project_id,
+            file_name=book.file_name,
+            storage_path=book.storage_path
+        )
+
+
+@dataclass
 class BookParseRequestedEvent:
     """电子书解析请求事件"""
     project_id: str

@@ -3,15 +3,22 @@
 import uuid
 from typing import Optional
 from app.domain.book.entities import Book, BookFileType, ParsingStatus
+from app.domain.common.ports import EventPublisherPort
 from app.domain.book.ports import BookRepositoryPort
 from app.domain.book.exceptions import UnsupportedBookFormatException
+from app.domain.book.events import BookCreatedEvent
 
 
 class BookCreationDomainService:
     """解析前的书籍记录创建领域服务"""
 
-    def __init__(self, repository: BookRepositoryPort):
+    def __init__(
+        self,
+        repository: BookRepositoryPort,
+        event_publisher: EventPublisherPort,
+    ):
         self.repository = repository
+        self.event_publisher = event_publisher
 
     async def create_book(
         self,
@@ -39,4 +46,8 @@ class BookCreationDomainService:
             parsing_status=ParsingStatus.PENDING
         )
 
-        return await self.repository.save(book)
+        saved_book = await self.repository.save(book)
+
+        await self.event_publisher.publish(BookCreatedEvent.from_book(saved_book))
+
+        return saved_book

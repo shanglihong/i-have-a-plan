@@ -179,7 +179,8 @@ async def test_create_book_use_case_success(mock_repository):
 
     mock_repository.save.side_effect = lambda book: book
 
-    domain_service = BookCreationDomainService(mock_repository)
+    mock_event_publisher = AsyncMock()
+    domain_service = BookCreationDomainService(mock_repository, event_publisher=mock_event_publisher)
     use_case = CreateBookUseCase(domain_service)
 
     req = CreateBookRequestDTO(

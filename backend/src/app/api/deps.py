@@ -50,7 +50,7 @@ async def get_book_use_cases(session: AsyncSession = Depends(get_async_session))
     healing_service = BookHealingDomainService(repository, file_storage, parsing_engine)
     toc_query_service = BookTocQueryDomainService(repository)
     content_query_service = BookChapterContentDomainService(repository, file_storage)
-    creation_service = BookCreationDomainService(repository)
+    creation_service = BookCreationDomainService(repository, event_publisher=global_event_bus)
 
     return {
         "parse_use_case": ParseBookUseCase(repository, file_storage, parsing_engine),
@@ -60,4 +60,50 @@ async def get_book_use_cases(session: AsyncSession = Depends(get_async_session))
         "get_content_use_case": GetChapterContentUseCase(content_query_service),
         "healing_use_case": BookHealingUseCase(healing_service)
     }
+
+
+async def get_project_use_cases(session: AsyncSession = Depends(get_async_session)) -> dict:
+    """构建与提供 Project 领域用例组依赖 (组合 Domain Services, Agent Adapter 与分离的仓储)"""
+    from app.infrastructure.db.repositories.project_repository import ProjectRepository
+    from app.infrastructure.db.repositories.task_repository import TaskRepository
+    from app.infrastructure.adapters.agent_adapter import AgentDomainAdapter
+    from app.domain.project.services import (
+        ProjectCreationDomainService,
+        ProjectStateDomainService,
+        ProjectQueryDomainService,
+        ExperienceNoteDomainService,
+    )
+    from app.application.project.use_cases import (
+        CreateProjectUseCase,
+        ProjectQueryUseCase,
+        ManageProjectStateUseCase,
+        CreateExperienceNoteUseCase,
+        CompletePlanTaskTreeUseCase,
+    )
+
+    from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
+    from app.domain.book.services import BookCreationDomainService
+
+    project_repository = ProjectRepository(session)
+    task_repository = TaskRepository(session)
+    agent_adapter = AgentDomainAdapter()
+    book_repository = BookRepositoryAdapter(session)
+
+    creation_service = ProjectCreationDomainService(project_repository, task_repository, agent_adapter)
+    book_creation_service = BookCreationDomainService(book_repository, event_publisher=global_event_bus)
+    state_service = ProjectStateDomainService(project_repository, task_repository, event_publisher=global_event_bus)
+    query_service = ProjectQueryDomainService(project_repository, task_repository, book_repo=book_repository)
+    note_service = ExperienceNoteDomainService(project_repository)
+
+    return {
+        "create_use_case": CreateProjectUseCase(creation_service, book_creation_service=book_creation_service),
+        "query_use_case": ProjectQueryUseCase(query_service),
+        "manage_state_use_case": ManageProjectStateUseCase(state_service),
+        "create_note_use_case": CreateExperienceNoteUseCase(note_service),
+        "complete_tree_use_case": CompletePlanTaskTreeUseCase(state_service, query_service),
+    }
+
+
+
+
 

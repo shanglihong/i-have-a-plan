@@ -5,13 +5,18 @@ from fastapi import FastAPI
 
 from app.infrastructure.db.session import init_db
 from app.api.routers.book import router as book_router
+from app.api.routers.project import router as project_router
 from app.api.error_handler import register_error_handlers
+
+
+from app.consumers import register_consumers
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动钩子：初始化数据库表结构
+    # 启动钩子：初始化数据库表结构与事件消费者
     await init_db()
+    register_consumers()
     yield
     # 关闭钩子
 
@@ -28,10 +33,12 @@ def create_app() -> FastAPI:
     # 注册全局异常处理器
     register_error_handlers(app)
 
-    # 挂载 Book 领域路由
+    # 挂载 Book 与 Project 领域路由
     app.include_router(book_router)
+    app.include_router(project_router)
 
     return app
 
 
 app = create_app()
+
