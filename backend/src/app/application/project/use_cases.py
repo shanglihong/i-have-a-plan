@@ -22,7 +22,6 @@ from app.domain.project.services import (
     ProjectQueryDomainService,
     ExperienceNoteDomainService,
 )
-from app.domain.notification.notification_service import global_notification_service
 from app.utils.path import get_workspace_dir
 
 from app.domain.book.services import BookCreationDomainService

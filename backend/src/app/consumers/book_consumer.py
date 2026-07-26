@@ -1,18 +1,13 @@
 """图书领域事件消费者 (Book Event Consumer)
 
-作为 Interface/Consumer 接入层，接收 BookCreatedEvent / BookParsedEvent 等领域事件并驱动领域服务。
+作为 Interface/Consumer 接入层，接收 BookCreatedEvent / BookParsedEvent 等领域事件，
+并通过 AppContainer 检索依赖驱动领域服务。
 """
 
 import logging
 from app.domain.book.events import BookCreatedEvent, BookParsedEvent
-from app.domain.book.services import BookParsingEngineService, BookTocQueryDomainService
-from app.domain.project.services import TaskOperationDomainService
 from app.infrastructure.db.session import get_async_session
-from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
-from app.infrastructure.db.repositories.project_repository import ProjectRepository
-from app.infrastructure.db.repositories.task_repository import TaskRepository
-from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
-from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
+from app.container import AppContainer
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +18,8 @@ async def handle_book_created(event: BookCreatedEvent) -> None:
 
     try:
         async for session in get_async_session():
-            repository = BookRepositoryAdapter(session)
-            file_storage = LocalBookFileStorageAdapter()
-            parsing_engine = BookParsingEngineService(
-                repository=repository,
-                file_storage=file_storage,
-                event_bus=global_event_bus
-            )
-            await parsing_engine.parse_book(event.book_id)
+            container = AppContainer(session)
+            await container.parsing_engine.parse_book(event.book_id)
             logger.info(f"[BookConsumer] 图书解析完成: book_id={event.book_id}")
             break
     except Exception as e:
@@ -43,19 +32,8 @@ async def handle_book_parsed(event: BookParsedEvent) -> None:
 
     try:
         async for session in get_async_session():
-            project_repo = ProjectRepository(session)
-            task_repo = TaskRepository(session)
-            book_repo = BookRepositoryAdapter(session)
-            book_toc_service = BookTocQueryDomainService(repository=book_repo)
-
-            task_op_service = TaskOperationDomainService(
-                project_repo=project_repo,
-                task_repo=task_repo,
-                book_toc_service=book_toc_service,
-                event_publisher=global_event_bus
-            )
-
-            await task_op_service.mount_book_task_tree(project_id=event.project_id, book_id=event.book_id)
+            container = AppContainer(session)
+            await container.task_op_service.mount_book_task_tree(project_id=event.project_id, book_id=event.book_id)
             logger.info(f"[BookConsumer] 项目任务(Task)树挂载并激活成功: project_id={event.project_id}")
             break
     except Exception as e:

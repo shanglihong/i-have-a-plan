@@ -61,12 +61,15 @@ async def get_chapter_content(
 @router.post("/parse-file", response_model=dict)
 async def parse_book_file(
     book_id: Optional[str] = Form(default=None),
+    book_id_query: Optional[str] = Query(default=None, alias="book_id"),
     deps: dict = Depends(get_book_use_cases)
 ):
+    actual_book_id = book_id or book_id_query
     parse_use_case = deps["parse_use_case"]
     dto: BookResponseDTO = await parse_use_case.execute_parse_file(
-        book_id=book_id
+        book_id=actual_book_id
     )
+    print(f"[DEBUG DTO STATUS] dto.status={dto.parsing_status}", flush=True)
     return success_response(dto)
 
 

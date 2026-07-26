@@ -1,8 +1,9 @@
 """SQLite 仓储适配器实现 (BookRepositoryAdapter)"""
 
+from enum import Enum
 from datetime import datetime, timezone
-from typing import Optional
-from sqlmodel import select
+from typing import Optional, List, Tuple
+from sqlmodel import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.book.entities import Book, BookFileType, ParsingStatus
 from app.domain.book.ports import BookRepositoryPort
@@ -16,8 +17,23 @@ class BookRepositoryAdapter(BookRepositoryPort):
         self.session = session
 
     def _to_domain(self, do: BookDO) -> Book:
-        file_type = BookFileType(do.file_type) if do.file_type in BookFileType.__members__ else BookFileType.TXT
-        status = ParsingStatus(do.parsing_status) if do.parsing_status in ParsingStatus.__members__ else ParsingStatus.PENDING
+        raw_type = str(do.file_type).replace("BookFileType.", "").strip().upper()
+        if raw_type in BookFileType.__members__:
+            file_type = BookFileType[raw_type]
+        else:
+            try:
+                file_type = BookFileType(raw_type)
+            except (ValueError, KeyError):
+                file_type = BookFileType.TXT
+
+        raw_status = str(do.parsing_status).replace("ParsingStatus.", "").strip().upper()
+        if raw_status in ParsingStatus.__members__:
+            status = ParsingStatus[raw_status]
+        else:
+            try:
+                status = ParsingStatus(raw_status)
+            except (ValueError, KeyError):
+                status = ParsingStatus.PENDING
 
         return Book(
             id=do.id,
@@ -38,8 +54,8 @@ class BookRepositoryAdapter(BookRepositoryPort):
     async def save(self, book: Book) -> Book:
         existing_do = await self.session.get(BookDO, book.id)
         now = datetime.now(timezone.utc)
-        status_str = book.parsing_status.value if hasattr(book.parsing_status, "value") else str(book.parsing_status)
-        file_type_str = book.file_type.value if hasattr(book.file_type, "value") else str(book.file_type)
+        status_str = book.parsing_status.value if isinstance(book.parsing_status, Enum) else str(book.parsing_status)
+        file_type_str = book.file_type.value if isinstance(book.file_type, Enum) else str(book.file_type)
 
         if not existing_do:
             do = BookDO(
@@ -73,11 +89,12 @@ class BookRepositoryAdapter(BookRepositoryPort):
             do = existing_do
 
         await self.session.commit()
-        await self.session.refresh(do)
         return self._to_domain(do)
 
     async def find_by_id(self, book_id: str) -> Optional[Book]:
-        do = await self.session.get(BookDO, book_id)
+        statement = select(BookDO).where(BookDO.id == book_id)
+        result = await self.session.execute(statement)
+        do = result.scalars().first()
         if not do:
             return None
         return self._to_domain(do)
@@ -97,3 +114,25 @@ class BookRepositoryAdapter(BookRepositoryPort):
         await self.session.delete(do)
         await self.session.commit()
         return True
+
+    async def list_books(
+        self,
+        parsing_status: Optional[ParsingStatus] = None,
+        page: int = 1,
+        size: int = 100,
+    ) -> Tuple[List[Book], int]:
+        statement = select(BookDO)
+        if parsing_status:
+            status_str = parsing_status.value if hasattr(parsing_status, "value") else str(parsing_status)
+            statement = statement.where(BookDO.parsing_status == status_str)
+
+        count_stmt = select(func.count()).select_from(statement.subquery())
+        total_res = await self.session.exec(count_stmt)
+        total = total_res.one()
+
+        offset = (page - 1) * size
+        statement = statement.offset(offset).limit(size)
+        result = await self.session.exec(statement)
+        dos = result.all()
+
+        return [self._to_domain(do) for do in dos], total

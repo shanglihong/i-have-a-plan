@@ -13,7 +13,12 @@ from app.domain.project.events import (
 )
 from app.domain.notification.notification import NotificationType
 from app.domain.notification.notification_service import NotificationService
-from app.domain.project.services import StartupHealingThread
+from app.domain.project.services import (
+    StartupHealingThread,
+    BaseProjectHealer,
+    ReadingProjectHealer,
+    PlanProjectHealer,
+)
 from app.infrastructure.db.session import init_db, get_async_session
 from app.infrastructure.db.repositories.project_repository import ProjectRepository
 from app.infrastructure.db.repositories.task_repository import TaskRepository
@@ -50,6 +55,10 @@ async def test_startup_healing_thread_interaction() -> None:
         p1 = Project(id="proj_healing_1", title="半成品阅读项目", project_type=ProjectType.READING, status=ProjectStatus.INIT, book_id="bk_heal_1")
         await project_repo.save(p1)
 
+        # 校验单独的 ReadingProjectHealer
+        reading_healer = ReadingProjectHealer(project_repo, task_repo)
+        assert reading_healer.target_type == ProjectType.READING
+
         # 触发冷启动修复线程
         healing = StartupHealingThread(project_repo, task_repo)
         summary = await healing.trigger_startup_healing()
@@ -59,3 +68,4 @@ async def test_startup_healing_thread_interaction() -> None:
         assert healed_p1 is not None
         assert healed_p1.status == ProjectStatus.ACTIVE
         break
+

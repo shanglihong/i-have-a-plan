@@ -6,7 +6,12 @@ from .project_query_service import ProjectQueryDomainService
 from .task_query_service import TaskQueryDomainService
 from .task_operation_service import TaskOperationDomainService
 from .experience_note_service import ExperienceNoteDomainService
-from .healing_service import StartupHealingThread
+from .healing import (
+    StartupHealingThread,
+    BaseProjectHealer,
+    ReadingProjectHealer,
+    PlanProjectHealer,
+)
 
 # 向后兼容别名
 ProjectDomainService = TaskQueryDomainService
@@ -20,4 +25,7 @@ __all__ = [
     "ExperienceNoteDomainService",
     "ProjectDomainService",
     "StartupHealingThread",
+    "BaseProjectHealer",
+    "ReadingProjectHealer",
+    "PlanProjectHealer",
 ]

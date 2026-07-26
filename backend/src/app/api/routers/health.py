@@ -30,9 +30,9 @@ async def health_check(
         version: 当前后端版本
         db: "connected" 表示数据库连接正常
     """
-    # 执行简单 SQL 验证数据库连通性
+    from sqlalchemy import text
     try:
-        await session.exec(__import__("sqlmodel").select(__import__("sqlmodel").text("1")))  # type: ignore
+        await session.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception:
         db_status = "error"

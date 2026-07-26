@@ -117,7 +117,17 @@ async def test_atomic_file_storage(temp_sandbox_dir):
 @pytest.mark.asyncio
 async def test_book_rest_api_workflow(temp_sandbox_dir):
     from app.infrastructure.db.session import init_db
+    from app.consumers import register_consumers
     await init_db()
+    register_consumers()
+
+    from app.infrastructure.db.repositories.project_repository import ProjectRepository
+    from app.infrastructure.db.session import get_async_session
+    from app.domain.project.entities import Project, ProjectStatus, ProjectType
+    async for session in get_async_session():
+        project_repo = ProjectRepository(session)
+        await project_repo.save(Project(id="proj_unit_test", title="测试项目", project_type=ProjectType.READING, status=ProjectStatus.INIT))
+        break
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         sample_txt_path = os.path.join(temp_sandbox_dir, "api_test.txt")
@@ -136,15 +146,12 @@ async def test_book_rest_api_workflow(temp_sandbox_dir):
         assert create_res.status_code == 201
         book_id = create_res.json()["data"]["id"]
 
-        # 2. 触发解析
-        response = await ac.post("/api/books/parse-file", data={"book_id": book_id})
-        assert response.status_code == 200
-        res_json = response.json()
-        assert res_json["code"] == 200
-        book_data = res_json["data"]
-        assert book_data["id"] == book_id
-        assert book_data["parsing_status"] == "COMPLETED"
-
+        # 2. 触发解析 (通过 Service 驱动，因 REST 接口 /parse-file 已删除)
+        from app.container import AppContainer
+        async for session in get_async_session():
+            container = AppContainer(session)
+            await container.parsing_engine.parse_book(book_id)
+            break
 
         # 2. 查询 Book 元数据
         meta_res = await ac.get(f"/api/books/{book_id}")

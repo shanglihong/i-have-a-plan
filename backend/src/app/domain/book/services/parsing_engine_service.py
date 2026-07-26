@@ -53,14 +53,14 @@ class BookParsingEngineService:
         if not book:
             raise BookNotFoundException(book_id)
 
-        if book.is_completed:
+        if book.is_completed():
             logger.info(f"图书已解析完成，无需重复解析: book_id={book.id}")
             return book
 
         try:
             # 1. 开始解析状态转移
             book.start_parsing()
-            await self.repository.save(book)
+            book = await self.repository.save(book)
 
             # 2. 获取对应的策略解析器并执行解析
             parser = ParserFactory.get_parser(book.file_type)
@@ -83,13 +83,13 @@ class BookParsingEngineService:
                 content_json_path=content_json_path
             )
 
-            # 5. 仓储持久化
-            await self.repository.save(book)
+            # 5. 仓储持久化并返回刷新后的领域对象
+            saved_book = await self.repository.save(book)
 
             # 6. 广播解析完成事件
-            await self.event_bus.publish(BookParsedEvent.from_book(book))
-            logger.info(f"图书解析成功: book_id={book.id}, chapters={total_chapters}, words={total_words}")
-            return book
+            await self.event_bus.publish(BookParsedEvent.from_book(saved_book))
+            logger.info(f"图书解析成功: book_id={saved_book.id}, chapters={total_chapters}, words={total_words}")
+            return saved_book
 
         except Exception as e:
             logger.error(f"图书解析失败: book_id={book.id}, error={str(e)}", exc_info=True)

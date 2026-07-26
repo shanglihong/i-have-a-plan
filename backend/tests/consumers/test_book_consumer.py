@@ -40,12 +40,12 @@ async def test_handle_book_created_triggers_parsing(temp_sandbox):
         storage_path=os.path.join(temp_sandbox, "test.txt")
     )
 
-    mock_parsing_engine = AsyncMock()
-    mock_parsing_engine.parse_book.return_value = MagicMock(id="bk_consumer_test_01")
+    mock_container = MagicMock()
+    mock_container.parsing_engine.parse_book = AsyncMock(return_value=MagicMock(id="bk_consumer_test_01"))
 
-    with patch("app.consumers.book_consumer.BookParsingEngineService", return_value=mock_parsing_engine):
+    with patch("app.consumers.book_consumer.AppContainer", return_value=mock_container):
         await handle_book_created(event)
-        mock_parsing_engine.parse_book.assert_called_once_with("bk_consumer_test_01")
+        mock_container.parsing_engine.parse_book.assert_called_once_with("bk_consumer_test_01")
 
 
 @pytest.mark.asyncio
@@ -58,10 +58,12 @@ async def test_handle_book_parsed_triggers_task_creation():
         total_chapters=0,
         total_words=0
     )
-    mock_task_op_service = AsyncMock()
-    with patch("app.consumers.book_consumer.TaskOperationDomainService", return_value=mock_task_op_service):
+    mock_container = MagicMock()
+    mock_container.task_op_service.mount_book_task_tree = AsyncMock()
+
+    with patch("app.consumers.book_consumer.AppContainer", return_value=mock_container):
         await handle_book_parsed(event)
-        mock_task_op_service.mount_book_task_tree.assert_called_once_with(
+        mock_container.task_op_service.mount_book_task_tree.assert_called_once_with(
             project_id="proj_01",
             book_id="bk_consumer_test_01"
         )

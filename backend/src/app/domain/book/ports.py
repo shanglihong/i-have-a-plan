@@ -1,8 +1,8 @@
 """书籍领域接口定义"""
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Any
-from app.domain.book.entities import Book, TocNode, ContentBlock
+from typing import Optional, List, Dict, Any, Tuple
+from app.domain.book.entities import Book, TocNode, ContentBlock, ParsingStatus
 
 
 class BookRepositoryPort(ABC):
@@ -26,6 +26,16 @@ class BookRepositoryPort(ABC):
     @abstractmethod
     async def delete(self, book_id: str) -> bool:
         """删除书籍记录"""
+        ...
+
+    @abstractmethod
+    async def list_books(
+        self,
+        parsing_status: Optional[ParsingStatus] = None,
+        page: int = 1,
+        size: int = 100,
+    ) -> Tuple[List[Book], int]:
+        """分页与条件查询书籍列表"""
         ...
 
 
