@@ -1,8 +1,7 @@
 """应用层 UseCases 实现 (ParseBook, GetToc, GetChapterContent, HealBook)"""
 
 import uuid
-from typing import Optional, List, Dict, Any
-from app.domain.book.entities import Book, BookFileType, ParsingStatus
+from typing import Dict, Any
 from app.domain.book.services import (
     BookParsingEngineService,
     BookHealingDomainService,
@@ -13,13 +12,10 @@ from app.domain.book.services import (
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.exceptions import (
     BookNotFoundException,
-    BookParsingFailedException,
-    ChapterNotFoundException
 )
 from app.application.book.dtos import (
     BookResponseDTO, TocResponseDTO, ChapterContentResponseDTO, ContentBlockDTO, CreateBookRequestDTO
 )
-
 
 class CreateBookUseCase:
     """创建书籍用例 (解析前初始化落盘)"""
