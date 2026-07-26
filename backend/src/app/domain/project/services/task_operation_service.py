@@ -27,7 +27,7 @@ class TaskOperationDomainService:
         self.book_toc_service = book_toc_service
         self.event_publisher = event_publisher
 
-    async def mount_book_task_tree(
+    async def mount_task_tree_and_activate(
         self,
         project_id: str,
         book_id: str

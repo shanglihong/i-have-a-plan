@@ -33,7 +33,7 @@ async def handle_book_parsed(event: BookParsedEvent) -> None:
     try:
         async for session in get_async_session():
             container = AppContainer(session)
-            await container.task_op_service.mount_book_task_tree(project_id=event.project_id, book_id=event.book_id)
+            await container.task_op_service.mount_task_tree_and_activate(project_id=event.project_id, book_id=event.book_id)
             logger.info(f"[BookConsumer] 项目任务(Task)树挂载并激活成功: project_id={event.project_id}")
             break
     except Exception as e:

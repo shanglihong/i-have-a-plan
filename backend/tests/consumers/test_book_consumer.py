@@ -50,7 +50,7 @@ async def test_handle_book_created_triggers_parsing(temp_sandbox):
 
 @pytest.mark.asyncio
 async def test_handle_book_parsed_triggers_task_creation():
-    """测试 handle_book_parsed 事件处理器成功调用 mount_book_task_tree"""
+    """测试 handle_book_parsed 事件处理器成功调用 mount_task_tree_and_activate"""
     event = BookParsedEvent(
         book_id="bk_consumer_test_01",
         project_id="proj_01",
@@ -59,11 +59,11 @@ async def test_handle_book_parsed_triggers_task_creation():
         total_words=0
     )
     mock_container = MagicMock()
-    mock_container.task_op_service.mount_book_task_tree = AsyncMock()
+    mock_container.task_op_service.mount_task_tree_and_activate = AsyncMock()
 
     with patch("app.consumers.book_consumer.AppContainer", return_value=mock_container):
         await handle_book_parsed(event)
-        mock_container.task_op_service.mount_book_task_tree.assert_called_once_with(
+        mock_container.task_op_service.mount_task_tree_and_activate.assert_called_once_with(
             project_id="proj_01",
             book_id="bk_consumer_test_01"
         )

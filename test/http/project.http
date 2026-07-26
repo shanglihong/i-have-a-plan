@@ -1,6 +1,6 @@
 ### 变量配置
 @baseUrl = http://localhost:8000
-@projectId = proj_xxxxxxxx
+@projectId = proj_ab56d075-315f-40f3-8f4c-95fde668c7f6
 
 
 ### ==================== 创建项目 ====================
@@ -71,7 +71,7 @@ PATCH {{baseUrl}}/api/projects/{{projectId}}
 Content-Type: application/json
 
 {
-  "title": "更新后的项目标题",
+  "title": "乡土中国项目2",
   "deadline": "2026-12-31T00:00:00+08:00"
 }
 
