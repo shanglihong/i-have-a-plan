@@ -19,7 +19,7 @@ from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 from app.domain.book.services import (
     BookParsingEngineService,
     BookHealingDomainService,
-    BookTocQueryDomainService,
+    BookQueryDomainService,
     BookChapterContentDomainService,
     BookCreationDomainService,
 )
@@ -75,7 +75,7 @@ class AppContainer:
             file_storage=self.file_storage,
             parsing_engine=self.parsing_engine,
         )
-        self.book_toc_service = BookTocQueryDomainService(repository=self.book_repo)
+        self.book_service = BookQueryDomainService(repository=self.book_repo)
         self.book_content_service = BookChapterContentDomainService(
             repository=self.book_repo,
             file_storage=self.file_storage,
@@ -112,7 +112,7 @@ class AppContainer:
         self.task_op_service = TaskOperationDomainService(
             project_repo=self.project_repo,
             task_repo=self.task_repo,
-            book_toc_service=self.book_toc_service,
+            book_service=self.book_service,
             event_publisher=self.event_bus,
         )
 

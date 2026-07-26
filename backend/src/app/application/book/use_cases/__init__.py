@@ -6,7 +6,7 @@ from app.domain.book.entities import Book, BookFileType, ParsingStatus
 from app.domain.book.services import (
     BookParsingEngineService,
     BookHealingDomainService,
-    BookTocQueryDomainService,
+    BookQueryDomainService,
     BookChapterContentDomainService,
     BookCreationDomainService
 )
@@ -78,11 +78,11 @@ class ParseBookUseCase:
 class GetBookTocUseCase:
     """获取书籍目录大纲树用例"""
 
-    def __init__(self, toc_query_service: BookTocQueryDomainService):
-        self.toc_query_service = toc_query_service
+    def __init__(self, query_service: BookQueryDomainService):
+        self.query_service = query_service
 
     async def execute(self, book_id: str) -> TocResponseDTO:
-        b_id, toc_tree = await self.toc_query_service.get_toc_tree(book_id)
+        b_id, toc_tree = await self.query_service.get_toc_tree(book_id)
         return TocResponseDTO(
             book_id=b_id,
             toc_tree=toc_tree

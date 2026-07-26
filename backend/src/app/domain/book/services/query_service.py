@@ -1,7 +1,7 @@
 """书籍领域查询服务 (Domain Services)"""
 
 from typing import List, Dict, Any, Tuple, Optional
-from app.domain.book.entities import ChapterContent, ContentBlock
+from app.domain.book.entities import Book, ChapterContent, ContentBlock
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.exceptions import (
     BookNotFoundException,
@@ -11,8 +11,8 @@ from app.domain.book.exceptions import (
 from app.utils.cache import LRUCache, book_content_cache
 
 
-class BookTocQueryDomainService:
-    """目录大纲树领域查询服务"""
+class BookQueryDomainService:
+    """书籍领域查询服务（目录、基本信息）"""
 
     def __init__(self, repository: BookRepositoryPort):
         self.repository = repository
@@ -22,6 +22,12 @@ class BookTocQueryDomainService:
         if not book:
             raise BookNotFoundException(book_id)
         return book.id, book.parsed_structure or []
+
+    async def get_book_by_id(self, book_id: str) -> Book:
+        book = await self.repository.find_by_id(book_id)
+        if not book:
+            raise BookNotFoundException(book_id)
+        return book
 
 
 class BookChapterContentDomainService:

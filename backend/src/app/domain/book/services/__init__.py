@@ -8,7 +8,7 @@ from app.domain.book.services.healing import (
     UnparsedBookHealer,
 )
 from app.domain.book.services.query_service import (
-    BookTocQueryDomainService,
+    BookQueryDomainService,
     BookChapterContentDomainService
 )
 from app.domain.book.services.creation_service import BookCreationDomainService
@@ -19,7 +19,7 @@ __all__ = [
     "BaseBookHealer",
     "CompletedBookHealer",
     "UnparsedBookHealer",
-    "BookTocQueryDomainService",
+    "BookQueryDomainService",
     "BookChapterContentDomainService",
     "BookCreationDomainService"
 ]
