@@ -21,6 +21,9 @@ class PdfParserStrategy(IBookParser):
         except Exception as e:
             raise ValueError(f"PDF 文件损坏或解析流意外中断: {str(e)}") from e
 
+        toc_tree: List[TocNode] = []
+        chapter_blocks: Dict[str, List[ContentBlock]] = {}
+
         for page_idx in range(total_pages):
             page_num = page_idx + 1
             chap_id = f"chap_p{page_num:03d}"
