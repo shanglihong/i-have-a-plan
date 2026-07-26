@@ -10,7 +10,7 @@ from app.domain.book.services import (
     BookChapterContentDomainService,
     BookCreationDomainService
 )
-from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort, BookEventBusPort
+from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.exceptions import (
     BookNotFoundException,
     BookParsingFailedException,

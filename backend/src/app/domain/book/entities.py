@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional, Dict, Any
-from app.domain.common.base_entity import BaseEntity
+from app.domain.base import BaseEntity
 from app.domain.book.exceptions import InvalidStateTransitionException
 
 
@@ -160,7 +160,7 @@ class Book(BaseEntity):
         """完成解析"""
         current = self.parsing_status
         if current not in [ParsingStatus.PARSING, ParsingStatus.PENDING]:
-            raise InvalidStateTransitionException(current.value, ParsingStatus.COMPLETED.value)
+            raise InvalidStateTransitionException(current, ParsingStatus.COMPLETED.value)
 
         self.parsed_structure = [node.model_dump(mode="json") for node in toc_tree]
         self.total_chapters = total_chapters

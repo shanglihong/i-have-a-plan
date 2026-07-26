@@ -1,11 +1,10 @@
 """书籍解析引擎服务"""
 
-from app.domain.book.entities import HealingStatus
 import logging
 from typing import Dict, Any, List
 from app.domain.book.entities import Book, ContentBlock
 from app.domain.book.strategies import ParserFactory
-from app.domain.common.ports import EventPublisherPort
+from app.domain.events import EventPublisherPort
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.events import BookParsedEvent
 from app.domain.book.exceptions import BookNotFoundException, BookParsingFailedException

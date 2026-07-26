@@ -9,7 +9,7 @@ from typing import Optional
 from datetime import datetime
 from fastapi import UploadFile, HTTPException, status
 
-from app.domain.common.enums import SortOrder
+from app.domain.base import SortOrder
 from app.domain.project.entities import ProjectStatus, ProjectType, ProjectSortBy
 from app.domain.project.events import (
     ProjectArchivedEvent,

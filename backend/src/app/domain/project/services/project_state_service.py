@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 import logging
 
-from app.domain.common.ports import EventPublisherPort
+from app.domain.events import EventPublisherPort
 from app.domain.project.entities import Project, ProjectStatus
 from app.domain.project.events import ProjectArchivedEvent, ProjectStatusChangedEvent
 from app.domain.project.ports import ProjectRepositoryPort, TaskRepositoryPort

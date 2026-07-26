@@ -1,9 +1,17 @@
 """领域事件基类模块"""
-
+from abc import abstractmethod, ABC
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 import uuid
 
+class EventPublisherPort(ABC):
+    """通用领域事件发布代理接口"""
+
+    @abstractmethod
+    async def publish(self, event: Any) -> None:
+        """发布领域事件"""
+        ...
 
 @dataclass
 class DomainEvent:

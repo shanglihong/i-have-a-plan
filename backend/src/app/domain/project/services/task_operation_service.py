@@ -7,7 +7,7 @@ from app.domain.project.entities import Project
 from app.domain.project.ports import ProjectRepositoryPort, TaskRepositoryPort
 from app.domain.project.events import ProjectCreatedEvent
 from app.domain.book.services import BookQueryDomainService
-from app.domain.common.ports import EventPublisherPort
+from app.domain.events import EventPublisherPort
 
 logger = logging.getLogger(__name__)
 

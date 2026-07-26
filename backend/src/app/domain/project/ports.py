@@ -2,8 +2,8 @@
 
 from abc import abstractmethod
 from typing import Optional, List, Tuple
-from app.domain.common.enums import SortOrder
-from app.domain.common.ports import DomainPort
+from app.domain.base import SortOrder
+from app.domain.base import DomainPort
 from app.domain.project.entities import (
     Project,
     ProjectSortBy,

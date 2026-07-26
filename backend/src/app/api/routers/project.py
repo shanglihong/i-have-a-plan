@@ -2,7 +2,7 @@ from typing import Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, UploadFile, Request, status, Query, Body
 
-from app.domain.common.enums import SortOrder
+from app.domain.base import SortOrder
 from app.domain.project.entities import ProjectSortBy
 from app.api.deps import get_project_use_cases
 from app.application.project.dtos import (

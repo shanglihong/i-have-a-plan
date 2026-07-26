@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
-from app.domain.common.base_entity import BaseEntity
+from app.domain.base import BaseEntity
 from app.domain.book.entities import Book
 
 

@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.domain.common.exceptions import DomainException
+from app.domain.exceptions import DomainException
 
 
 def _problem_response(

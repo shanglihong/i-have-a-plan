@@ -1,7 +1,7 @@
 """项目只读查询领域服务 (Domain Service)"""
 
 from typing import Optional, List, Tuple
-from app.domain.common.enums import SortOrder
+from app.domain.base import SortOrder
 from app.domain.project.entities import Project, ProjectSortBy, ProjectStatus, ProjectType
 from app.domain.project.ports import ProjectRepositoryPort, TaskRepositoryPort
 from app.domain.book.ports import BookRepositoryPort

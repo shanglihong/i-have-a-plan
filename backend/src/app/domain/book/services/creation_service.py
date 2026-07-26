@@ -3,7 +3,7 @@
 import uuid
 from typing import Optional
 from app.domain.book.entities import Book, BookFileType, ParsingStatus
-from app.domain.common.ports import EventPublisherPort
+from app.domain.events import EventPublisherPort
 from app.domain.book.ports import BookRepositoryPort
 from app.domain.book.exceptions import UnsupportedBookFormatException
 from app.domain.book.events import BookCreatedEvent

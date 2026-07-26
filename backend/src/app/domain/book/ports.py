@@ -69,9 +69,3 @@ class BookFileStoragePort(ABC):
     async def delete_book_dir(self, storage_path: str) -> None:
         """清理书籍存储目录"""
         ...
-
-
-
-from app.domain.common.ports import EventPublisherPort
-
-BookEventBusPort = EventPublisherPort

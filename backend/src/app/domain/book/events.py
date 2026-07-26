@@ -1,6 +1,6 @@
 """书籍领域事件定义模块"""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:

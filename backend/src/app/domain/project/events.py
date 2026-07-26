@@ -1,7 +1,7 @@
 """项目与任务领域事件模块"""
 
 from dataclasses import dataclass
-from app.domain.common.events import DomainEvent
+from app.domain.events import DomainEvent
 
 
 @dataclass

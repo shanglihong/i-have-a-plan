@@ -5,7 +5,19 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
+from abc import ABC
 import uuid
+
+class DomainPort(ABC):
+    """所有领域端口防腐接口基类"""
+    pass
+
+class SortOrder(str, Enum):
+    """通用排序方向枚举"""
+
+    ASC = "asc"
+    DESC = "desc"
 
 
 @dataclass

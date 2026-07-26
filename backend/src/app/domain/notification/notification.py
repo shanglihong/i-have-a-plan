@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, Any, Optional
-from app.domain.common.base_entity import BaseEntity
+from app.domain.base import BaseEntity
 
 
 class NotificationType(str, Enum):

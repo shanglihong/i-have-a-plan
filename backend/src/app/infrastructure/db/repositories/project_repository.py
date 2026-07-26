@@ -4,7 +4,7 @@ from typing import Optional, List, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, func
 
-from app.domain.common.enums import SortOrder
+from app.domain.base import SortOrder
 from app.domain.project.entities import Project, ProjectSortBy, ProjectType, ProjectStatus
 from app.domain.project.ports import ProjectRepositoryPort
 from app.infrastructure.db.models.project import ProjectDO
