@@ -17,5 +17,5 @@ class ProjectHealing:
                 _, toc_tree = await self.container.book_service.get_toc_tree(project.book_id)
                 # 生成阅读task树并激活
                 if toc_tree:
-                    self.container.task_op_service.mount_task_tree_and_activate(project.id, project.book_id, toc_tree)
+                    _ = self.container.task_op_service.mount_task_tree_and_activate(project.id, project.book_id, toc_tree)
         return

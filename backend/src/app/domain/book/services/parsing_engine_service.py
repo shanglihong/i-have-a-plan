@@ -119,12 +119,15 @@ class BookParsingEngineService:
             logger.info(f"图书 {book.id} - {book.file_name}解析文件开始执行删除")
             await self.file_storage.delete_parsed_content(book.content_json_path)
             await self.parse_book(book.id)
+
         elif status == HealingStatus.HEALED_REPARSING:
             await self.parse_book(book.id)
+
         elif status == HealingStatus.NOT_FOUND:
             book.fail_parsing()
             await self.repository.save(book)
             await self.file_storage.delete_book_dir(book.storage_path)
+            
         logger.info(f"图书 {book.id} - {book.file_name}修复完成")
 
 

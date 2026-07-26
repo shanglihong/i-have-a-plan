@@ -15,6 +15,7 @@ class BookHealing:
         parsing_list = await self.container.book_service.get_parsing_list()
         books.extend(pending_list)
         books.extend(parsing_list)
+        
         logger.info(f"图书冷启动物理自愈校验启动，待处理图书: {len(books)}")
 
         for book in books:
