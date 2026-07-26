@@ -3,7 +3,7 @@
 from .entities import Book, TocNode, SourceAnchor, ContentBlock, ChapterContent, ParsingStatus, BookFileType
 from .events import BookParseRequestedEvent, BookParsedEvent, BookDeletedEvent
 from .ports import BookRepositoryPort, BookFileStoragePort
-from .services import BookParsingEngineService, BookHealingDomainService
+from .services import BookParsingEngineService
 from .exceptions import (
     BookDomainException,
     BookNotFoundException,

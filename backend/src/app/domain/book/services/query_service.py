@@ -1,7 +1,7 @@
 """书籍领域查询服务 (Domain Services)"""
 
 from typing import List, Dict, Any, Tuple, Optional
-from app.domain.book.entities import Book, ChapterContent, ContentBlock
+from app.domain.book.entities import Book, ChapterContent, ContentBlock, ParsingStatus
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.exceptions import (
     BookNotFoundException,
@@ -28,6 +28,20 @@ class BookQueryDomainService:
         if not book:
             raise BookNotFoundException(book_id)
         return book
+
+    async def get_pending_list(self, size: int = 100) -> List[Book]:
+        books, total = await self.repository.list_books(
+            parsing_status=ParsingStatus.PENDING,
+            size=size,
+        )
+        return books
+
+    async def get_parsing_list(self, size: int = 100) -> List[Book]:
+        books, total = await self.repository.list_books(
+            parsing_status=ParsingStatus.PARSING,
+            size=size,
+        )
+        return books
 
 
 class BookChapterContentDomainService:
@@ -107,5 +121,3 @@ class BookChapterContentDomainService:
             next_chapter_id=next_chapter_id,
             blocks=sliced_blocks
         )
-
-

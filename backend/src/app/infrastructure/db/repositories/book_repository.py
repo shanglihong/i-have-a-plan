@@ -35,6 +35,16 @@ class BookRepositoryAdapter(BookRepositoryPort):
             except (ValueError, KeyError):
                 status = ParsingStatus.PENDING
 
+        import json
+        parsed_struct = do.parsed_structure
+        if isinstance(parsed_struct, str):
+            try:
+                parsed_struct = json.loads(parsed_struct)
+            except Exception:
+                parsed_struct = []
+        elif not parsed_struct:
+            parsed_struct = []
+
         return Book(
             id=do.id,
             project_id=do.project_id,
@@ -44,7 +54,7 @@ class BookRepositoryAdapter(BookRepositoryPort):
             storage_path=do.storage_path,
             content_json_path=do.content_json_path,
             parsing_status=status,
-            parsed_structure=do.parsed_structure or [],
+            parsed_structure=parsed_struct,
             total_chapters=do.total_chapters,
             total_word_count=do.total_word_count,
             created_at=do.created_at,

@@ -69,3 +69,7 @@ class BookFileStoragePort(ABC):
     async def delete_book_dir(self, storage_path: str) -> None:
         """清理书籍存储目录"""
         ...
+
+    @abstractmethod
+    async def delete_parsed_content(self, target_path: str) -> None:
+        ...

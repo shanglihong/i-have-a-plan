@@ -4,40 +4,26 @@ import hashlib
 import json
 import os
 import shutil
+from pathlib import Path
 from typing import Optional, Dict, List, Any
 from app.domain.book.ports import BookFileStoragePort
 
-DEFAULT_STORAGE_DIR = os.getenv("BOOK_STORAGE_DIR", os.getenv("SANDBOX_DIR", ".storage/books"))
-
-
 class LocalBookFileStorageAdapter(BookFileStoragePort):
     """基于本地文件系统的图书存储适配器"""
-
-    def __init__(self, base_dir: str = DEFAULT_STORAGE_DIR):
-        self.base_dir = base_dir
-        os.makedirs(self.base_dir, exist_ok=True)
-
-    def _get_dir_from_storage_path(self, storage_path: str) -> str:
-        if not storage_path:
-            return self.base_dir
-        if os.path.isdir(storage_path):
-            d = storage_path
-        elif os.path.splitext(storage_path)[1] != "":
-            d = os.path.dirname(storage_path) or self.base_dir
-        else:
-            if not os.path.isabs(storage_path) and not storage_path.startswith(self.base_dir):
-                d = os.path.join(self.base_dir, storage_path)
-            else:
-                d = storage_path
-        os.makedirs(d, exist_ok=True)
-        return d
+    def _get_dir(self, path: str) -> str:
+        if os.path.isdir(path):
+            print(path)
+        elif os.path.splitext(path)[1] != "":
+            path = os.path.dirname(path)
+        os.makedirs(path, exist_ok=True)
+        return path
 
     async def save_parsed_content_json(
         self,
         storage_path: str,
         chapter_blocks_data: Dict[str, List[Dict[str, Any]]]
     ) -> str:
-        book_dir = self._get_dir_from_storage_path(storage_path)
+        book_dir = self._get_dir(storage_path)
         target_path = os.path.join(book_dir, "parsed_content.json")
         tmp_path = os.path.join(book_dir, "parsed_content.json.tmp")
 
@@ -78,11 +64,18 @@ class LocalBookFileStorageAdapter(BookFileStoragePort):
             return False
         return True
 
+    async def delete_parsed_content(self, target_path: str) -> None:
+        """删除图书解析文件"""
+        if not target_path:
+            return
+        file_path = Path(target_path)
+        file_path.unlink(missing_ok=True)
+
     async def delete_book_dir(self, storage_path: str) -> None:
         """清理图书存储目录"""
         if not storage_path:
             return
-        book_dir = self._get_dir_from_storage_path(storage_path)
+        book_dir = self._get_dir(storage_path)
         if os.path.exists(book_dir):
             shutil.rmtree(book_dir, ignore_errors=True)
 

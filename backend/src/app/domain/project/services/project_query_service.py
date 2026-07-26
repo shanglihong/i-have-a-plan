@@ -42,3 +42,12 @@ class ProjectQueryDomainService:
 
         project.task_chains = await self.task_repo.get_task_chains_by_project_id(project_id)
         return project
+
+    async def get_recent_init_list(self, size: int = 100) -> List[Project]:
+        """扫描所有 INIT 状态的半成品项目"""
+        init_projects, total = await self.project_repo.list_projects(
+            status=ProjectStatus.INIT,
+            page=1,
+            size=size,
+        )
+        return init_projects

@@ -19,19 +19,18 @@ class BookFileType(str, Enum):
 
 class ParsingStatus(str, Enum):
     """全生命周期解析状态"""
-    PENDING = "PENDING"
-    UPLOADING = "UPLOADING"
-    PARSING = "PARSING"
+    PENDING = "PENDING" # 初始化
+    PARSING = "PARSING" # 解析中
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
 
 class HealingStatus(str, Enum):
     """沙箱book文件自愈与校验状态"""
-    INTACT = "INTACT"
-    HEALED_REPARSING = "HEALED_REPARSING"
-    CORRUPTED = "CORRUPTED"
-    NOT_FOUND = "NOT_FOUND"
+    INTACT = "INTACT" # 良好
+    HEALED_REPARSING = "HEALED_REPARSING" # 直接重新修复
+    CORRUPTED = "CORRUPTED" # 文件损坏
+    NOT_FOUND = "NOT_FOUND" # 文件缺失
 
 
 class BlockType(str, Enum):
@@ -144,7 +143,7 @@ class Book(BaseEntity):
     def start_parsing(self) -> None:
         """启动解析"""
         current = self.parsing_status
-        if current not in [ParsingStatus.PENDING, ParsingStatus.UPLOADING, ParsingStatus.FAILED, ParsingStatus.PARSING]:
+        if current not in [ParsingStatus.PENDING, ParsingStatus.FAILED, ParsingStatus.PARSING]:
             raise InvalidStateTransitionException(current.value, ParsingStatus.PARSING.value)
 
         self.parsing_status = ParsingStatus.PARSING

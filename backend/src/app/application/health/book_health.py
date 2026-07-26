@@ -1,5 +1,6 @@
+from typing import List
 from app.container import AppContainer
-from app.domain.book.entities import HealingStatus
+from app.domain.book.entities import HealingStatus, Book
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,8 +10,12 @@ class BookHealing:
         self.container = container
 
     async def handle(self) -> None:
-        # 图书解析与文件物理状态批量自愈
-        book_results, total_books = await self.container.book_healing_service.batch_verify_and_heal_books(page=1, size=100)
-        if book_results:
-            healed_count = sum(1 for _, status in book_results if status != HealingStatus.INTACT)
-            logger.info(f"图书冷启动物理自愈校验完成，已检查图书: {total_books}, 修复异常数: {healed_count}")
+        books: List[Book] = []
+        pending_list = await self.container.book_service.get_pending_list()
+        parsing_list = await self.container.book_service.get_parsing_list()
+        books.extend(pending_list)
+        books.extend(parsing_list)
+        logger.info(f"图书冷启动物理自愈校验启动，待处理图书: {len(books)}")
+
+        for book in books:
+            await self.container.parsing_engine.fix_book(book)

@@ -4,7 +4,6 @@ import uuid
 from typing import Dict, Any
 from app.domain.book.services import (
     BookParsingEngineService,
-    BookHealingDomainService,
     BookQueryDomainService,
     BookChapterContentDomainService,
     BookCreationDomainService
@@ -128,20 +127,3 @@ class GetChapterContentUseCase:
             next_chapter_id=content.next_chapter_id,
             blocks=blocks_dtos
         )
-
-
-class BookHealingUseCase:
-    """图书文件物理状态自愈校验用例"""
-
-    def __init__(self, healing_service: BookHealingDomainService):
-        self.healing_service = healing_service
-
-    async def execute(self, book_id: str) -> Dict[str, Any]:
-        status_code, book = await self.healing_service.verify_and_heal_book(book_id)
-        return {
-            "book_id": book_id,
-            "status": status_code,
-            "book": BookResponseDTO.from_domain(book) if book else None
-        }
-
-

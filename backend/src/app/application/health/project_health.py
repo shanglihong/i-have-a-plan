@@ -2,6 +2,8 @@ from app.container import AppContainer
 from app.domain.book.entities import HealingStatus
 import logging
 
+from app.domain.project import Project, ProjectType
+
 logger = logging.getLogger(__name__)
 
 class ProjectHealing:
@@ -9,7 +11,11 @@ class ProjectHealing:
         self.container = container
 
     async def handle(self) -> None:
-        # 图书解析与文件物理状态批量自愈
-        # project_summaries: List[str] = await container.project_healing_service.trigger_startup_healing()
-        # if project_summaries:
-        #     logger.info(f"项目冷启动自愈完成，处理项目数: {len(project_summaries)}, 明细: {project_summaries}")
+        init_projects = await self.container.project_query_service.get_recent_init_list()
+        for project in init_projects:
+            if project.project_type == ProjectType.READING:
+                _, toc_tree = await self.container.book_service.get_toc_tree(project.book_id)
+                # 生成阅读task树并激活
+                if toc_tree:
+                    self.container.task_op_service.mount_task_tree_and_activate(project.id, project.book_id, toc_tree)
+        return

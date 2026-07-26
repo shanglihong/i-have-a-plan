@@ -392,6 +392,7 @@ dependencies = [
     { name = "greenlet" },
     { name = "langchain" },
     { name = "langgraph" },
+    { name = "logger" },
     { name = "pydantic-settings" },
     { name = "pypdf" },
     { name = "python-multipart" },
@@ -418,6 +419,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
     { name = "langchain", specifier = ">=0.3" },
     { name = "langgraph", specifier = ">=0.2" },
+    { name = "logger" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "pypdf", specifier = ">=4.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
@@ -624,6 +626,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/ed/6d/9ad4427662ef13187
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ed/54/509a1eb6b9e5572a4f3f4b087779d240c6b69f3d5247ffa21314f66155d9/langsmith-0.10.9-py3-none-any.whl", hash = "sha256:5e0e8ab0f8df05710809919184495e33c2a7c9a9a5e8861d63dd12c1226d9c79", size = 673326, upload-time = "2026-07-20T21:27:11.889Z" },
 ]
+
+[[package]]
+name = "logger"
+version = "1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/73/2f/b0d28eaa1e2c1cf64129f8da3fe701888d152677fec708cd0f13e8309e1e/logger-1.4.tar.gz", hash = "sha256:4ecac57133c6376fa215f0fe6b4dc4d60e4d1ad8be005cab4e8a702df682f8b3", size = 1187, upload-time = "2013-10-22T16:49:01.48Z" }
 
 [[package]]
 name = "lxml"

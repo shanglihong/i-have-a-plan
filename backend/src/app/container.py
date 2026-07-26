@@ -17,7 +17,6 @@ from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 # 领域层服务
 from app.domain.book.services import (
     BookParsingEngineService,
-    BookHealingDomainService,
     BookQueryDomainService,
     BookChapterContentDomainService,
     BookCreationDomainService,
@@ -29,14 +28,12 @@ from app.domain.project.services import (
     ExperienceNoteDomainService,
     TaskOperationDomainService,
 )
-from app.domain.project.services.health_service import ProjectHealthService
 
 # 应用层用例
 from app.application.book import (
     GetBookMetadataUseCase,
     GetBookTocUseCase,
     GetChapterContentUseCase,
-    BookHealingUseCase,
     CreateBookUseCase,
 )
 from app.application.project.use_cases import (
@@ -67,11 +64,6 @@ class AppContainer:
             file_storage=self.file_storage,
             event_bus=self.event_bus,
         )
-        self.book_healing_service = BookHealingDomainService(
-            repository=self.book_repo,
-            file_storage=self.file_storage,
-            parsing_engine=self.parsing_engine,
-        )
         self.book_service = BookQueryDomainService(repository=self.book_repo)
         self.book_content_service = BookChapterContentDomainService(
             repository=self.book_repo,
@@ -99,10 +91,6 @@ class AppContainer:
         self.project_note_service = ExperienceNoteDomainService(
             repository=self.project_repo,
             task_repository=self.task_repo,
-        )
-        self.project_healing_service = ProjectHealthService(
-            project_repo=self.project_repo,
-            task_repo=self.task_repo,
         )
         self.task_op_service = TaskOperationDomainService(
             project_repo=self.project_repo,
