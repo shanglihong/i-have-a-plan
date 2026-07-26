@@ -12,7 +12,6 @@ from app.infrastructure.db.repositories.project_repository import ProjectReposit
 from app.infrastructure.db.repositories.task_repository import TaskRepository
 from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
 from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
-from app.infrastructure.adapters.agent_adapter import AgentDomainAdapter
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 
 # 领域层服务
@@ -30,11 +29,10 @@ from app.domain.project.services import (
     ExperienceNoteDomainService,
     TaskOperationDomainService,
 )
-from app.domain.project.services.healing import StartupHealingThread
+from app.domain.project.services.health_service import ProjectHealthService
 
 # 应用层用例
-from app.application.book.use_cases import (
-    ParseBookUseCase,
+from app.application.book import (
     GetBookMetadataUseCase,
     GetBookTocUseCase,
     GetChapterContentUseCase,
@@ -62,7 +60,6 @@ class AppContainer:
         self.book_repo = BookRepositoryAdapter(session)
         self.file_storage = LocalBookFileStorageAdapter()
         self.event_bus = global_event_bus
-        self.agent_adapter = AgentDomainAdapter()
 
         # 2. 图书领域服务 (Book Domain Services)
         self.parsing_engine = BookParsingEngineService(
@@ -89,7 +86,6 @@ class AppContainer:
         self.project_creation_service = ProjectCreationDomainService(
             project_repo=self.project_repo,
             task_repo=self.task_repo,
-            agent_port=self.agent_adapter,
         )
         self.project_state_service = ProjectStateDomainService(
             project_repo=self.project_repo,
@@ -99,20 +95,18 @@ class AppContainer:
         self.project_query_service = ProjectQueryDomainService(
             project_repo=self.project_repo,
             task_repo=self.task_repo,
-            book_repo=self.book_repo,
         )
         self.project_note_service = ExperienceNoteDomainService(
             repository=self.project_repo,
             task_repository=self.task_repo,
         )
-        self.project_healing_thread = StartupHealingThread(
+        self.project_healing_service = ProjectHealthService(
             project_repo=self.project_repo,
             task_repo=self.task_repo,
         )
         self.task_op_service = TaskOperationDomainService(
             project_repo=self.project_repo,
             task_repo=self.task_repo,
-            book_service=self.book_service,
             event_publisher=self.event_bus,
         )
 
@@ -121,7 +115,7 @@ class AppContainer:
         return {
             "create_book_use_case": CreateBookUseCase(self.book_creation_service),
             "get_metadata_use_case": GetBookMetadataUseCase(self.book_repo),
-            "get_toc_use_case": GetBookTocUseCase(self.book_toc_service),
+            "get_toc_use_case": GetBookTocUseCase(self.book_service),
             "get_content_use_case": GetChapterContentUseCase(self.book_content_service),
             "healing_use_case": BookHealingUseCase(self.book_healing_service),
         }
@@ -133,7 +127,7 @@ class AppContainer:
                 self.project_creation_service,
                 book_creation_service=self.book_creation_service,
             ),
-            "query_use_case": ProjectQueryUseCase(self.project_query_service),
+            "query_use_case": ProjectQueryUseCase(self.project_query_service, self.book_service),
             "manage_state_use_case": ManageProjectStateUseCase(self.project_state_service),
             "create_note_use_case": CreateExperienceNoteUseCase(self.project_note_service),
             "complete_tree_use_case": CompletePlanTaskTreeUseCase(

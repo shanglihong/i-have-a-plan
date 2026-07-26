@@ -8,8 +8,6 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 from app.domain.base import BaseEntity
-from app.domain.book.entities import Book
-
 
 class ProjectType(str, Enum):
     """项目类型定义"""
@@ -94,7 +92,6 @@ class Project(BaseEntity):
     assigned_agent_id: Optional[str] = None
     deadline: Optional[datetime] = None
     book_id: Optional[str] = None
-    book: Optional[Book] = None
     tags: List[str] = field(default_factory=list)
     task_chains: List[TaskChain] = field(default_factory=list)
 
@@ -157,21 +154,21 @@ class Project(BaseEntity):
     def transit_to_active(self) -> None:
         """从 INIT 状态转换为 ACTIVE"""
         if self.status != ProjectStatus.INIT:
-            raise ValueError(f"无法将状态为 {self.status.value} 的项目转为 ACTIVE")
+            raise ValueError(f"无法将状态为 {self.status} 的项目转为 ACTIVE")
         self.status = ProjectStatus.ACTIVE
         self.updated_at = datetime.now(timezone.utc)
 
     def archive(self) -> None:
         """从 ACTIVE 状态转为 ARCHIVED 归档"""
         if self.status != ProjectStatus.ACTIVE:
-            raise ValueError(f"只有 ACTIVE 状态的项目才能归档，当前状态为: {self.status.value}")
+            raise ValueError(f"只有 ACTIVE 状态的项目才能归档，当前状态为: {self.status}")
         self.status = ProjectStatus.ARCHIVED
         self.updated_at = datetime.now(timezone.utc)
 
     def reactivate(self) -> None:
         """从 ARCHIVED 转为 ACTIVE 重激活"""
         if self.status != ProjectStatus.ARCHIVED:
-            raise ValueError(f"只有 ARCHIVED 状态的项目才能重新激活，当前状态为: {self.status.value}")
+            raise ValueError(f"只有 ARCHIVED 状态的项目才能重新激活，当前状态为: {self.status}")
         self.status = ProjectStatus.ACTIVE
         self.updated_at = datetime.now(timezone.utc)
 

@@ -5,9 +5,6 @@ from typing import List, Optional, Tuple
 from app.domain.book.entities import Book, HealingStatus, ParsingStatus
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.services.parsing_engine_service import BookParsingEngineService
-from .base import BaseBookHealer
-from .completed_healer import CompletedBookHealer
-from .unparsed_healer import UnparsedBookHealer
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +17,36 @@ class BookHealingDomainService:
         repository: BookRepositoryPort,
         file_storage: BookFileStoragePort,
         parsing_engine: BookParsingEngineService,
-        healers: Optional[List[BaseBookHealer]] = None,
     ):
         self.repository = repository
         self.file_storage = file_storage
         self.parsing_engine = parsing_engine
 
-        self.completed_healer = CompletedBookHealer(repository, file_storage, parsing_engine)
-        self.unparsed_healer = UnparsedBookHealer(repository, file_storage, parsing_engine)
+
+    async def batch_verify_and_heal_books(
+            self,
+            parsing_status: Optional[ParsingStatus] = None,
+            page: int = 1,
+            size: int = 100,
+    ) -> Tuple[List[Tuple[str, HealingStatus]], int]:
+        """
+        先批量查出一批图书数据，逐个进行自愈校验与修补
+
+        Returns:
+            Tuple[List[Tuple[book_id, HealingStatus]], total_count]: (自愈结果清单, 总图书数)
+        """
+        books, total = await self.repository.list_books(
+            parsing_status=parsing_status,
+            page=page,
+            size=size,
+        )
+
+        results: List[Tuple[str, HealingStatus]] = []
+        for book in books:
+            status, _ = await self.verify_and_heal_book(book.id)
+            results.append((book.id, status))
+        return results, total
+
 
     async def verify_and_heal_book(self, book_id: str) -> Tuple[HealingStatus, Optional[Book]]:
         """
@@ -48,31 +67,32 @@ class BookHealingDomainService:
 
         # 2. 根据 parsing_status 路由至具体 Healer 策略
         if book.parsing_status == ParsingStatus.COMPLETED:
-            return await self.completed_healer.heal(book)
+            return await self.completed_handle(book)
         else:
-            return await self.unparsed_healer.heal(book)
+            return await self.unparsed_handle(book)
 
-    async def batch_verify_and_heal_books(
-        self,
-        parsing_status: Optional[ParsingStatus] = None,
-        page: int = 1,
-        size: int = 100,
-    ) -> Tuple[List[Tuple[str, HealingStatus]], int]:
-        """
-        先批量查出一批图书数据，逐个进行自愈校验与修补
-        
-        Returns:
-            Tuple[List[Tuple[book_id, HealingStatus]], total_count]: (自愈结果清单, 总图书数)
-        """
-        books, total = await self.repository.list_books(
-            parsing_status=parsing_status,
-            page=page,
-            size=size,
-        )
 
-        results: List[Tuple[str, HealingStatus]] = []
-        for book in books:
-            status, _ = await self.verify_and_heal_book(book.id)
-            results.append((book.id, status))
+    async def completed_handle(self, book: Book) -> Tuple[HealingStatus, Optional[Book]]:
+        json_intact = await self.file_storage.check_file_hash_and_existence(book.content_json_path)
+        if json_intact:
+            return HealingStatus.INTACT, book
 
-        return results, total
+        logger.warning(f"检测到 parsed_content.json 丢失，自动触发重新解析自愈: book_id={book.id}")
+        try:
+            healed_book = await self.parsing_engine.parse_book(book.id)
+            return HealingStatus.HEALED_REPARSING, healed_book
+        except Exception:
+            book.fail_parsing()
+            await self.repository.save(book)
+            return HealingStatus.CORRUPTED, book
+
+
+    async def unparsed_handle(self, book: Book) -> Tuple[HealingStatus, Optional[Book]]:
+        try:
+            healed_book = await self.parsing_engine.parse_book(book.id)
+            return HealingStatus.HEALED_REPARSING, healed_book
+        except Exception:
+            book.fail_parsing()
+            await self.repository.save(book)
+            return HealingStatus.CORRUPTED, book
+

@@ -9,7 +9,6 @@ from .events import (
     TaskStatusChangedEvent,
 )
 from .ports import ProjectRepositoryPort
-from .services import ProjectDomainService
 
 __all__ = [
     "Project",
@@ -25,6 +24,5 @@ __all__ = [
     "ExperienceNoteCreatedEvent",
     "TaskStatusChangedEvent",
     "ProjectRepositoryPort",
-    "ProjectDomainService",
 ]
 

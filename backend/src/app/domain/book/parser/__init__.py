@@ -1,17 +1,17 @@
 """电子书解析策略模块包"""
 
-from app.domain.book.strategies.base import IBookParser
-from app.domain.book.strategies.txt_strategy import TxtParserStrategy
-from app.domain.book.strategies.md_strategy import MdParserStrategy
-from app.domain.book.strategies.epub_strategy import EpubParserStrategy
-from app.domain.book.strategies.pdf_strategy import PdfParserStrategy
-from app.domain.book.strategies.factory import ParserFactory
+from app.domain.book.parser.base import IBookParser
+from app.domain.book.parser.txt_parser import TxtParser
+from app.domain.book.parser.md_parser import MdParser
+from app.domain.book.parser.epub_parser import EpubParser
+from app.domain.book.parser.pdf_parser import PdfParser
+from app.domain.book.parser.factory import ParserFactory
 
 __all__ = [
     "IBookParser",
-    "TxtParserStrategy",
-    "MdParserStrategy",
-    "EpubParserStrategy",
-    "PdfParserStrategy",
+    "TxtParser",
+    "MdParser",
+    "EpubParser",
+    "PdfParser",
     "ParserFactory",
 ]

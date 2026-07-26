@@ -5,7 +5,7 @@ from typing import Optional
 import logging
 
 from app.domain.events import EventPublisherPort
-from app.domain.project.entities import Project, ProjectStatus
+from app.domain.project.entities import Project
 from app.domain.project.events import ProjectArchivedEvent, ProjectStatusChangedEvent
 from app.domain.project.ports import ProjectRepositoryPort, TaskRepositoryPort
 

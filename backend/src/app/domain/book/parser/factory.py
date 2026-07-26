@@ -2,11 +2,11 @@
 
 from app.domain.book.entities import BookFileType
 from app.domain.book.exceptions import UnsupportedBookFormatException
-from app.domain.book.strategies.base import IBookParser
-from app.domain.book.strategies.txt_strategy import TxtParserStrategy
-from app.domain.book.strategies.md_strategy import MdParserStrategy
-from app.domain.book.strategies.epub_strategy import EpubParserStrategy
-from app.domain.book.strategies.pdf_strategy import PdfParserStrategy
+from app.domain.book.parser.base import IBookParser
+from app.domain.book.parser.txt_parser import TxtParser
+from app.domain.book.parser.md_parser import MdParser
+from app.domain.book.parser.epub_parser import EpubParser
+from app.domain.book.parser.pdf_parser import PdfParser
 
 
 class ParserFactory:
@@ -15,12 +15,12 @@ class ParserFactory:
     @staticmethod
     def get_parser(file_type: BookFileType) -> IBookParser:
         if file_type == BookFileType.TXT:
-            return TxtParserStrategy()
+            return TxtParser()
         elif file_type == BookFileType.MD:
-            return MdParserStrategy()
+            return MdParser()
         elif file_type == BookFileType.EPUB:
-            return EpubParserStrategy()
+            return EpubParser()
         elif file_type == BookFileType.PDF:
-            return PdfParserStrategy()
+            return PdfParser()
         else:
             raise UnsupportedBookFormatException(str(file_type))

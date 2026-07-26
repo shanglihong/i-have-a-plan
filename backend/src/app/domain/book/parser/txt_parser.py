@@ -3,10 +3,10 @@
 import re
 from typing import List, Dict, Tuple
 from app.domain.book.entities import TocNode, ContentBlock, BlockType
-from app.domain.book.strategies.base import IBookParser
+from app.domain.book.parser.base import IBookParser
 
 
-class TxtParserStrategy(IBookParser):
+class TxtParser(IBookParser):
     """TXT 纯文本解析策略"""
 
     CHAPTER_PATTERN = re.compile(

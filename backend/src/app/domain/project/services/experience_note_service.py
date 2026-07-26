@@ -1,9 +1,7 @@
 """归档项目经验笔记与复盘里程碑生成领域服务 (Domain Service)"""
 
-from datetime import datetime, timezone
 from typing import Tuple, Optional
 from app.domain.project.ports import ProjectRepositoryPort, TaskRepositoryPort
-from app.domain.project.entities import TaskChain
 
 
 class ExperienceNoteDomainService:

@@ -2,10 +2,10 @@
 
 from typing import List, Dict, Tuple
 from app.domain.book.entities import TocNode, ContentBlock, BlockType
-from app.domain.book.strategies.base import IBookParser
+from app.domain.book.parser.base import IBookParser
 
 
-class PdfParserStrategy(IBookParser):
+class PdfParser(IBookParser):
     """PDF 解析策略"""
 
     def parse(self, file_path: str) -> Tuple[List[TocNode], Dict[str, List[ContentBlock]]]:

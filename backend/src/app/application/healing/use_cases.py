@@ -23,14 +23,13 @@ class StartupHealingUseCase:
         async for session in get_async_session():
             container = AppContainer(session)
 
-            # 1. 项目冷启动自愈
-            project_summaries: List[str] = await container.project_healing_thread.trigger_startup_healing()
-            if project_summaries:
-                logger.info(f"项目冷启动自愈完成，处理项目数: {len(project_summaries)}, 明细: {project_summaries}")
-
-            # 2. 图书解析与文件物理状态批量自愈
+            # 图书解析与文件物理状态批量自愈
             book_results, total_books = await container.book_healing_service.batch_verify_and_heal_books(page=1, size=100)
             if book_results:
                 healed_count = sum(1 for _, status in book_results if status != HealingStatus.INTACT)
                 logger.info(f"图书冷启动物理自愈校验完成，已检查图书: {total_books}, 修复异常数: {healed_count}")
-            break
+
+            # 项目冷启动自愈
+            project_summaries: List[str] = await container.project_healing_service.trigger_startup_healing()
+            if project_summaries:
+                logger.info(f"项目冷启动自愈完成，处理项目数: {len(project_summaries)}, 明细: {project_summaries}")

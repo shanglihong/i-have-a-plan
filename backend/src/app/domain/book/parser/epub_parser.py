@@ -2,10 +2,10 @@
 
 from typing import List, Dict, Tuple, Set
 from app.domain.book.entities import TocNode, ContentBlock, BlockType
-from app.domain.book.strategies.base import IBookParser
+from app.domain.book.parser.base import IBookParser
 
 
-class EpubParserStrategy(IBookParser):
+class EpubParser(IBookParser):
     """EPUB 解析策略"""
 
     def parse(self, file_path: str) -> Tuple[List[TocNode], Dict[str, List[ContentBlock]]]:

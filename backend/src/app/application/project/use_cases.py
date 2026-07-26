@@ -11,11 +11,6 @@ from fastapi import UploadFile, HTTPException, status
 
 from app.domain.base import SortOrder
 from app.domain.project.entities import ProjectStatus, ProjectType, ProjectSortBy
-from app.domain.project.events import (
-    ProjectArchivedEvent,
-    ExperienceNoteCreatedEvent,
-)
-from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 from app.domain.project.services import (
     ProjectCreationDomainService,
     ProjectStateDomainService,
@@ -24,7 +19,10 @@ from app.domain.project.services import (
 )
 from app.utils.path import get_workspace_dir
 
-from app.domain.book.services import BookCreationDomainService
+from app.domain.book.services import (
+    BookCreationDomainService,
+    BookQueryDomainService,
+)
 from app.domain.book.entities import ParsingStatus
 from app.application.project.dtos import (
     CreatePlanProjectDTO,
@@ -39,13 +37,28 @@ from app.application.project.dtos import (
 )
 
 
+async def _save_uploaded_file(
+        project_id: str, file: UploadFile
+) -> tuple[bytes, str, str]:
+    """保存上传物理文件，返回 (file_bytes, filename, storage_path)"""
+    file_bytes = await file.read()
+    filename = file.filename or "err.txt"
+
+    project_dir = get_workspace_dir() / "projects" / project_id
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    target_path = project_dir / filename
+    target_path.write_bytes(file_bytes)
+    return file_bytes, filename, str(target_path)
+
+
 class CreateProjectUseCase:
     """创建双轨项目 UseCase"""
 
     def __init__(
         self,
         creation_service: ProjectCreationDomainService,
-        book_creation_service: Optional[BookCreationDomainService] = None,
+        book_creation_service: BookCreationDomainService,
     ):
         self.creation_service = creation_service
         self.book_creation_service = book_creation_service
@@ -54,7 +67,7 @@ class CreateProjectUseCase:
         project = await self.creation_service.create_plan_project(
             title=dto.title,
             deadline=dto.deadline,
-            skill_id=dto.skill_id,
+            agent_id="" # TODO
         )
         return ProjectResponseDTO.from_domain(project)
 
@@ -70,7 +83,7 @@ class CreateProjectUseCase:
         project_id = f"proj_{uuid.uuid4()}"
 
         if file:
-            file_bytes, filename, storage_path = await self._save_uploaded_file(project_id, file)
+            file_bytes, filename, storage_path = await _save_uploaded_file(project_id, file)
 
         book = await self.book_creation_service.create_book(
             project_id=project_id,
@@ -85,6 +98,7 @@ class CreateProjectUseCase:
             title=title,
             deadline=deadline,
             book_id=book.id,
+            agent_id="", # TODO
         )
 
         return ProjectResponseDTO.from_domain(
@@ -92,20 +106,6 @@ class CreateProjectUseCase:
             parsing_status=ParsingStatus.PENDING,
             storage_path=storage_path,
         )
-
-    async def _save_uploaded_file(
-        self, project_id: str, file: UploadFile
-    ) -> tuple[bytes, str, str]:
-        """保存上传物理文件，返回 (file_bytes, filename, storage_path)"""
-        file_bytes = await file.read()
-        filename = file.filename
-
-        project_dir = get_workspace_dir() / "projects" / project_id
-        project_dir.mkdir(parents=True, exist_ok=True)
-
-        target_path = project_dir / filename
-        target_path.write_bytes(file_bytes)
-        return file_bytes, filename, str(target_path)
 
     @staticmethod
     def _infer_file_type(filename: str) -> str:
@@ -118,8 +118,13 @@ class CreateProjectUseCase:
 class ProjectQueryUseCase:
     """项目查询 UseCase"""
 
-    def __init__(self, query_service: ProjectQueryDomainService):
+    def __init__(
+            self,
+            query_service: ProjectQueryDomainService,
+            book_query_service: BookQueryDomainService,
+    ):
         self.query_service = query_service
+        self.book_query_service = book_query_service
 
     async def list_projects(
         self,
@@ -158,6 +163,7 @@ class ProjectQueryUseCase:
     async def get_project_detail(self, project_id: str) -> ProjectDetailDTO:
         try:
             project = await self.query_service.get_project_detail(project_id)
+            book = await self.book_query_service.get_book_by_id(project.book_id or "")
         except KeyError as e:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -165,18 +171,18 @@ class ProjectQueryUseCase:
             )
 
         book_summary = None
-        if project.book:
+        if book:
             book_summary = BookSummaryDTO(
-                id=project.book.id,
-                file_name=project.book.file_name,
-                parsing_status=project.book.parsing_status,
+                id=book.id,
+                file_name=book.file_name,
+                parsing_status=book.parsing_status,
                 total_chapters=len(project.task_chains),
-                total_word_count=getattr(project.book, "word_count", 0),
+                total_word_count=getattr(book, "word_count", 0),
             )
         elif project.book_id:
             book_summary = BookSummaryDTO(
                 id=project.book_id,
-                file_name=project.book.file_name,
+                file_name="",
                 parsing_status=ParsingStatus.COMPLETED if project.status == ProjectStatus.ACTIVE else ParsingStatus.PENDING,
                 total_chapters=len(project.task_chains),
                 total_word_count=0,

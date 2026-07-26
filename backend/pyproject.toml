@@ -17,6 +17,7 @@ dependencies = [
     "pypdf>=4.0.0",
     "python-multipart>=0.0.9",
     "any>=0.0.2",
+    "sqlalchemy>=2.0.51",
 ]
 
 [project.optional-dependencies]

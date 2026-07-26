@@ -3,10 +3,10 @@
 import re
 from typing import List, Dict, Tuple
 from app.domain.book.entities import TocNode, ContentBlock, BlockType
-from app.domain.book.strategies.base import IBookParser
+from app.domain.book.parser.base import IBookParser
 
 
-class MdParserStrategy(IBookParser):
+class MdParser(IBookParser):
     """Markdown 解析策略"""
 
     HEADING_PATTERN = re.compile(r'^(#{1,6})\s+(.+)$')

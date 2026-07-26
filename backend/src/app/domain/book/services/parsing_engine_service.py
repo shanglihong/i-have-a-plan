@@ -3,7 +3,7 @@
 import logging
 from typing import Dict, Any, List
 from app.domain.book.entities import Book, ContentBlock
-from app.domain.book.strategies import ParserFactory
+from app.domain.book.parser import ParserFactory
 from app.domain.events import EventPublisherPort
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.events import BookParsedEvent
