@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from typing import Optional, List
-from app.domain.common.ports import DomainPort
+from app.domain.base import DomainPort
 from app.domain.note.entities import MaterialNote, SynthesizedNote
 
 

@@ -32,7 +32,6 @@ class TaskChainDO(SQLModel, table=True):
     chain_type: str = Field(default="DEFAULT")
     sequence_order: int = Field(default=1)
     status: str = Field(default="PENDING")
-    book_id: Optional[str] = Field(default=None)
     chapter_id: Optional[str] = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -52,3 +51,12 @@ class TaskDO(SQLModel, table=True):
     depends_on_task_ids: Any = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class NoteAttachmentDO(SQLModel, table=True):
+    """task_note_attachments 关联表实体模型"""
+    __tablename__ = "task_note_attachments"
+
+    id: str = Field(default="", primary_key=True)
+    task_id: str = Field(index=True)
+    material_note_id: str = Field(index=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -1,19 +1,22 @@
-"""Project 领域事件消费者模块"""
+"""Task 领域事件消费者模块"""
 
 import logging
-from app.domain.project.events import ProjectCreatedEvent, ProjectArchivedEvent
-from app.domain.notification.notification_service import global_notification_service
+from app.domain.project.events import ProjectDeleteEvent, TaskDeleteEvent
+from app.infrastructure.db.session import get_async_session
+from app.container import AppContainer\
 
 logger = logging.getLogger(__name__)
 
 
-async def handle_project_created(event: ProjectCreatedEvent) -> None:
-    """处理项目就绪事件，持久化并生成通知卡片"""
-    logger.info(f"[ProjectConsumer] 收到 ProjectCreatedEvent: project_id={event.project_id}")
-    await global_notification_service.handle_project_created(event)
+async def handle_project_delete(event: ProjectDeleteEvent) -> None:
+    logger.info(f"[TaskConsumer] 收到 ProjectDeleteEvent: project_id={event.project_id}")
+    async for session in get_async_session():
+        container = AppContainer(session)
+        await container.task_state_service.delete_chains(event.project_id)
 
 
-async def handle_project_archived(event: ProjectArchivedEvent) -> None:
-    """处理项目结项归档事件，持久化并生成通知卡片"""
-    logger.info(f"[ProjectConsumer] 收到 ProjectArchivedEvent: project_id={event.project_id}")
-    await global_notification_service.handle_project_archived(event)
+async def handle_task_delete(event: TaskDeleteEvent) -> None:
+    logger.info(f"[TaskConsumer] 收到 TaskDeleteEvent: project_id={event.task_chain_ids}")
+    async for session in get_async_session():
+        container = AppContainer(session)
+        await container.task_op_service.detach_notes(event.task_chain_ids)

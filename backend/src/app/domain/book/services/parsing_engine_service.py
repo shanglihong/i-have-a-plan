@@ -1,8 +1,8 @@
 """书籍解析引擎服务"""
 
 import logging
-from typing import Dict, Any, List, Tuple, Optional
-from app.domain.book.entities import Book, ContentBlock, HealingStatus, ParsingStatus
+from typing import Dict, Any, List
+from app.domain.book.entities import Book, ContentBlock, HealingStatus
 from app.domain.book.parser import ParserFactory
 from app.domain.events import EventPublisherPort
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort

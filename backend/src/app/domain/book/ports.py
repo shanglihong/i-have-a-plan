@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any, Tuple
-from app.domain.book.entities import Book, TocNode, ContentBlock, ParsingStatus
+from app.domain.book.entities import Book, ParsingStatus
 
 
 class BookRepositoryPort(ABC):

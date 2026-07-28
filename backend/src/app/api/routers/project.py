@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from fastapi import APIRouter, Depends, UploadFile, Request, status, Query, Body
 
 from app.domain.base import SortOrder
 from app.domain.project.entities import ProjectSortBy
-from app.api.deps import get_project_use_cases
+from app.api.deps import get_project_use_cases, get_task_use_cases
 from app.application.project.dtos import (
     CreatePlanProjectDTO,
     UpdateProjectDTO,
@@ -14,6 +14,7 @@ from app.application.project.dtos import (
     ProjectDetailDTO,
     ExperienceNoteResponseDTO,
 )
+from app.application.project.task_dtos import TaskTreeResponse, TaskVO, TaskQueryFilterDTO
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -170,4 +171,41 @@ async def complete_plan_tree(
 ):
     complete_uc = use_cases["complete_tree_use_case"]
     return await complete_uc.complete_tree(id, chains)
+
+
+@router.get(
+    "/{id}/task-tree",
+    response_model=TaskTreeResponse,
+    summary="获取项目完整任务树结构",
+    description="获取特定项目下的所有任务链 TaskChain 及微观任务 Task 树状结构"
+)
+async def get_task_tree(
+    id: str,
+    use_cases: dict = Depends(get_task_use_cases)
+):
+    get_tree_uc = use_cases["get_tree_use_case"]
+    return await get_tree_uc.execute(id)
+
+
+@router.get(
+    "/{id}/tasks",
+    response_model=List[TaskVO],
+    summary="项目 Task 列表多条件过滤查询",
+    description="根据状态、归属 TaskChain 或关键字等多维条件过滤查询项目下的 Task 列表"
+)
+async def list_tasks(
+    id: str,
+    status: Optional[str] = Query(None, description="状态过滤 PENDING/RUNNING/COMPLETED/BLOCKED"),
+    task_chain_id: Optional[str] = Query(None, description="过滤特定 TaskChain 下的任务"),
+    search_keyword: Optional[str] = Query(None, description="按标题或描述模糊检索"),
+    use_cases: dict = Depends(get_task_use_cases)
+):
+    query_uc = use_cases["query_use_case"]
+    filter_dto = TaskQueryFilterDTO(
+        status=status,
+        task_chain_id=task_chain_id,
+        search_keyword=search_keyword
+    )
+    return await query_uc.list_tasks(id, filter_dto)
+
 

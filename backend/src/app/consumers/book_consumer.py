@@ -41,7 +41,7 @@ async def handle_book_parsed(event: BookParsedEvent) -> None:
             except Exception as e:
                 logger.error(f"获取 Book 大纲树失败 (book_id={event.book_id}): {e}", exc_info=True)
 
-            await container.task_op_service.mount_task_tree_and_activate(project_id=event.project_id, book_id=event.book_id, toc_tree=toc_tree)
+            await container.task_op_service.mount_task_tree_and_activate(project_id=event.project_id, toc_tree=toc_tree)
             logger.info(f"[BookConsumer] 项目任务(Task)树挂载并激活成功: project_id={event.project_id}")
             break
     except Exception as e:

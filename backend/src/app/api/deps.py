@@ -34,3 +34,10 @@ async def get_project_use_cases(session: AsyncSession = Depends(get_async_sessio
     """由 AppContainer 统一构建与提供 Project 领域用例组依赖"""
     container = AppContainer(session)
     return container.get_project_use_cases()
+
+
+async def get_task_use_cases(session: AsyncSession = Depends(get_async_session)) -> dict:
+    """由 AppContainer 统一构建与提供 Task 领域用例组依赖"""
+    container = AppContainer(session)
+    return container.get_task_use_cases()
+

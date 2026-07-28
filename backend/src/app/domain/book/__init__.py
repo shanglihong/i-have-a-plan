@@ -26,7 +26,6 @@ __all__ = [
     "BookRepositoryPort",
     "BookFileStoragePort",
     "BookParsingEngineService",
-    "BookHealingDomainService",
     "BookDomainException",
     "BookNotFoundException",
     "UnsupportedBookFormatException",

@@ -1,6 +1,7 @@
 """项目与任务领域事件模块"""
 
-from dataclasses import dataclass
+from typing import List
+from dataclasses import dataclass, field
 from app.domain.events import DomainEvent
 
 
@@ -34,10 +35,20 @@ class ProjectArchivedEvent(DomainEvent):
 
 
 @dataclass
+class ProjectDeleteEvent(DomainEvent):
+    project_id: str = ""
+
+@dataclass
+class TaskDeleteEvent(DomainEvent):
+    task_chain_ids: List[str] = field(default_factory=list)
+    task_ids: List[str] = field(default_factory=list)
+
+
+@dataclass
 class ExperienceNoteCreatedEvent(DomainEvent):
     """归档项目生成经验笔记领域事件"""
     project_id: str = ""
-    experience_note_id: str = ""
+    task_chain_id: str = ""
 
 
 @dataclass
@@ -46,4 +57,23 @@ class TaskStatusChangedEvent(DomainEvent):
     task_id: str = ""
     old_status: str = ""
     new_status: str = ""
+
+@dataclass
+class TaskTreeCreatedEvent(DomainEvent):
+    """任务树构建就绪领域事件"""
+    project_id: str = ""
+
+
+@dataclass
+class TaskUnlockedEvent(DomainEvent):
+    """任务解锁就绪领域事件"""
+    unlocked_task_ids: List[str] = field(default_factory=list)
+
+
+@dataclass
+class TaskStatusChangedEvent(DomainEvent):
+    """状态变迁事件"""
+    task_id: str = ""
+    status: str = ""
+
 

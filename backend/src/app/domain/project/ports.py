@@ -56,13 +56,29 @@ class TaskRepositoryPort(DomainPort):
         pass
 
     @abstractmethod
-    async def get_task_chains_by_project_id(self, project_id: str) -> List[TaskChain]:
-        """根据 project_id 获取对应的任务链与任务树"""
+    async def update_task_status(self, task_id: str, status: TaskStatus) -> Optional[Task]:
+        """更新单个 Task 的微观执行状态"""
         pass
 
     @abstractmethod
-    async def update_task_status(self, task_id: str, status: TaskStatus) -> Optional[Task]:
-        """更新单个 Task 的微观执行状态"""
+    async def delete_by_project_id(self, project_id: str) -> bool:
+        """删除项目关联的所有任务链与任务"""
+        pass
+
+    @abstractmethod
+    async def save_task(self, task: Task) -> Task:
+        """保存/更新单个 Task"""
+        pass
+
+    @abstractmethod
+    async def save_task_chain(self, task_chain: TaskChain) -> TaskChain:
+        """保存/更新单个 TaskChain"""
+        pass
+
+
+    @abstractmethod
+    async def get_task_chains_by_project_id(self, project_id: str) -> List[TaskChain]:
+        """根据 project_id 获取对应的任务链与任务树"""
         pass
 
     @abstractmethod
@@ -71,7 +87,43 @@ class TaskRepositoryPort(DomainPort):
         pass
 
     @abstractmethod
-    async def delete_by_project_id(self, project_id: str) -> bool:
-        """删除项目关联的所有任务链与任务"""
+    async def find_task_chain_by_id(self, chain_id: str) -> Optional[TaskChain]:
+        """按 ID 查找 TaskChain"""
         pass
+
+    @abstractmethod
+    async def find_task_by_id(self, task_id: str) -> Optional[Task]:
+        """按 ID 查找 Task (防腐接口别名)"""
+        pass
+
+    @abstractmethod
+    async def find_tasks_by_chain_id(self, chain_id: str) -> List[Task]:
+        """根据链 ID 查找所有的微观 Task"""
+        pass
+
+
+class NoteAttachmentRepositoryPort(DomainPort):
+    """Task 与 Note 模块绑定防腐契约接口"""
+
+    @abstractmethod
+    async def create_attachment_relation(self, task_id: str, material_note_id: str) -> str:
+        """建立任务与素材笔记的关联关系，返回关联关系 ID"""
+        pass
+
+    @abstractmethod
+    async def remove_attachment_relation(self, task_id: str, material_note_id: str) -> bool:
+        """移除任务与素材笔记的关联关系"""
+        pass
+
+    @abstractmethod
+    async def get_attached_note_ids_by_task(self, task_id: str) -> List[str]:
+        """获取挂载到指定任务上的所有素材笔记 ID 列表"""
+        pass
+
+    async def remove_attachment_relation_by_tasks(self, task_id):
+        pass
+
+
+
+
 

@@ -12,7 +12,6 @@ from fastapi import UploadFile, HTTPException, status
 from app.domain.base import SortOrder
 from app.domain.project.entities import ProjectStatus, ProjectType, ProjectSortBy
 from app.domain.project.services import (
-    ProjectCreationDomainService,
     ProjectStateDomainService,
     ProjectQueryDomainService,
     ExperienceNoteDomainService,
@@ -57,7 +56,7 @@ class CreateProjectUseCase:
 
     def __init__(
         self,
-        creation_service: ProjectCreationDomainService,
+        creation_service: ProjectStateDomainService,
         book_creation_service: BookCreationDomainService,
     ):
         self.creation_service = creation_service

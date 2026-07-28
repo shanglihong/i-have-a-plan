@@ -1,19 +1,23 @@
 """归档项目经验笔记与复盘里程碑生成领域服务 (Domain Service)"""
 
 from typing import Tuple, Optional
+
+from app.domain.events import EventPublisherPort
+from app.domain.project import ExperienceNoteCreatedEvent
 from app.domain.project.ports import ProjectRepositoryPort, TaskRepositoryPort
 
 
 class ExperienceNoteDomainService:
     """归档卡片生成经验笔记/挂载复盘里程碑领域服务"""
-
     def __init__(
         self,
         repository: ProjectRepositoryPort,
-        task_repository: Optional[TaskRepositoryPort] = None,
+        task_repository: TaskRepositoryPort,
+        event_publisher: EventPublisherPort,
     ):
         self.repository = repository
         self.task_repository = task_repository
+        self.event_publisher = event_publisher
 
     async def create_experience_note(
         self,
@@ -36,6 +40,7 @@ class ExperienceNoteDomainService:
             await self.task_repository.save_task_chains(project_id, project.task_chains)
 
         await self.repository.save(project)
-
+        await self.event_publisher.publish(ExperienceNoteCreatedEvent(project_id=project_id, task_chain_id=retro_chain.id))
+        
         return project.id, retro_chain.id
 

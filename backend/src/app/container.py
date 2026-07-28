@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # 基础设施层
 from app.infrastructure.db.repositories.project_repository import ProjectRepository
-from app.infrastructure.db.repositories.task_repository import TaskRepository
+from app.infrastructure.db.repositories.task_repository import TaskRepository, NoteAttachmentRepositoryAdapter
 from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
+from app.infrastructure.db.repositories.note_repository import NoteRepositoryAdapter
 from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 
@@ -22,12 +23,13 @@ from app.domain.book.services import (
     BookCreationDomainService,
 )
 from app.domain.project.services import (
-    ProjectCreationDomainService,
     ProjectStateDomainService,
     ProjectQueryDomainService,
     ExperienceNoteDomainService,
     TaskOperationDomainService,
 )
+from app.domain.project.services.task_state_service import TaskStateDomainService
+from app.domain.project.services.task_query_service import TaskQueryDomainService
 
 # 应用层用例
 from app.application.book import (
@@ -43,6 +45,14 @@ from app.application.project.use_cases import (
     CreateExperienceNoteUseCase,
     CompletePlanTaskTreeUseCase,
 )
+from app.application.project.task_use_cases import (
+    GetTaskTreeUseCase,
+    TaskQueryUseCase,
+    ManageTaskTreeUseCase,
+    ChangeTaskStatusUseCase,
+    TaskStatusProgressUseCase,
+    TaskNoteAttachmentUseCase,
+)
 
 
 class AppContainer:
@@ -55,6 +65,8 @@ class AppContainer:
         self.project_repo = ProjectRepository(session)
         self.task_repo = TaskRepository(session)
         self.book_repo = BookRepositoryAdapter(session)
+        self.note_repo = NoteRepositoryAdapter(session)
+        self.note_attachment_repo = NoteAttachmentRepositoryAdapter(session)
         self.file_storage = LocalBookFileStorageAdapter()
         self.event_bus = global_event_bus
 
@@ -75,15 +87,12 @@ class AppContainer:
         )
 
         # 3. 项目领域服务 (Project Domain Services)
-        self.project_creation_service = ProjectCreationDomainService(
-            project_repo=self.project_repo,
-            task_repo=self.task_repo,
-        )
         self.project_state_service = ProjectStateDomainService(
             project_repo=self.project_repo,
             task_repo=self.task_repo,
             event_publisher=self.event_bus,
         )
+        self.project_creation_service = self.project_state_service
         self.project_query_service = ProjectQueryDomainService(
             project_repo=self.project_repo,
             task_repo=self.task_repo,
@@ -91,11 +100,22 @@ class AppContainer:
         self.project_note_service = ExperienceNoteDomainService(
             repository=self.project_repo,
             task_repository=self.task_repo,
+            event_publisher=self.event_bus,
         )
         self.task_op_service = TaskOperationDomainService(
             project_repo=self.project_repo,
             task_repo=self.task_repo,
+            note_attachment_repo=self.note_attachment_repo,
             event_publisher=self.event_bus,
+        )
+        self.task_state_service = TaskStateDomainService(
+            project_repo=self.project_repo,
+            task_repo=self.task_repo,
+            event_publisher=self.event_bus,
+        )
+        self.task_query_service = TaskQueryDomainService(
+            task_repo=self.task_repo,
+            note_attachment_repo=self.note_attachment_repo,
         )
 
     def get_book_use_cases(self) -> Dict[str, Any]:
@@ -105,7 +125,6 @@ class AppContainer:
             "get_metadata_use_case": GetBookMetadataUseCase(self.book_repo),
             "get_toc_use_case": GetBookTocUseCase(self.book_service),
             "get_content_use_case": GetChapterContentUseCase(self.book_content_service),
-            "healing_use_case": BookHealingUseCase(self.book_healing_service),
         }
 
     def get_project_use_cases(self) -> Dict[str, Any]:
@@ -121,5 +140,19 @@ class AppContainer:
             "complete_tree_use_case": CompletePlanTaskTreeUseCase(
                 self.project_state_service,
                 self.project_query_service,
+            ),
+        }
+
+    def get_task_use_cases(self) -> Dict[str, Any]:
+        """打包并提供 REST API 层使用的 Task 领域用例字典"""
+        return {
+            "get_tree_use_case": GetTaskTreeUseCase(self.project_query_service),
+            "query_use_case": TaskQueryUseCase(self.project_query_service),
+            "manage_tree_use_case": ManageTaskTreeUseCase(self.task_op_service, self.task_state_service),
+            "change_status_use_case": ChangeTaskStatusUseCase(self.task_state_service),
+            "progress_use_case": TaskStatusProgressUseCase(self.task_state_service),
+            "note_attachment_use_case": TaskNoteAttachmentUseCase(
+                self.task_query_service,
+                self.task_op_service,
             ),
         }
