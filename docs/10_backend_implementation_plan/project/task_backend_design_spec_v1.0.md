@@ -443,43 +443,52 @@ sequenceDiagram
 
 为保持 Task 模块在 `domain/project` 内部的独立性与解耦能力，定义如下抽象接口：
 
-```python
-# domain/project/task_ports.py
-from abc import ABC, abstractmethod
-from typing import Optional, List, Dict
-from domain.project.entities import TaskChain, Task
+# domain/project/ports.py
+from abc import abstractmethod
+from typing import Optional, List, Tuple
+from app.domain.base import DomainPort
+from app.domain.project.entities import TaskChain, Task, TaskStatus
 
-class TaskRepositoryPort(ABC):
-    """Task 模块基础仓储接口 (SQLite 持久化)"""
+class TaskRepositoryPort(DomainPort):
+    """Task 模块独立任务仓储防腐接口"""
     @abstractmethod
-    def save_task(self, task: Task) -> Task: ...
+    async def save_task_chains(self, project_id: str, task_chains: List[TaskChain]) -> None: ...
     @abstractmethod
-    def save_task_chain(self, task_chain: TaskChain) -> TaskChain: ...
+    async def update_task_status(self, task_id: str, status: TaskStatus) -> Optional[Task]: ...
     @abstractmethod
-    def find_task_by_id(self, task_id: str) -> Optional[Task]: ...
+    async def delete_by_project_id(self, project_id: str) -> bool: ...
     @abstractmethod
-    def find_tasks_by_chain_id(self, chain_id: str) -> List[Task]: ...
+    async def save_task(self, task: Task) -> Task: ...
     @abstractmethod
-    def find_downstream_dependent_tasks(self, task_id: str) -> List[Task]: ...
+    async def save_task_chain(self, task_chain: TaskChain) -> TaskChain: ...
     @abstractmethod
-    def save_task_tree(self, chains: List[TaskChain], tasks: List[Task]) -> None: ...
+    async def get_task_chains_by_project_id(self, project_id: str) -> List[TaskChain]: ...
+    @abstractmethod
+    async def get_task_by_id(self, task_id: str) -> Optional[Task]: ...
+    @abstractmethod
+    async def find_task_chain_by_id(self, chain_id: str) -> Optional[TaskChain]: ...
+    @abstractmethod
+    async def find_task_by_id(self, task_id: str) -> Optional[Task]: ...
+    @abstractmethod
+    async def find_tasks_by_chain_id(self, chain_id: str) -> List[Task]: ...
 
-class NoteAttachmentRepositoryPort(ABC):
+class NoteAttachmentRepositoryPort(DomainPort):
     """Task 与 Note 模块绑定防腐契约接口"""
     @abstractmethod
-    def create_attachment_relation(self, task_id: str, material_note_id: str) -> str: ...
+    async def create_attachment_relation(self, task_id: str, material_note_id: str) -> str: ...
     @abstractmethod
-    def remove_attachment_relation(self, task_id: str, material_note_id: str) -> bool: ...
+    async def remove_attachment_relation(self, task_id: str, material_note_id: str) -> bool: ...
     @abstractmethod
-    def get_attached_note_ids_by_task(self, task_id: str) -> List[str]: ...
+    async def get_attached_note_ids_by_task(self, task_id: str) -> List[str]: ...
+    @abstractmethod
+    async def remove_attachment_relation_by_tasks(self, task_id) -> None: ...
 
-class TaskEventPublisherPort(ABC):
-    """Task 领域事件发布防腐接口"""
+# app/domain/events.py
+class EventPublisherPort(DomainPort):
+    """通用领域事件发布防腐接口"""
     @abstractmethod
-    def publish_task_status_changed(self, task_id: str, status: str, unlocked_task_ids: List[str]) -> None: ...
-    @abstractmethod
-    def publish_task_completed(self, task_id: str, project_id: str) -> None: ...
-```
+    async def publish(self, event: Any) -> None: ...
+
 
 ---
 
@@ -618,19 +627,24 @@ class TaskChainVO(BaseModel):
 | `CyclicDependencyException` | 创建或修改 `depends_on_task_ids` 导致拓扑环路 | `400 Bad Request` | `TASK_CYCLIC_DEPENDENCY` |
 | `TaskBlockedException` | 尝试将处于 `BLOCKED` (前置未就绪) 的 Task 直接改为 `RUNNING`/`COMPLETED` | `409 Conflict` | `TASK_DEPENDENCY_BLOCKED` |
 | `TaskNotFoundException` | 操作或查询不存在的 `task_id` 或 `task_chain_id` | `404 Not Found` | `TASK_NOT_FOUND` |
-| `InvalidTaskStateTransitionException` | 试图对已归档项目的 Task 进行状态更新 | `422 Unprocessable Entity` | `PROJECT_ARCHIVED_READONLY` |
+| `InvalidTaskStateTransitionException` | 任务状态转移非法（如对已归档项目的 Task 进行状态更新） | `409 Conflict` | `TASK_STATE_TRANSITION_BLOCKED` |
 | `DuplicateNoteAttachmentException` | 重复绑定相同的素材笔记至同一 Task | `400 Bad Request` | `DUPLICATE_NOTE_ATTACHMENT` |
 
 ---
 
 ### 2. Task 状态机转换防阻断矩阵
 
-| 源状态 \ 目标状态 | `PENDING` | `RUNNING` | `COMPLETED` | `BLOCKED` |
-| :--- | :--- | :--- | :--- | :--- |
-| **`PENDING`** | 阻断 (409) | **允许 (200 - 开始执行)** | **允许 (200 - 直接完成)** | **允许 (自动 - 增加前置依赖)** |
-| **`RUNNING`** | **允许 (200 - 挂起重置)** | 阻断 (409) | **允许 (200 - 执行完成)** | 阻断 (409 - 需先重置) |
-| **`COMPLETED`** | **允许 (200 - 撤回重置)** | 阻断 (409) | 阻断 (409) | 阻断 (409) |
-| **`BLOCKED`** | **允许 (自动 - 前置依赖全解)** | 阻断 (409 - 前置未就绪) | 阻断 (409 - 前置未就绪) | 阻断 (409) |
+| 源状态 \ 目标状态 | `PENDING` | `RUNNING` | `IN_PROGRESS` | `COMPLETED` | `BLOCKED` |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`PENDING`** | 阻断 (409) | **允许 (200 - 开始执行)** | 阻断 (409) | **允许 (200 - 直接完成)** | **允许 (自动 - 增加前置依赖)** |
+| **`RUNNING`** | **允许 (200 - 挂起重置)** | 阻断 (409) | 阻断 (409) | **允许 (200 - 执行完成)** | 阻断 (409 - 需先重置) |
+| **`IN_PROGRESS`** | 阻断 (409) | 阻断 (409) | 阻断 (409) | 阻断 (409) | 阻断 (409) |
+| **`COMPLETED`** | **允许 (200 - 撤回重置)** | 阻断 (409) | 阻断 (409) | 阻断 (409) | 阻断 (409) |
+| **`BLOCKED`** | **允许 (自动 - 前置依赖全解)** | 阻断 (409 - 前置未就绪) | 阻断 (409 - 前置未就绪) | 阻断 (409 - 前置未就绪) | 阻断 (409) |
+
+> [!NOTE]
+> `IN_PROGRESS` 状态目前在 `transit_status` 状态转移逻辑中尚未支持（试图转移时会抛出异常），但在进度推导逻辑中与 `RUNNING` 拥有同等“已开始”语义。
+
 
 ---
 

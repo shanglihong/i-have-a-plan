@@ -101,7 +101,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `status` | string | 可选 | - | 状态过滤 (`INIT` / `ACTIVE` / `ARCHIVED`) |
 | `type` | string | 可选 | - | 项目类型过滤 (`READING` / `PLAN`) |
-| `sort_by` | string | 可选 | `updated_at` | 排序属性字段 (`updated_at` / `created_at` / `deadline`) |
+| `sort_by` | string | 可选 | `updated_at` | 排序属性字段 (`updated_at` / `created_at` / `name`) |
 | `order` | string | 可选 | `desc` | 排序方向 (`desc` 倒序 / `asc` 正序) |
 | `page` | integer | 可选 | 1 | 页码 (从 1 开始) |
 | `size` | integer | 可选 | 20 | 每页数量 (默认 20) |
@@ -292,3 +292,45 @@
   "created_at": "2026-07-23T12:00:00Z"
 }
 ```
+
+---
+
+### 7. 重新激活项目
+
+* **接口路径**：`POST /api/projects/{id}/reactivate`
+* **通信协议**：REST
+* **功能描述**：将已归档 (`ARCHIVED`) 的项目重新激活为活跃 (`ACTIVE`) 状态，恢复对项目的读写编辑权限。
+
+#### 路径参数
+
+| 参数名 | 类型          | 含义与说明 |
+| :----- | :------------ | :--------- |
+| `id`   | string (UUID) | 项目 ID    |
+
+#### 响应 (200 OK)
+
+```json
+{
+  "id": "proj_001",
+  "status": "ACTIVE",
+  "updated_at": "2026-07-23T12:30:00Z"
+}
+```
+
+---
+
+### 8. 删除项目
+
+* **接口路径**：`DELETE /api/projects/{id}`
+* **通信协议**：REST
+* **功能描述**：物理删除项目及其元数据。项目关联的所有 Task 和 TaskChain 也会级联删除。
+
+#### 路径参数
+
+| 参数名 | 类型          | 含义与说明 |
+| :----- | :------------ | :--------- |
+| `id`   | string (UUID) | 项目 ID    |
+
+#### 响应 (204 No Content)
+* 响应头返回 `204 No Content`，无 Response Body。
+

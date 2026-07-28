@@ -25,7 +25,7 @@
 | 领域服务名称                                        | 调用的目标领域 / 模块                            | 服务能力描述                                                                                                              | 领域契约与约束                                         |
 | :-------------------------------------------------- | :----------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------- |
 | **项目双轨创建服务** <br>`CreateProjectService`     | 接入层 REST API / <br>Book 领域 (物料挂载)       | 提供 `PLAN` 与 `READING` 项目的初始化创建。对于 `READING` 项目，通过消息总线通知 Book 领域解析并挂载 `TaskChain` 树。     | 成功后向全局广播 `ProjectCreatedEvent`                 |
-| **状态生命周期管理服务** <br>`ProjectStateService`  | 接入层 REST API / <br>离线包退出守护进程         | 提供项目的启动 (`ACTIVE`)、休眠 (`SUSPENDED`)、唤醒 (`RESUME`) 与归档 (`ARCHIVED`) 转换。控制内部状态机合法性与退出挂起。 | 离线包退出时自动刷盘；唤醒联动 Agent 句柄重建          |
+| **状态生命周期管理服务** <br>`ProjectStateService`  | 接入层 REST API / <br>冷启动与状态控制         | 提供项目的启动 (`ACTIVE`) 与归档 (`ARCHIVED`) 转换，支持重新激活。控制内部状态机合法性与项目删除。 | 状态变迁联动领域事件广播          |
 | **任务树挂载与调度服务** <br>`TaskChainTreeService` | Skill 领域 (技能注入) / <br>Book 领域 (章节生成) | 允许外部领域向特定 `Project` 注入 `TaskChain` 节点或 `Task` 微观步骤，并提供 DAG 依赖校验与进度计算。                     | 维护 `Project -> TaskChain -> Task` 归属索引与拓扑状态 |
 | **项目上下文元数据查询** <br>`ProjectQueryService`  | Note 领域 (笔记归属) / <br>Graph 领域 (溯源定位) | 提供根据 `project_id` 获取项目基本属性、当前状态、绑定 Agent ID 及聚合进度的查询接口。                                    | 高频查询，提供领域缓存与只读视图 DTO                   |
 | **项目领域事件订阅源** <br>`ProjectEventPublisher`  | Graph RAG 旁路领域 / <br>消息通知领域            | 发布 `ProjectStatusChangedEvent` 与 `ProjectArchivedEvent`。归档扭转后触发页面归档卡片推送，点击卡片后广播 `ExperienceNoteCreatedEvent` 驱动 Graph RAG 旁路建图。 | 100% 异步广播，不阻塞 Project 领域写入                 |
@@ -380,29 +380,36 @@ sequenceDiagram
 
 为保障 Project 领域的解耦与强内聚，定义以下 Project 视角下的防腐接口契约：
 
-```python
 # domain/project/ports.py
-from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Any
-from domain.project.entities import Project
+from abc import abstractmethod
+from typing import Optional, List, Tuple
+from app.domain.base import DomainPort, SortOrder
+from app.domain.project.entities import Project, ProjectSortBy, ProjectStatus, ProjectType
 
-class ProjectRepositoryPort(ABC):
-    """Project 领域内部仓储持久化接口 (SQLite 本地持久化)"""
+class ProjectRepositoryPort(DomainPort):
+    """Project 项目元数据仓储防腐接口"""
     @abstractmethod
-    def save(self, project: Project) -> Project: ...
+    async def get_by_id(self, project_id: str) -> Optional[Project]: ...
     @abstractmethod
-    def find_by_id(self, project_id: str) -> Optional[Project]: ...
+    async def save(self, project: Project) -> None: ...
     @abstractmethod
-    def list_by_status(self, status: str, page: int, size: int) -> tuple[List[Project], int]: ...
+    async def list_projects(
+        self,
+        status: Optional[ProjectStatus] = None,
+        project_type: Optional[ProjectType] = None,
+        sort_by: ProjectSortBy = ProjectSortBy.UPDATED_AT,
+        order: SortOrder = SortOrder.DESC,
+        page: int = 1,
+        size: int = 20,
+    ) -> Tuple[List[Project], int]: ...
+    @abstractmethod
+    async def delete(self, project_id: str) -> bool: ...
 
-class ProjectEventBusPort(ABC):
-    """Project 领域事件发布与订阅防腐接口"""
+# app/domain/events.py
+class EventPublisherPort(DomainPort):
+    """通用领域事件发布防腐接口"""
     @abstractmethod
-    def publish_book_parse_requested(self, project_id: str, file_bytes: bytes) -> None: ...
-    @abstractmethod
-    def publish_project_created_notice(self, project_id: str, status: str) -> None: ...
-    @abstractmethod
-    def publish_archived_event(self, project_id: str) -> None: ...
+    async def publish(self, event: Any) -> None: ...
 ```
 
 ---
@@ -471,10 +478,10 @@ class ProjectResponseDTO(BaseModel):
 
 | 领域异常类 (Domain Exception)     | 异常触发场景                            | 映射 HTTP 状态码  | Error Code Payload         |
 | :-------------------------------- | :-------------------------------------- | :---------------- | :------------------------- |
-| `ProjectNotFoundException`        | 查询或变更不存在的 `project_id`         | `404 Not Found`   | `PROJECT_NOT_FOUND`        |
-| `InvalidStateTransitionException` | 对已 `ARCHIVED` 的项目尝试重复归档      | `409 Conflict`    | `INVALID_STATE_TRANSITION` |
-| `ExternalServiceFailureException` | 调用 Book 领域解析或 Agent 领域加载失败 | `502 Bad Gateway` | `EXTERNAL_DOMAIN_ERROR`    |
-| `DuplicateProjectTitleException`  | 创建同名活跃项目 (同名约束)             | `400 Bad Request` | `DUPLICATE_PROJECT_TITLE`  |
+| `KeyError` (项目未找到)          | 查询或变更不存在的 `project_id`         | `404 Not Found`   | `PROJECT_NOT_FOUND`        |
+| `ValueError` (非法状态扭转)       | 对项目执行了非法的状态转移操作           | `409 Conflict`    | `INVALID_PROJECT_STATE_TRANSITION` |
+| `InvalidTaskStateTransitionException` | 任务状态转移非法（如对归档项目修改任务） | `409 Conflict`    | `TASK_STATE_TRANSITION_BLOCKED` |
+| `CyclicDependencyException`       | 任务依赖图中检测出环路                   | `400 Bad Request` | `TASK_CYCLIC_DEPENDENCY`   |
 
 ---
 
@@ -522,8 +529,8 @@ project_active_count{type="PLAN"} 5
 
 # HELP project_state_transitions_total Total state transition counts
 # TYPE project_state_transitions_total counter
-project_state_transitions_total{from="ACTIVE", to="SUSPENDED", action="app_exit"} 38
-project_state_transitions_total{from="SUSPENDED", to="ACTIVE", action="user_resume"} 35
+project_state_transitions_total{from="ACTIVE", to="ARCHIVED", action="user_archive"} 38
+project_state_transitions_total{from="ARCHIVED", to="ACTIVE", action="user_reactivate"} 35
 ```
 
 ---
@@ -551,5 +558,5 @@ project_state_transitions_total{from="SUSPENDED", to="ACTIVE", action="user_resu
 
 ### 3. 领域健康度与告警
 
-1. **冷启动崩溃自愈监控**：启动检测到由于非正常退出引起的 `mark_as_suspended_for_crash_recovery()` 触发次数 > 0 时，输出 Warning 日志。
+1. **冷启动崩溃自愈监控**：启动时 `StartupHealingThread` 扫描到 `INIT` 状态半成品项目并触发自动修复的次数 > 0 时，输出 Warning 日志。
 2. **状态孤岛告警**：处于 `INIT` 状态超过 10 分钟未转为 `ACTIVE` 的项目数 > 0 触发警告日志。

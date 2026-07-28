@@ -1,5 +1,3 @@
-- task，taskchain，project的删除
-
 
 TODO
 ** 沉淀改为知识库，统一使用task的形式继续笔记沉淀

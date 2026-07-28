@@ -88,7 +88,7 @@
 #### Query 参数
 | 参数名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `status` | `string` | 否 | 状态过滤 (`PENDING` / `RUNNING` / `COMPLETED` / `BLOCKED`) |
+| `status` | `string` | 否 | 状态过滤 (`PENDING` / `RUNNING` / `IN_PROGRESS` / `COMPLETED` / `BLOCKED`) |
 | `task_chain_id` | `string` | 否 | 过滤特定 TaskChain 下的任务 |
 | `search_keyword` | `string` | 否 | 按标题或描述模糊检索 |
 
