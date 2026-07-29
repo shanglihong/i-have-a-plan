@@ -6,9 +6,10 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-import uuid
 from typing import Dict, List, Optional, Tuple
 from app.domain.base import BaseEntity
+from app.utils.snow import id_worker
+
 
 class ProjectType(str, Enum):
     """项目类型定义"""
@@ -56,7 +57,7 @@ from app.domain.project.exceptions import (
 @dataclass
 class Task(BaseEntity):
     """Task 微观执行单元"""
-    id: str = field(default_factory=lambda: f"task_{uuid.uuid4().hex[:8]}")
+    id: str = field(default_factory=lambda: f"task_{id_worker.next_id_str()}")
     title: str = ""
     description: str = ""
     status: TaskStatus = TaskStatus.PENDING
@@ -113,7 +114,7 @@ class Task(BaseEntity):
 @dataclass
 class TaskChain(BaseEntity):
     """TaskChain 中观容器"""
-    id: str = field(default_factory=lambda: f"chain_{uuid.uuid4().hex[:8]}")
+    id: str = field(default_factory=lambda: f"chain_{id_worker.next_id_str()}")
     title: str = ""
     chain_type: TaskChainType = TaskChainType.DEFAULT
     sequence_order: int = 1

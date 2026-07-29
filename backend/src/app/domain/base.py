@@ -7,7 +7,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from abc import ABC
-import uuid
+
+from app.utils.snow import id_worker
+
 
 class DomainPort(ABC):
     """所有领域端口防腐接口基类"""
@@ -23,6 +25,6 @@ class SortOrder(str, Enum):
 @dataclass
 class BaseEntity:
     """所有领域实体的抽象基类"""
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    id: str = field(default_factory=lambda: id_worker.next_id_str())
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)

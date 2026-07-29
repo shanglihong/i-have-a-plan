@@ -1,5 +1,6 @@
 """笔记与知识库仓储、文件及跨领域防腐接口模块"""
 
+from pathlib import Path
 from abc import abstractmethod
 from typing import Optional, List
 from app.domain.base import DomainPort
@@ -80,7 +81,7 @@ class SynthesizedNoteRepositoryPort(DomainPort):
         ...
 
 
-class INoteFileStoragePort(DomainPort):
+class NoteFileStoragePort(DomainPort):
     """笔记 Markdown 物理文件存储接口"""
 
     @abstractmethod
@@ -99,12 +100,12 @@ class INoteFileStoragePort(DomainPort):
         ...
 
     @abstractmethod
-    async def scan_all_physical_files(self) -> List[str]:
+    async def scan_all_physical_files(self, notes_dir: Path) -> List[str]:
         """扫描 data/notes 下的所有物理相对路径 (自愈比对用)"""
         ...
 
     @abstractmethod
-    async def clean_temporary_files(self) -> List[str]:
+    async def clean_temporary_files(self, notes_dir: Path) -> List[str]:
         """清理 data/notes 下的所有残留 .md.tmp 脏文件，返回被清理的文件路径列表"""
         ...
 

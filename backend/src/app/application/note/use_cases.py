@@ -1,13 +1,14 @@
 """笔记领域应用层 UseCases (业务流程编排层)"""
 
 from app.domain.project.services import TaskQueryDomainService
-import uuid
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
+
+from app.utils.cursor import encode_cursor
+from app.utils.path import get_note_dir
 
 from app.domain.exceptions import DomainException
-from app.domain.events import EventPublisherPort
 from app.domain.note.entities import (
     MaterialNote,
     SynthesizedNote,
@@ -17,13 +18,10 @@ from app.domain.note.entities import (
     SynthesizedNoteType,
     BlockType,
 )
-from app.domain.note.ports import (
-    INoteFileStoragePort,
-)
+
 from app.domain.note.service import NoteQueryDomainService, NoteStateDomainService, NoteOperationDomainService
 from app.domain.book.services.query_service import BookChapterContentDomainService
 from app.domain.project.services.project_query_service import ProjectQueryDomainService
-from app.domain.note.factory import NoteMarkdownFactory
 from app.application.note.dtos import (
     CreateMaterialNoteDTO,
     SourceAnchorDTO,
@@ -36,7 +34,7 @@ from app.application.note.dtos import (
     DocumentBlockDTO,
     DeleteResponseVO,
 )
-from app.infrastructure.db.repositories.note_repository import encode_cursor
+from app.utils.snow import id_worker
 
 logger = logging.getLogger(__name__)
 
@@ -95,8 +93,6 @@ class CreateMaterialNoteUseCase:
             anchor_summary = f"{sa_dto.chapter_id}"
 
         # 3. 创建素材笔记聚合根
-        note_id = f"mat_{uuid.uuid4().hex[:12]}"
-
         note = MaterialNote(
             project_id=dto.project_id,
             task_id=dto.task_id or "",
@@ -107,7 +103,6 @@ class CreateMaterialNoteUseCase:
             source_anchor=source_anchor,
             tags=dto.tags
         )
-        note.id = note_id
         
         # 4. 持久化落库
         await self.note_state_service.create_material_note(note)
@@ -212,7 +207,7 @@ class CreateSynthesizedNoteUseCase:
         for b_dto in dto.blocks:
             # DTO 转领域对象
             db = DocumentBlock(
-                block_id=b_dto.block_id or f"blk_{uuid.uuid4().hex[:12]}",
+                block_id=b_dto.block_id or f"blk_{id_worker.next_id_str()}",
                 block_type=BlockType(b_dto.block_type),
                 content=b_dto.content,
                 material_note_id=b_dto.material_note_id,
@@ -238,8 +233,8 @@ class CreateSynthesizedNoteUseCase:
             domain_blocks.append(db)
 
         # 4. 生成聚合根
-        note_id = f"syn_{uuid.uuid4().hex[:12]}"
-        file_path = f"data/notes/{note_id}.md"
+        note_id = f"syn_{id_worker.next_id_str()}"
+        file_path = str((get_note_dir() / f"{note_id}.md").resolve())
 
         note = SynthesizedNote(
             project_id=dto.project_id,
@@ -325,7 +320,7 @@ class UpdateSynthesizedNoteUseCase:
         referenced_material_count = 0
         for b_dto in dto.blocks:
             db = DocumentBlock(
-                block_id=b_dto.block_id or f"blk_{uuid.uuid4().hex[:12]}",
+                block_id=b_dto.block_id or f"blk_{id_worker.next_id_str()}",
                 block_type=BlockType(b_dto.block_type),
                 content=b_dto.content,
                 material_note_id=b_dto.material_note_id,
@@ -397,42 +392,6 @@ class UnbindKnowledgeBaseNotesUseCase:
     async def execute(self, kb_id: str) -> None:
         # 置空外键，绝不物理删除笔记 Markdown 原文
         await self.note_state_service.clear_knowledge_base_id_batch(kb_id)
-
-
-class NoteSandboxHealingUseCase:
-    """冷启动自愈 UseCase (清理脏临时文件与孤岛空 MD)"""
-
-    def __init__(
-        self,
-        note_query_service: NoteQueryDomainService,
-        file_storage_port: INoteFileStoragePort,
-    ):
-        self.note_query_service = note_query_service
-        self.file_storage_port = file_storage_port
-
-    async def execute(self) -> None:
-        logger.info("笔记沙箱冷启动自愈扫描开始...")
-
-        # 1. 清理中断强杀留下的 .md.tmp 脏临时文件
-        cleaned_tmp = await self.file_storage_port.clean_temporary_files()
-        if cleaned_tmp:
-            logger.info(f"成功清理 {len(cleaned_tmp)} 个残留 .tmp 临时文件: {cleaned_tmp}")
-
-        # 2. 清理未在 DB 注册 of 孤岛离线物理 Markdown 垃圾文件
-        physical_files = await self.file_storage_port.scan_all_physical_files()
-        registered_notes = await self.note_query_service.list_all_synthesized_notes()
-        registered_paths = {n.file_path for n in registered_notes}
-
-        orphan_count = 0
-        for path in physical_files:
-            if path not in registered_paths:
-                await self.file_storage_port.delete_markdown_file(path)
-                logger.warning(f"自愈检测到未注册孤岛文件，已物理清除: {path}")
-                orphan_count += 1
-        if orphan_count > 0:
-            logger.info(f"清理了 {orphan_count} 个离线孤岛文件")
-
-        logger.info("笔记沙箱自愈完成")
 
 
 class CorrectNoteAnchorUseCase:

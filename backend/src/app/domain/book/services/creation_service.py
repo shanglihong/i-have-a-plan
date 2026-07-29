@@ -1,12 +1,12 @@
 """书籍创建领域服务 (Domain Service)"""
 
-import uuid
 from typing import Optional
 from app.domain.book.entities import Book, BookFileType, ParsingStatus
 from app.domain.events import EventPublisherPort
 from app.domain.book.ports import BookRepositoryPort
 from app.domain.book.exceptions import UnsupportedBookFormatException
 from app.domain.book.events import BookCreatedEvent
+from app.utils.snow import id_worker
 
 
 class BookCreationDomainService:
@@ -33,7 +33,7 @@ class BookCreationDomainService:
         if ext not in BookFileType.__members__:
             raise UnsupportedBookFormatException(file_type)
 
-        actual_book_id = book_id or f"bk_{uuid.uuid4().hex[:8]}"
+        actual_book_id = book_id or f"bk_{id_worker.next_id_str()}"
 
         book = Book(
             id=actual_book_id,

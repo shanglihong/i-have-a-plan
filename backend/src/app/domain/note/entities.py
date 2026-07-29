@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional
 from app.domain.base import BaseEntity
+from app.utils.snow import id_worker
 
 
 class SynthesizedNoteType(str, Enum):
@@ -43,6 +44,7 @@ class SourceAnchor:
 @dataclass
 class MaterialNote(BaseEntity):
     """MaterialNote 素材卡片聚合根"""
+    id: str = field(default_factory=lambda: f"mat_{id_worker.next_id_str()}")
     project_id: str = ""
     task_id: str = ""
     source_type: SourceType = SourceType.USER_THOUGHT
@@ -67,6 +69,7 @@ class DocumentBlock:
 @dataclass
 class SynthesizedNote(BaseEntity):
     """SynthesizedNote 沉淀笔记/经验笔记聚合根"""
+    id: str = field(default_factory=lambda: f"syn_{id_worker.next_id_str()}")
     project_id: str = ""
     knowledge_base_id: Optional[str] = None
     title: str = ""

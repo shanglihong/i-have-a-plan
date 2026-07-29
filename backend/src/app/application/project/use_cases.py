@@ -4,7 +4,6 @@
 严禁直接依赖 RepositoryPort 或存储接口。
 """
 
-import uuid
 from typing import Optional
 from datetime import datetime
 from fastapi import UploadFile, HTTPException, status
@@ -16,7 +15,7 @@ from app.domain.project.services import (
     ProjectQueryDomainService,
     ExperienceNoteDomainService,
 )
-from app.utils.path import get_workspace_dir
+from app.utils.path import get_book_dir
 
 from app.domain.book.services import (
     BookCreationDomainService,
@@ -34,6 +33,7 @@ from app.application.project.dtos import (
     BookSummaryDTO,
     ExperienceNoteResponseDTO,
 )
+from app.utils.snow import id_worker
 
 
 async def _save_uploaded_file(
@@ -43,10 +43,10 @@ async def _save_uploaded_file(
     file_bytes = await file.read()
     filename = file.filename or "err.txt"
 
-    project_dir = get_workspace_dir() / "projects" / project_id
-    project_dir.mkdir(parents=True, exist_ok=True)
+    book_dir = get_book_dir(project_id)
+    book_dir.mkdir(parents=True, exist_ok=True)
 
-    target_path = project_dir / filename
+    target_path = book_dir / filename
     target_path.write_bytes(file_bytes)
     return file_bytes, filename, str(target_path)
 
@@ -79,7 +79,7 @@ class CreateProjectUseCase:
         file_bytes = b""
         filename = file.filename if (file and file.filename) else f"{title}.pdf"
         storage_path: Optional[str] = None
-        project_id = f"proj_{uuid.uuid4()}"
+        project_id = f"proj_{id_worker.next_id_str()}"
 
         if file:
             file_bytes, filename, storage_path = await _save_uploaded_file(project_id, file)

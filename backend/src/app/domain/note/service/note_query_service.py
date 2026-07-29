@@ -5,7 +5,7 @@ from app.domain.note.entities import MaterialNote, SynthesizedNote
 from app.domain.note.ports import (
     MaterialNoteRepositoryPort,
     SynthesizedNoteRepositoryPort,
-    INoteFileStoragePort,
+    NoteFileStoragePort,
 )
 
 
@@ -16,7 +16,7 @@ class NoteQueryDomainService:
         self,
         material_repo: MaterialNoteRepositoryPort,
         synthesized_repo: SynthesizedNoteRepositoryPort,
-        file_storage_port: INoteFileStoragePort,
+        file_storage_port: NoteFileStoragePort,
     ):
         self.material_repo = material_repo
         self.synthesized_repo = synthesized_repo

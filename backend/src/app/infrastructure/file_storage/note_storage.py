@@ -5,30 +5,17 @@ import shutil
 import logging
 from pathlib import Path
 from typing import List
-from app.domain.note.ports import INoteFileStoragePort
+from app.domain.note.ports import NoteFileStoragePort
 from app.utils.path import get_workspace_dir
 
 logger = logging.getLogger(__name__)
 
 
-class LocalNoteFileStorageAdapter(INoteFileStoragePort):
+class LocalNoteFileStorageAdapter(NoteFileStoragePort):
     """基于本地文件系统的笔记 Markdown 文件存储适配器"""
 
-    def _get_notes_dir(self) -> Path:
-        """获取 data/notes 的物理全路径"""
-        path = get_workspace_dir() / "data" / "notes"
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-
-    def _to_physical_path(self, relative_path: str) -> Path:
-        """将相对路径 (如 data/notes/syn_xxx.md) 转换为物理全路径"""
-        cleaned_path = Path(relative_path)
-        if ".." in cleaned_path.parts:
-            raise ValueError(f"Path traversal detected: {relative_path}")
-        return get_workspace_dir() / relative_path
-
     async def write_markdown_file_atomic(self, file_path: str, content: str) -> str:
-        dest_path = self._to_physical_path(file_path)
+        dest_path = Path(file_path)
         dest_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 1. 建立临时文件
@@ -52,7 +39,7 @@ class LocalNoteFileStorageAdapter(INoteFileStoragePort):
         return file_path
 
     async def read_markdown_file(self, file_path: str) -> str:
-        phys_path = self._to_physical_path(file_path)
+        phys_path = Path(file_path)
         if not phys_path.exists():
             raise FileNotFoundError(f"笔记文件未找到: {file_path}")
             
@@ -60,12 +47,13 @@ class LocalNoteFileStorageAdapter(INoteFileStoragePort):
             return f.read()
 
     async def delete_markdown_file(self, file_path: str) -> None:
-        phys_path = self._to_physical_path(file_path)
+        phys_path = Path(file_path)
         if phys_path.exists():
             phys_path.unlink()
 
-    async def scan_all_physical_files(self) -> List[str]:
-        notes_dir = self._get_notes_dir()
+
+    async def scan_all_physical_files(self, notes_dir: Path) -> List[str]:
+        notes_dir = Path(notes_dir)
         relative_paths = []
         for file in notes_dir.glob("*.md"):
             if file.is_file():
@@ -73,8 +61,8 @@ class LocalNoteFileStorageAdapter(INoteFileStoragePort):
                 relative_paths.append(rel_path)
         return relative_paths
 
-    async def clean_temporary_files(self) -> List[str]:
-        notes_dir = self._get_notes_dir()
+    async def clean_temporary_files(self, notes_dir: Path) -> List[str]:
+        notes_dir = Path(notes_dir)
         cleaned_files = []
         # 扫描并清理所有以 .tmp 结尾的垃圾临时文件
         for file in notes_dir.glob("*.tmp"):

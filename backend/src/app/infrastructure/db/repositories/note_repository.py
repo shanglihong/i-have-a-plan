@@ -2,7 +2,6 @@
 
 import base64
 import json
-import uuid
 import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Tuple, Any
@@ -12,26 +11,10 @@ from sqlmodel import select, delete, and_, or_
 from app.domain.note.entities import MaterialNote, SynthesizedNote, SourceAnchor, SourceType, SynthesizedNoteType, KnowledgeBase
 from app.domain.note.ports import MaterialNoteRepositoryPort, SynthesizedNoteRepositoryPort, KnowledgeBaseRepositoryPort
 from app.infrastructure.db.models.note import MaterialNoteDO, SynthesizedNoteDO, SynthesizedNoteMaterialRefDO, KnowledgeBaseDO
+from app.utils.cursor import decode_cursor
+from app.utils.snow import id_worker
 
 logger = logging.getLogger(__name__)
-
-
-def encode_cursor(created_at: datetime, note_id: str) -> str:
-    """编码游标：包含时间戳和 ID"""
-    ts = created_at.timestamp()
-    payload = json.dumps({"ts": ts, "id": note_id})
-    return base64.b64encode(payload.encode("utf-8")).decode("utf-8")
-
-
-def decode_cursor(cursor_str: str) -> Tuple[float, str]:
-    """解码游标：返回时间戳和 ID"""
-    try:
-        decoded = base64.b64decode(cursor_str.encode("utf-8")).decode("utf-8")
-        data = json.loads(decoded)
-        return float(data["ts"]), str(data["id"])
-    except Exception as e:
-        logger.warning(f"Failed to decode cursor: {cursor_str}, error: {e}")
-        return 0.0, ""
 
 
 class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositoryPort):
@@ -245,7 +228,7 @@ class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositor
                 
         for mat_id in referenced_ids:
             ref_do = SynthesizedNoteMaterialRefDO(
-                id=f"ref_{uuid.uuid4().hex[:12]}",
+                id=f"ref_{id_worker.next_id_str()}",
                 synthesized_note_id=note.id,
                 material_note_id=mat_id
             )

@@ -3,7 +3,9 @@ from abc import abstractmethod, ABC
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
-import uuid
+
+from app.utils.snow import id_worker
+
 
 class EventPublisherPort(ABC):
     """通用领域事件发布代理接口"""
@@ -16,5 +18,5 @@ class EventPublisherPort(ABC):
 @dataclass
 class DomainEvent:
     """领域事件抽象基类"""
-    event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    event_id: str = field(default_factory=lambda: id_worker.next_id_str())
     occurred_on: datetime = field(default_factory=datetime.now)

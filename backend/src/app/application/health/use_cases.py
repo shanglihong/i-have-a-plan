@@ -4,6 +4,7 @@ import logging
 from typing import List
 
 from app.application.health.book_health import BookHealing
+from app.application.health.note_health import NoteHealing
 from app.application.health.project_health import ProjectHealing
 from app.infrastructure.db.session import get_async_session
 from app.container import AppContainer
@@ -23,6 +24,4 @@ class StartupHealingUseCase:
             container = AppContainer(session)
             await BookHealing(container).handle()
             await ProjectHealing(container).handle()
-            # 触发笔记领域沙箱冷启动自愈逻辑
-            note_use_cases = container.get_note_use_cases()
-            await note_use_cases["healing_use_case"].execute()
+            await NoteHealing(container).handle()

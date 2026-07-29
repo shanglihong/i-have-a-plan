@@ -18,7 +18,6 @@ from .use_cases import (
     UpdateSynthesizedNoteUseCase,
     DeleteSynthesizedNoteUseCase,
     UnbindKnowledgeBaseNotesUseCase,
-    NoteSandboxHealingUseCase,
     CorrectNoteAnchorUseCase,
 )
 
@@ -38,6 +37,5 @@ __all__ = [
     "UpdateSynthesizedNoteUseCase",
     "DeleteSynthesizedNoteUseCase",
     "UnbindKnowledgeBaseNotesUseCase",
-    "NoteSandboxHealingUseCase",
     "CorrectNoteAnchorUseCase",
 ]

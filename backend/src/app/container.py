@@ -7,6 +7,8 @@
 from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.infrastructure import file_storage
+from app.infrastructure.db.repositories.knowledge_repository import KnowledgeRepository
 # 基础设施层
 from app.infrastructure.db.repositories.project_repository import ProjectRepository
 from app.infrastructure.db.repositories.task_repository import TaskRepository, NoteAttachmentRepositoryAdapter
@@ -68,7 +70,6 @@ from app.application.note import (
     UpdateSynthesizedNoteUseCase,
     DeleteSynthesizedNoteUseCase,
     UnbindKnowledgeBaseNotesUseCase,
-    NoteSandboxHealingUseCase,
     CorrectNoteAnchorUseCase,
 )
 
@@ -84,8 +85,10 @@ class AppContainer:
         self.task_repo = TaskRepository(session)
         self.book_repo = BookRepositoryAdapter(session)
         self.note_repo = NoteRepositoryAdapter(session)
+        self.kb_repo = KnowledgeRepository(session)
         self.note_attachment_repo = NoteAttachmentRepositoryAdapter(session)
         self.file_storage = LocalBookFileStorageAdapter()
+        self.note_file_storage = LocalNoteFileStorageAdapter()
         self.event_bus = global_event_bus
 
         # 2. 图书领域服务 (Book Domain Services)
@@ -148,10 +151,12 @@ class AppContainer:
             event_publisher=self.event_bus,
         )
         self.note_operation_service = NoteOperationDomainService(
-            material_repo=self.note_repo
+            material_repo=self.note_repo,
+            file_storage_port=self.note_file_storage,
+            synthesized_repo=self.note_repo,
         )
         self.knowledge_base_service = KnowledgeBaseDomainService(
-            kb_repo=self.note_repo,
+            kb_repo=self.kb_repo,
             synthesized_repo=self.note_repo,
         )
 
@@ -220,10 +225,6 @@ class AppContainer:
                 self.note_state_service
             ),
             "unbind_kb_use_case": UnbindKnowledgeBaseNotesUseCase(self.note_state_service),
-            "healing_use_case": NoteSandboxHealingUseCase(
-                self.note_query_service,
-                self.note_file_storage
-            ),
             "correct_anchor_use_case": CorrectNoteAnchorUseCase(
                 self.note_operation_service
             ),

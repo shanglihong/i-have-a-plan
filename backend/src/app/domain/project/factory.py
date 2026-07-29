@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 from app.domain.project.entities import Project, ProjectType, ProjectStatus
+from app.utils.snow import id_worker
 
 
 class ProjectFactory:
@@ -14,7 +15,7 @@ class ProjectFactory:
         title: str,
         deadline: Optional[datetime] = None,
     ) -> Project:
-        project_id = f"proj_{uuid.uuid4()}"
+        project_id = f"proj_{id_worker.next_id_str()}"
         now = datetime.now(timezone.utc)
 
         return Project(
@@ -34,8 +35,8 @@ class ProjectFactory:
         deadline: Optional[datetime] = None,
         book_id: Optional[str] = None,
     ) -> Project:
-        project_id = project_id or f"proj_{uuid.uuid4()}"
-        actual_book_id = book_id or f"bk_{uuid.uuid4().hex[:8]}"
+        project_id = project_id or f"proj_{id_worker.next_id_str()}"
+        actual_book_id = book_id or f"bk_{id_worker.next_id_str()}"
         now = datetime.now(timezone.utc)
 
         return Project(

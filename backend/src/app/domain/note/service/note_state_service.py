@@ -11,7 +11,7 @@ from app.domain.note.events import (
 from app.domain.note.ports import (
     MaterialNoteRepositoryPort,
     SynthesizedNoteRepositoryPort,
-    INoteFileStoragePort,
+    NoteFileStoragePort,
 )
 from app.domain.events import EventPublisherPort
 
@@ -23,7 +23,7 @@ class NoteStateDomainService:
         self, 
         material_repo: MaterialNoteRepositoryPort, 
         synthesized_repo: SynthesizedNoteRepositoryPort,
-        file_storage_port: INoteFileStoragePort,
+        file_storage_port: NoteFileStoragePort,
         event_publisher: EventPublisherPort,
     ):
         self.material_repo = material_repo

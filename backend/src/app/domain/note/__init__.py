@@ -20,7 +20,7 @@ from .ports import (
     MaterialNoteRepositoryPort,
     SynthesizedNoteRepositoryPort,
     KnowledgeBaseRepositoryPort,
-    INoteFileStoragePort,
+    NoteFileStoragePort,
 )
 from .service import (
     NoteQueryDomainService,

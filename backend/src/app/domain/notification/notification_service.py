@@ -1,10 +1,10 @@
 """NotificationService 消息通知订阅与持久化推送服务"""
 
-import uuid
 from datetime import datetime, timezone
 from typing import List, Dict
 from app.domain.notification.notification import Notification, NotificationType, NotificationStatus
 from app.domain.project.events import ProjectCreatedEvent, ProjectArchivedEvent, ProjectParseFailedEvent
+from app.utils.snow import id_worker
 
 
 class NotificationService:
@@ -16,7 +16,7 @@ class NotificationService:
     async def handle_project_created(self, event: ProjectCreatedEvent) -> Notification:
         """响应 ProjectCreatedEvent，持久化 Notification 实体 (type=PROJECT_READY)"""
         notice = Notification(
-            id=f"notice_{uuid.uuid4().hex[:12]}",
+            id=f"notice_{id_worker.next_id_str()}",
             project_id=event.project_id,
             type=NotificationType.PROJECT_READY,
             status=NotificationStatus.UNREAD,
@@ -32,7 +32,7 @@ class NotificationService:
     async def handle_project_archived(self, event: ProjectArchivedEvent) -> Notification:
         """响应 ProjectArchivedEvent，持久化 Notification 实体 (type=PROJECT_ARCHIVED)"""
         notice = Notification(
-            id=f"notice_{uuid.uuid4().hex[:12]}",
+            id=f"notice_{id_worker.next_id_str()}",
             project_id=event.project_id,
             type=NotificationType.PROJECT_ARCHIVED,
             status=NotificationStatus.UNREAD,
@@ -48,7 +48,7 @@ class NotificationService:
     async def handle_parse_failed(self, event: ProjectParseFailedEvent) -> Notification:
         """响应 ProjectParseFailedEvent，持久化 Warning Notification 实体 (type=PARSE_FAILED)"""
         notice = Notification(
-            id=f"notice_{uuid.uuid4().hex[:12]}",
+            id=f"notice_{id_worker.next_id_str()}",
             project_id=event.project_id,
             type=NotificationType.PARSE_FAILED,
             status=NotificationStatus.UNREAD,

@@ -1,7 +1,5 @@
 """书籍 API 路由模块"""
 
-import os
-import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, UploadFile, File, Form, status
 

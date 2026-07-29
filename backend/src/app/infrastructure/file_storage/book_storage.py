@@ -10,20 +10,14 @@ from app.domain.book.ports import BookFileStoragePort
 
 class LocalBookFileStorageAdapter(BookFileStoragePort):
     """基于本地文件系统的图书存储适配器"""
-    def _get_dir(self, path: str) -> str:
-        if os.path.isdir(path):
-            print(path)
-        elif os.path.splitext(path)[1] != "":
-            path = os.path.dirname(path)
-        os.makedirs(path, exist_ok=True)
-        return path
-
     async def save_parsed_content_json(
         self,
         storage_path: str,
         chapter_blocks_data: Dict[str, List[Dict[str, Any]]]
     ) -> str:
-        book_dir = self._get_dir(storage_path)
+        book_dir = Path(storage_path).parent
+        book_dir.parent.mkdir(parents=True, exist_ok=True)
+
         target_path = os.path.join(book_dir, "parsed_content.json")
         tmp_path = os.path.join(book_dir, "parsed_content.json.tmp")
 
@@ -75,7 +69,7 @@ class LocalBookFileStorageAdapter(BookFileStoragePort):
         """清理图书存储目录"""
         if not storage_path:
             return
-        book_dir = self._get_dir(storage_path)
+        book_dir = Path(storage_path).parent
         if os.path.exists(book_dir):
             shutil.rmtree(book_dir, ignore_errors=True)
 
