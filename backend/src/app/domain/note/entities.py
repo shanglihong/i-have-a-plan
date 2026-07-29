@@ -90,6 +90,7 @@ class SynthesizedNote(BaseEntity):
 @dataclass
 class KnowledgeBase(BaseEntity):
     """KnowledgeBase 知识资产库容器"""
+    id: str = field(default_factory=lambda: f"kb_{id_worker.next_id_str()}")
     title: str = ""
     description: str = ""
     notes: List[SynthesizedNote] = field(default_factory=list)

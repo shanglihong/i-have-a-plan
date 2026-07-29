@@ -161,6 +161,7 @@ class TaskChain(BaseEntity):
 @dataclass
 class Project(BaseEntity):
     """Project 聚合根 (充血模型)"""
+    id: str = field(default_factory=lambda: f"project_{id_worker.next_id_str()}")
     title: str = ""
     description: str = ""
     project_type: ProjectType = ProjectType.READING

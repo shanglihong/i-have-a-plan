@@ -7,6 +7,7 @@ from enum import Enum
 from typing import List, Optional, Dict, Any
 from app.domain.base import BaseEntity
 from app.domain.book.exceptions import InvalidStateTransitionException
+from app.utils.snow import id_worker
 
 
 class BookFileType(str, Enum):
@@ -118,6 +119,7 @@ class SourceAnchor(BaseEntity):
 @dataclass
 class Book(BaseEntity):
     """书籍实体"""
+    id: str = field(default_factory=lambda: f"bk_{id_worker.next_id_str()}")
     project_id: str = ""
     file_name: str = ""
     file_type: BookFileType = BookFileType.TXT

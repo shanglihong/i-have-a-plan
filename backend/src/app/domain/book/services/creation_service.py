@@ -1,13 +1,10 @@
 """书籍创建领域服务 (Domain Service)"""
 
-from typing import Optional
 from app.domain.book.entities import Book, BookFileType, ParsingStatus
 from app.domain.events import EventPublisherPort
 from app.domain.book.ports import BookRepositoryPort
 from app.domain.book.exceptions import UnsupportedBookFormatException
 from app.domain.book.events import BookCreatedEvent
-from app.utils.snow import id_worker
-
 
 class BookCreationDomainService:
     """解析前的书籍记录创建领域服务"""
@@ -27,16 +24,12 @@ class BookCreationDomainService:
         file_type: str,
         file_size: int = 0,
         storage_path: str = "",
-        book_id: Optional[str] = None
     ) -> Book:
         ext = file_type.upper()
         if ext not in BookFileType.__members__:
             raise UnsupportedBookFormatException(file_type)
 
-        actual_book_id = book_id or f"bk_{id_worker.next_id_str()}"
-
         book = Book(
-            id=actual_book_id,
             project_id=project_id,
             file_name=file_name,
             file_type=BookFileType(ext),

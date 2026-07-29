@@ -1,5 +1,5 @@
 """笔记领域应用层 UseCases (业务流程编排层)"""
-
+from app.domain.note import KnowledgeBaseDomainService
 from app.domain.project.services import TaskQueryDomainService
 import logging
 from datetime import datetime, timezone
@@ -386,12 +386,12 @@ class DeleteSynthesizedNoteUseCase:
 class UnbindKnowledgeBaseNotesUseCase:
     """知识库解绑 UseCase (跨领域防腐调用)"""
 
-    def __init__(self, note_state_service: NoteStateDomainService):
-        self.note_state_service = note_state_service
+    def __init__(self, knowledge_service: KnowledgeBaseDomainService):
+        self.knowledge_service = knowledge_service
 
     async def execute(self, kb_id: str) -> None:
         # 置空外键，绝不物理删除笔记 Markdown 原文
-        await self.note_state_service.clear_knowledge_base_id_batch(kb_id)
+        await self.knowledge_service.delete_knowledge_base(kb_id)
 
 
 class CorrectNoteAnchorUseCase:
