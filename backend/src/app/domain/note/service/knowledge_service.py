@@ -52,10 +52,10 @@ class KnowledgeBaseDomainService:
         
         # 将这些笔记的 knowledge_base_id 设为 kb_id 并保存
         for note_id in note_ids:
-            note = await self.synthesized_repo.find_by_id(note_id)
+            note = await self.synthesized_repo.find_synthesized_by_id(note_id)
             if note:
                 note.knowledge_base_id = kb_id
-                await self.synthesized_repo.save(note)
+                await self.synthesized_repo.save_synthesized(note)
 
     async def unbind_notes_from_knowledge_base(self, kb_id: str, note_ids: List[str]) -> None:
         """将一批沉淀笔记从知识库解绑"""
@@ -65,7 +65,7 @@ class KnowledgeBaseDomainService:
         
         # 将这些笔记的 knowledge_base_id 置为 None
         for note_id in note_ids:
-            note = await self.synthesized_repo.find_by_id(note_id)
+            note = await self.synthesized_repo.find_synthesized_by_id(note_id)
             if note and note.knowledge_base_id == kb_id:
                 note.knowledge_base_id = None
-                await self.synthesized_repo.save(note)
+                await self.synthesized_repo.save_synthesized(note)

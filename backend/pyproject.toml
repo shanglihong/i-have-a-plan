@@ -19,6 +19,7 @@ dependencies = [
     "any>=0.0.2",
     "sqlalchemy>=2.0.51",
     "logger",
+    "python-dotenv>=1.2.2",
 ]
 
 [project.optional-dependencies]

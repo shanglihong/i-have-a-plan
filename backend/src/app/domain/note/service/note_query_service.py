@@ -23,7 +23,7 @@ class NoteQueryDomainService:
         self.file_storage_port = file_storage_port
 
     async def get_material_note_by_id(self, note_id: str) -> Optional[MaterialNote]:
-        return await self.material_repo.find_by_id(note_id)
+        return await self.material_repo.find_material_by_id(note_id)
 
     async def list_material_notes_cursor(
         self,
@@ -40,7 +40,7 @@ class NoteQueryDomainService:
         )
 
     async def get_synthesized_note_by_id(self, note_id: str) -> Optional[SynthesizedNote]:
-        note = await self.synthesized_repo.find_by_id(note_id)
+        note = await self.synthesized_repo.find_synthesized_by_id(note_id)
         if not note:
             return None
         try:
