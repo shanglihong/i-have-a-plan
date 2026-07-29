@@ -27,7 +27,6 @@ class SynthesizedNoteCreatedEvent(DomainEvent):
 class MaterialNoteDeletedEvent(DomainEvent):
     """素材笔记删除事件"""
     note_id: str = ""
-    project_id: str = ""
 
 
 @dataclass

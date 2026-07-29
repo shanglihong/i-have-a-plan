@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.db.repositories.project_repository import ProjectRepository
 from app.infrastructure.db.repositories.task_repository import TaskRepository, NoteAttachmentRepositoryAdapter
 from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
-from app.infrastructure.db.repositories.material_note_repository import NoteRepositoryAdapter
+from app.infrastructure.db.repositories.note_repository import NoteRepositoryAdapter
 from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
 from app.infrastructure.file_storage.note_storage import LocalNoteFileStorageAdapter
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus

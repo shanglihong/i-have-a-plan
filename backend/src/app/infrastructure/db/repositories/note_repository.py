@@ -241,11 +241,7 @@ class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositor
         stmt_del = delete(SynthesizedNoteMaterialRefDO).where(SynthesizedNoteMaterialRefDO.synthesized_note_id == note.id)
         await self.session.execute(stmt_del)
         
-        # 提取 MATERIAL_REF 类型 block 中的引用 ID
-        referenced_ids = set()
-        for block in getattr(note, "blocks", []):
-            if block.block_type.value == "MATERIAL_REF" and block.material_note_id:
-                referenced_ids.add(block.material_note_id)
+        referenced_ids = note.get_referenced_material_ids()
                 
         for mat_id in referenced_ids:
             ref_do = SynthesizedNoteMaterialRefDO(

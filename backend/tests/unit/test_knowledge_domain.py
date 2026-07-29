@@ -3,7 +3,7 @@
 import pytest
 from app.domain.note.entities import KnowledgeBase, SynthesizedNote
 from app.domain.note.service import KnowledgeBaseDomainService
-from app.infrastructure.db.repositories.material_note_repository import NoteRepositoryAdapter
+from app.infrastructure.db.repositories.note_repository import NoteRepositoryAdapter
 
 
 @pytest.mark.asyncio

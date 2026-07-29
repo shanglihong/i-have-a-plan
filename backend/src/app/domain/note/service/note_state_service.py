@@ -6,7 +6,7 @@ from app.domain.note.entities import MaterialNote, SynthesizedNote
 from app.domain.note.factory import NoteMarkdownFactory
 from app.domain.note.events import (
     MaterialNoteCreatedEvent,
-    SynthesizedNoteCreatedEvent,
+    SynthesizedNoteCreatedEvent, MaterialNoteDeletedEvent,
 )
 from app.domain.note.ports import (
     MaterialNoteRepositoryPort,
@@ -32,7 +32,7 @@ class NoteStateDomainService:
         self.event_publisher = event_publisher
 
     async def create_material_note(self, note: MaterialNote) -> None:
-        await self.material_repo.save(note)
+        await self.material_repo.save_material(note)
         event = MaterialNoteCreatedEvent(
             note_id=note.id,
             project_id=note.project_id,
@@ -41,8 +41,10 @@ class NoteStateDomainService:
         )
         await self.event_publisher.publish(event)
 
-    async def delete_material_note(self, note_id: str) -> bool:
-        return await self.material_repo.delete(note_id)
+    async def delete_material_note(self, note_id: str) -> None:
+        await self.material_repo.delete_material(note_id)
+        await self.event_publisher.publish(MaterialNoteDeletedEvent(note_id=note_id))
+
 
     async def create_synthesized_note(self, note: SynthesizedNote) -> None:
         md_content = NoteMarkdownFactory.compile_to_markdown(note.title, note.blocks)
@@ -52,7 +54,7 @@ class NoteStateDomainService:
 
         # 2. DB 保存元数据与关系
         try:
-            await self.synthesized_repo.save(note)
+            await self.synthesized_repo.save_synthesized(note)
         except Exception as e:
             # 事务失败，物理擦除已生成的 Markdown 文件以防留下孤立垃圾文件
             await self.file_storage_port.delete_markdown_file(note.file_path)
@@ -75,10 +77,10 @@ class NoteStateDomainService:
         await self.file_storage_port.write_markdown_file_atomic(note.file_path, md_content)
 
         # 2. 保存 DB
-        await self.synthesized_repo.save(note)
+        await self.synthesized_repo.save_synthesized(note)
 
     async def delete_synthesized_note(self, note_id: str) -> bool:
-        note = await self.synthesized_repo.find_by_id(note_id)
+        note = await self.synthesized_repo.find_synthesized_by_id(note_id)
         if not note:
             return False
 
@@ -89,4 +91,4 @@ class NoteStateDomainService:
             logger.error(f"Failed to delete markdown file: {note.file_path}, error: {e}")
 
         # 2. 清理数据库记录
-        return await self.synthesized_repo.delete(note_id)
+        return await self.synthesized_repo.delete_synthesized(note_id)

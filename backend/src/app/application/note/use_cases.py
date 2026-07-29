@@ -36,7 +36,7 @@ from app.application.note.dtos import (
     DocumentBlockDTO,
     DeleteResponseVO,
 )
-from app.infrastructure.db.repositories.material_note_repository import encode_cursor
+from app.infrastructure.db.repositories.note_repository import encode_cursor
 
 logger = logging.getLogger(__name__)
 

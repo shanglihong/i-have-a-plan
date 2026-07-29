@@ -17,11 +17,9 @@ from .events import (
     SynthesizedNoteDeletedEvent,
 )
 from .ports import (
-    IMaterialNoteRepositoryPort,
-    ISynthesizedNoteRepositoryPort,
+    MaterialNoteRepositoryPort,
+    SynthesizedNoteRepositoryPort,
     KnowledgeBaseRepositoryPort,
-    IMaterialNoteDomainService,
-    ISynthesizedNoteDomainService,
     INoteFileStoragePort,
 )
 from .service import (
@@ -45,11 +43,9 @@ __all__ = [
     "SynthesizedNoteCreatedEvent",
     "MaterialNoteDeletedEvent",
     "SynthesizedNoteDeletedEvent",
-    "IMaterialNoteRepositoryPort",
-    "ISynthesizedNoteRepositoryPort",
+    "MaterialNoteRepositoryPort",
+    "SynthesizedNoteRepositoryPort",
     "KnowledgeBaseRepositoryPort",
-    "IMaterialNoteDomainService",
-    "ISynthesizedNoteDomainService",
     "INoteFileStoragePort",
     "NoteMarkdownFactory",
     "NoteQueryDomainService",

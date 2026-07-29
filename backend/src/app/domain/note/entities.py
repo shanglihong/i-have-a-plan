@@ -75,6 +75,14 @@ class SynthesizedNote(BaseEntity):
     summary: Optional[str] = None
     blocks: List[DocumentBlock] = field(default_factory=list)
 
+    def get_referenced_material_ids(self) -> set[str]:
+        """获取所有引用的素材卡片 ID 集合"""
+        referenced_ids = set()
+        for block in self.blocks:
+            if block.block_type == BlockType.MATERIAL_REF and block.material_note_id:
+                referenced_ids.add(block.material_note_id)
+        return referenced_ids
+
 
 @dataclass
 class KnowledgeBase(BaseEntity):
