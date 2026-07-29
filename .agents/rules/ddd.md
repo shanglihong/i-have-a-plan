@@ -13,7 +13,7 @@ trigger: always_on
 - uitls：通用工具代码存放层级，工具代码仅依赖标准库
 
 ## 层级依赖约束
-- application 层**禁止**依赖 infrastructure 层
+- application 层**禁止**依赖 存储层接口（Repository）
 - infrastructure 层**禁止**做业务决策（默认值填充、重试策略、状态流转等），这些属于 Domain 层
 - domain 层通过**仓储接口**与 infrastructure 层交互，领域服务只注入仓储接口，不注入其他服务
 - **允许** infrastructure 层使用 domain 层定义的领域错误，契约接口，契约实体对象

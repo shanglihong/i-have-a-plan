@@ -11,11 +11,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.db.repositories.project_repository import ProjectRepository
 from app.infrastructure.db.repositories.task_repository import TaskRepository, NoteAttachmentRepositoryAdapter
 from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
-from app.infrastructure.db.repositories.note_repository import NoteRepositoryAdapter
+from app.infrastructure.db.repositories.material_note_repository import NoteRepositoryAdapter
 from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
+from app.infrastructure.file_storage.note_storage import LocalNoteFileStorageAdapter
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 
 # 领域层服务
+from app.domain.note.service import (
+    NoteQueryDomainService,
+    NoteStateDomainService,
+    NoteOperationDomainService,
+    KnowledgeBaseDomainService,
+)
 from app.domain.book.services import (
     BookParsingEngineService,
     BookQueryDomainService,
@@ -52,6 +59,17 @@ from app.application.project.task_use_cases import (
     ChangeTaskStatusUseCase,
     TaskStatusProgressUseCase,
     TaskNoteAttachmentUseCase,
+)
+from app.application.note import (
+    CreateMaterialNoteUseCase,
+    GetMaterialNotesUseCase,
+    CreateSynthesizedNoteUseCase,
+    GetSynthesizedNoteUseCase,
+    UpdateSynthesizedNoteUseCase,
+    DeleteSynthesizedNoteUseCase,
+    UnbindKnowledgeBaseNotesUseCase,
+    NoteSandboxHealingUseCase,
+    CorrectNoteAnchorUseCase,
 )
 
 
@@ -117,6 +135,25 @@ class AppContainer:
             task_repo=self.task_repo,
             note_attachment_repo=self.note_attachment_repo,
         )
+        self.note_file_storage = LocalNoteFileStorageAdapter()
+        self.note_query_service = NoteQueryDomainService(
+            material_repo=self.note_repo,
+            synthesized_repo=self.note_repo,
+            file_storage_port=self.note_file_storage,
+        )
+        self.note_state_service = NoteStateDomainService(
+            material_repo=self.note_repo,
+            synthesized_repo=self.note_repo,
+            file_storage_port=self.note_file_storage,
+            event_publisher=self.event_bus,
+        )
+        self.note_operation_service = NoteOperationDomainService(
+            material_repo=self.note_repo
+        )
+        self.knowledge_base_service = KnowledgeBaseDomainService(
+            kb_repo=self.note_repo,
+            synthesized_repo=self.note_repo,
+        )
 
     def get_book_use_cases(self) -> Dict[str, Any]:
         """打包并提供 REST API 层使用的 Book 领域用例字典"""
@@ -154,5 +191,40 @@ class AppContainer:
             "note_attachment_use_case": TaskNoteAttachmentUseCase(
                 self.task_query_service,
                 self.task_op_service,
+            ),
+        }
+
+    def get_note_use_cases(self) -> Dict[str, Any]:
+        """打包并提供 REST API 层使用的 Note 领域用例字典"""
+        return {
+            "create_material_use_case": CreateMaterialNoteUseCase(
+                self.note_state_service,
+                self.book_content_service,
+                self.project_query_service,
+                self.task_query_service
+            ),
+            "get_material_use_case": GetMaterialNotesUseCase(self.note_query_service),
+            "create_synthesized_use_case": CreateSynthesizedNoteUseCase(
+                self.note_state_service,
+                self.note_query_service,
+                self.project_query_service
+            ),
+            "get_synthesized_use_case": GetSynthesizedNoteUseCase(
+                self.note_query_service
+            ),
+            "update_synthesized_use_case": UpdateSynthesizedNoteUseCase(
+                self.note_state_service,
+                self.note_query_service
+            ),
+            "delete_synthesized_use_case": DeleteSynthesizedNoteUseCase(
+                self.note_state_service
+            ),
+            "unbind_kb_use_case": UnbindKnowledgeBaseNotesUseCase(self.note_state_service),
+            "healing_use_case": NoteSandboxHealingUseCase(
+                self.note_query_service,
+                self.note_file_storage
+            ),
+            "correct_anchor_use_case": CorrectNoteAnchorUseCase(
+                self.note_operation_service
             ),
         }

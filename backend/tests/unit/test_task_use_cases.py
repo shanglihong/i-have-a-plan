@@ -271,7 +271,7 @@ async def test_task_note_attachment_attachment_and_direct_creation() -> None:
     # 场景 B: 绑定已有
     existing_note = MagicMock()
     existing_note.id = "note_1"
-    note_repo.get_material_note = AsyncMock(return_value=existing_note)
+    note_repo.find_by_id = AsyncMock(return_value=existing_note)
     note_attachment_repo.get_attached_note_ids_by_task = AsyncMock(return_value=[])
     note_attachment_repo.create_attachment_relation = AsyncMock(return_value="rel_1")
     

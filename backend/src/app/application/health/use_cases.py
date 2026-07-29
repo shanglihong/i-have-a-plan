@@ -23,3 +23,6 @@ class StartupHealingUseCase:
             container = AppContainer(session)
             await BookHealing(container).handle()
             await ProjectHealing(container).handle()
+            # 触发笔记领域沙箱冷启动自愈逻辑
+            note_use_cases = container.get_note_use_cases()
+            await note_use_cases["healing_use_case"].execute()

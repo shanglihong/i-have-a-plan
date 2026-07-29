@@ -121,3 +121,35 @@ class BookChapterContentDomainService:
             next_chapter_id=next_chapter_id,
             blocks=sliced_blocks
         )
+
+    async def validate_block_exists(self, book_id: str, chapter_id: str) -> bool:
+        """验证正文章节是否存在"""
+        try:
+            book = await self.repository.find_by_id(book_id)
+            if not book:
+                return False
+            all_parsed = await self._get_all_parsed_content(book.content_json_path)
+            return chapter_id in all_parsed
+        except Exception:
+            return False
+
+    async def get_chapter_content_blocks(self, book_id: str, chapter_id: str) -> List[dict]:
+        """读取章节 ContentBlock 列表以进行锚点三层重锚定解算"""
+        try:
+            content = await self.get_chapter_content(
+                book_id=book_id,
+                chapter_id=chapter_id,
+                offset=0,
+                limit=99999
+            )
+            return [
+                {
+                    "block_id": b.block_id,
+                    "block_type": b.block_type.value,
+                    "text": b.text,
+                    "sequence_index": b.sequence_index
+                }
+                for b in content.blocks
+            ]
+        except Exception:
+            return []

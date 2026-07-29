@@ -408,6 +408,12 @@ class Project(BaseEntity):
             raise ValueError(f"只有 ARCHIVED 状态的项目才能重新激活，当前状态为: {self.status}")
         self.status = ProjectStatus.ACTIVE
         self.updated_at = datetime.now(timezone.utc)
+    
+    def is_archived(self) -> bool:
+        return self.status == ProjectStatus.ARCHIVED
+
+    def is_active(self) -> bool:
+        return self.status == ProjectStatus.ACTIVE
 
     def add_retrospective_milestone(
         self,

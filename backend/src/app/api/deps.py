@@ -41,3 +41,9 @@ async def get_task_use_cases(session: AsyncSession = Depends(get_async_session))
     container = AppContainer(session)
     return container.get_task_use_cases()
 
+
+async def get_note_use_cases(session: AsyncSession = Depends(get_async_session)) -> dict:
+    """由 AppContainer 统一构建与提供 Note 领域用例组依赖"""
+    container = AppContainer(session)
+    return container.get_note_use_cases()
+

@@ -8,6 +8,7 @@ from app.api.routers.book import router as book_router
 from app.api.routers.project import router as project_router
 from app.api.routers.health import router as health_router
 from app.api.routers.tasks import tasks_router, task_chains_router
+from app.api.routers.notes import router as notes_router
 from app.api.error_handler import register_error_handlers
 
 
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(project_router)
     app.include_router(tasks_router)
     app.include_router(task_chains_router)
+    app.include_router(notes_router)
 
     return app
 
