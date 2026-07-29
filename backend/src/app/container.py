@@ -7,7 +7,6 @@
 from typing import Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.infrastructure import file_storage
 from app.infrastructure.db.repositories.knowledge_repository import KnowledgeRepository
 # 基础设施层
 from app.infrastructure.db.repositories.project_repository import ProjectRepository
@@ -196,6 +195,8 @@ class AppContainer:
             "note_attachment_use_case": TaskNoteAttachmentUseCase(
                 self.task_query_service,
                 self.task_op_service,
+                self.note_query_service,
+                self.note_state_service,
             ),
         }
 
@@ -224,7 +225,7 @@ class AppContainer:
             "delete_synthesized_use_case": DeleteSynthesizedNoteUseCase(
                 self.note_state_service
             ),
-            "unbind_kb_use_case": UnbindKnowledgeBaseNotesUseCase(self.note_state_service),
+            "unbind_kb_use_case": UnbindKnowledgeBaseNotesUseCase(self.knowledge_base_service),
             "correct_anchor_use_case": CorrectNoteAnchorUseCase(
                 self.note_operation_service
             ),

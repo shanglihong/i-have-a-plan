@@ -21,6 +21,11 @@ class MaterialNoteRepositoryPort(DomainPort):
         ...
 
     @abstractmethod
+    async def find_material_by_ids(self, note_ids: List[str]) -> List[MaterialNote]:
+        """按 IDs 查询素材笔记"""
+        ...
+
+    @abstractmethod
     async def list_material_notes_cursor(
         self,
         project_id: Optional[str],

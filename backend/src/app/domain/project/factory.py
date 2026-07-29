@@ -1,6 +1,5 @@
 """Project 聚合根工程工厂 (ProjectFactory)"""
 
-import uuid
 from datetime import datetime, timezone
 from typing import Optional
 from app.domain.project.entities import Project, ProjectType, ProjectStatus

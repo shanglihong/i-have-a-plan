@@ -106,6 +106,50 @@ class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositor
         note.updated_at = u_at
         return note
 
+    async def find_material_by_ids(self, note_ids: List[str]) -> List[MaterialNote]:
+        if not note_ids:
+            return []
+
+        stmt = select(MaterialNoteDO).where(MaterialNoteDO.id.in_(note_ids))
+        result = await self.session.execute(stmt)
+        dos = result.scalars().all()
+
+        notes = []
+        for do in dos:
+            anchor = None
+            if do.anchor_json:
+                try:
+                    data = json.loads(do.anchor_json)
+                    anchor = SourceAnchor(
+                        book_id=data["book_id"],
+                        chapter_id=data["chapter_id"],
+                        start_offset=data["start_offset"],
+                        end_offset=data["end_offset"],
+                        feature_text=data["feature_text"]
+                    )
+                except Exception as e:
+                    logger.warning(f"Error parsing anchor_json for note {do.id}: {e}")
+
+            c_at = do.created_at.replace(tzinfo=timezone.utc)
+            u_at = do.updated_at.replace(tzinfo=timezone.utc)
+
+            note = MaterialNote(
+                project_id=do.project_id,
+                task_id=do.task_id,
+                source_type=SourceType(do.source_type),
+                raw_quote=do.raw_quote,
+                user_interpretation=do.user_interpretation,
+                context_reflection=do.context_reflection,
+                source_anchor=anchor,
+                tags=list(do.tags or [])
+            )
+            note.id = do.id
+            note.created_at = c_at
+            note.updated_at = u_at
+            notes.append(note)
+
+        return notes
+
     async def list_material_notes_cursor(
         self,
         project_id: Optional[str],

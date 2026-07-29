@@ -139,4 +139,3 @@ class AttachNoteResponse(BaseModel):
     """挂载笔记响应"""
     task_id: str
     material_note_id: str
-    attached_note_count: int

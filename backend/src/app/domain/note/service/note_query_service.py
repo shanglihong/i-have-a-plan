@@ -25,6 +25,9 @@ class NoteQueryDomainService:
     async def get_material_note_by_id(self, note_id: str) -> Optional[MaterialNote]:
         return await self.material_repo.find_material_by_id(note_id)
 
+    async def get_material_note_by_ids(self, note_ids: List[str]) -> List[MaterialNote]:
+        return await self.material_repo.find_material_by_ids(note_ids)
+
     async def list_material_notes_cursor(
         self,
         project_id: Optional[str],

@@ -1,8 +1,10 @@
 """Task 模块应用层 UseCase 实现模块 (管道与编排层)"""
 
-from typing import List, Tuple, Optional
-from app.domain.project.entities import Task, TaskChain, TaskStatus, TaskChainType, Project
-from app.domain.project.exceptions import TaskNotFoundException
+from typing import List
+
+from datetime import datetime, timezone
+from app.domain.note import NoteQueryDomainService, NoteStateDomainService, MaterialNote
+from app.domain.project.entities import TaskStatus, TaskChainType
 from app.domain.project.services.project_query_service import ProjectQueryDomainService
 from app.domain.project.services.task_operation_service import TaskOperationDomainService
 from app.domain.project.services.task_state_service import TaskStateDomainService
@@ -155,49 +157,54 @@ class TaskNoteAttachmentUseCase:
         self,
         query_service: TaskQueryDomainService,
         operation_service: TaskOperationDomainService,
+        note_query_service: NoteQueryDomainService,
+        note_state_service: NoteStateDomainService,
+
     ):
         self.query_service = query_service
         self.operation_service = operation_service
+        self.note_query_service = note_query_service
+        self.note_state_service = note_state_service
 
     async def list_notes(self, task_id: str) -> List[MaterialNoteVO]:
-        # 直接委托领域服务查询完整的笔记实体列表和项目 ID，不在此处访问 Repo 
+        # 直接委托领域服务查询完整的笔记实体列表和项目 ID
         note_ids = await self.query_service.list_attached_note_ids(task_id)
-        return []
-        # TODO  请求note领域获取详细信息
-        # notes_vo = []
-        # for note in notes:
-        #     notes_vo.append(
-        #         MaterialNoteVO(
-        #             id=note.id,
-        #             project_id=project_id,
-        #             task_id=task_id,
-        #             source_type="USER_THOUGHT",
-        #             original_snippet="",
-        #             paraphrase=note.content,
-        #             scenario_context="Task 关联笔记",
-        #             tags=note.tags,
-        #             created_at=note.created_at.isoformat() if hasattr(note.created_at, "isoformat") else str(note.created_at)
-        #         )
-        #     )
-        # return notes_vo
+        notes = await self.note_query_service.get_material_note_by_ids(note_ids)
+        notes_vo = []
+        for note in notes:
+            notes_vo.append(
+                MaterialNoteVO(
+                    id=note.id,
+                    project_id=note.project_id,
+                    task_id=task_id,
+                    source_type="USER_THOUGHT",
+                    original_snippet="",
+                    paraphrase=note.user_interpretation,
+                    scenario_context="Task 关联笔记",
+                    tags=note.tags,
+                    created_at=note.created_at.isoformat() if hasattr(note.created_at, "isoformat") else str(note.created_at)
+                )
+            )
+        return notes_vo
 
-    async def attach_or_create(self, task_id: str, dto: CreateOrAttachTaskNoteDTO) -> None:
-        return
-        # 直接委托给领域服务执行挂载/新笔记创建并修改角标计数
-        # task, note_id = await self.note_attachment_service.attach_note(
-        #     task_id=task_id,
-        #     material_note_id=dto.material_note_id,
-        #     paraphrase=dto.paraphrase,
-        #     original_snippet=dto.original_snippet,
-        #     scenario_context=dto.scenario_context,
-        #     tags=dto.tags
-        # )
-        #
-        # return AttachNoteResponse(
-        #     task_id=task_id,
-        #     material_note_id=note_id,
-        #     attached_note_count=task.attached_note_count
-        # )
+    async def attach_or_create(self, task_id: str, dto: CreateOrAttachTaskNoteDTO) -> AttachNoteResponse:
+        if dto.material_note_id:
+            await self.operation_service.attach_note(task_id, dto.material_note_id)
+        # 先创建note然后绑定
+        note = MaterialNote(
+            task_id=task_id,
+            user_interpretation=dto.paraphrase or "",
+            raw_quote=dto.original_snippet,
+            context_reflection=dto.scenario_context,
+            tags=dto.tags
+        )
+        await self.note_state_service.create_material_note(note)
+        await self.operation_service.attach_note(task_id, note.id)
+
+        return AttachNoteResponse(
+            task_id=task_id,
+            material_note_id=dto.material_note_id or note.id,
+        )
 
     async def detach(self, task_id: str, note_id: str) -> None:
         await self.operation_service.detach_note(task_id, note_id)
