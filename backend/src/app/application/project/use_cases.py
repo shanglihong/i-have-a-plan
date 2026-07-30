@@ -4,6 +4,8 @@
 严禁直接依赖 RepositoryPort 或存储接口。
 """
 
+from app.domain.agent import AgentMode
+from app.domain.agent import AgentStateService
 from typing import Optional
 from datetime import datetime
 from fastapi import UploadFile, HTTPException, status
@@ -58,15 +60,20 @@ class CreateProjectUseCase:
         self,
         creation_service: ProjectStateDomainService,
         book_creation_service: BookCreationDomainService,
+        agent_state_service: AgentStateService,
     ):
         self.creation_service = creation_service
         self.book_creation_service = book_creation_service
+        self.agent_state_service = agent_state_service
 
     async def create_plan_project(self, dto: CreatePlanProjectDTO) -> ProjectResponseDTO:
+        project_id = f"proj_{id_worker.next_id_str()}"
+        session = await self.agent_state_service.create_agent_session(project_id=project_id, mode=AgentMode.TASK_BREAKDOWN, skill_id=dto.skill_id)
         project = await self.creation_service.create_plan_project(
+            project_id=project_id,
             title=dto.title,
             deadline=dto.deadline,
-            agent_id="" # TODO
+            agent_id=session.agent_id,
         )
         return ProjectResponseDTO.from_domain(project)
 
@@ -92,12 +99,13 @@ class CreateProjectUseCase:
             storage_path=storage_path or "",
         )
 
+        session = await self.agent_state_service.create_agent_session(project_id=project_id, mode=AgentMode.READING_COMPANION)
         project = await self.creation_service.create_reading_project(
             project_id=project_id,
             title=title,
             deadline=deadline,
             book_id=book.id,
-            agent_id="", # TODO
+            agent_id=session,
         )
 
         return ProjectResponseDTO.from_domain(

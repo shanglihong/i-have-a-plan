@@ -11,10 +11,11 @@ class ProjectFactory:
     @staticmethod
     def build_plan_project(
         title: str,
+        project_id: Optional[str] = None,
         deadline: Optional[datetime] = None,
     ) -> Project:
         now = datetime.now(timezone.utc)
-        return Project(
+        p = Project(
             title=title,
             project_type=ProjectType.PLAN,
             status=ProjectStatus.INIT,
@@ -22,6 +23,9 @@ class ProjectFactory:
             created_at=now,
             updated_at=now,
         )
+        if project_id:
+            p.project_id = project_id
+        return p
 
     @staticmethod
     def build_reading_project(

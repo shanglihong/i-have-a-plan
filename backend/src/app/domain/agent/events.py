@@ -1,7 +1,7 @@
 """统一 Agent 领域事件模块"""
 
 from dataclasses import dataclass
-from app.domain.common.base_event import BaseEvent
+from app.domain import BaseEvent
 
 
 @dataclass

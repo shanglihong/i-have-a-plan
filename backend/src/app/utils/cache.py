@@ -46,7 +46,3 @@ class LRUCache(Generic[T]):
 
     def __len__(self) -> int:
         return len(self.cache)
-
-
-# 全局默认图书解析内容 LRU 缓存实例 (包含最多 50 本书解析 JSON 的内存缓存)
-book_content_cache = LRUCache[dict](capacity=50)

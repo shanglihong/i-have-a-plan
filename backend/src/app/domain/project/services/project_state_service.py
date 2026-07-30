@@ -35,11 +35,12 @@ class ProjectStateDomainService:
     async def create_plan_project(
         self,
         title: str,
+        project_id: Optional[str] = None,
         deadline: Optional[datetime] = None,
         agent_id: Optional[str] = None,
     ) -> Project:
         # 1. 使用 Factory 构建 INIT 状态项目聚合根
-        project = ProjectFactory.build_plan_project(title=title, deadline=deadline)
+        project = ProjectFactory.build_plan_project(title=title, project_id=project_id, deadline=deadline)
 
         # 2. Agent 句柄并绑定
         if agent_id:

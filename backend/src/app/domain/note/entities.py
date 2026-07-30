@@ -52,6 +52,7 @@ class MaterialNote(BaseEntity):
     user_interpretation: str = ""             # 个人转述
     context_reflection: Optional[str] = None  # 关联自身经历/情景
     source_anchor: Optional[SourceAnchor] = None
+    discuss_message_id: Optional[str] = None  # AI 对话来源消息 ID
     tags: List[str] = field(default_factory=list)
 
 

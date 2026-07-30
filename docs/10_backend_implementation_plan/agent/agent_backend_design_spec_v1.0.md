@@ -76,6 +76,7 @@ graph TD
             OP_Project["ProjectTaskPort (Task 树挂载)"]
             OP_Note["NoteDomainPort (笔记保存)"]
             OP_Repo["AgentRepositoryPort (SQLite 持久化)"]
+            OP_LLM["LLMServicePort (真实大模型通信)"]
         end
     end
 
@@ -86,6 +87,7 @@ graph TD
         ExternalBook["Book 领域 / 沙箱磁盘切片"]
         ExternalProject["Project / Task 领域"]
         ExternalNote["Note 领域"]
+        LLMProvider["大模型提供商 (OpenAI/DeepSeek等)"]
     end
 
     REST_SSE --> IP_Stream
@@ -112,6 +114,7 @@ graph TD
     TaskParser -.-> OP_Project
     UC_ConvertNote -.-> OP_Note
     SessionAgg -.-> OP_Repo
+    UC_AgentStream -.-> OP_LLM
 
     OP_Sandbox -.-> SandboxFS
     OP_Repo -.-> DB
@@ -119,6 +122,7 @@ graph TD
     OP_Book -.-> ExternalBook
     OP_Project -.-> ExternalProject
     OP_Note -.-> ExternalNote
+    OP_LLM -.-> LLMProvider
 ```
 
 ---
@@ -345,6 +349,17 @@ class NoteDomainPort(ABC):
     """Note 领域思考笔记保存接口"""
     @abstractmethod
     def create_material_note(self, project_id: str, content: str, user_paraphrase: str, source_anchor_id: Optional[str], source_type: str) -> Dict[str, Any]: ...
+
+class LLMServicePort(ABC):
+    """大模型服务端口 (Outbound Port)，提供流式交互并支持持久化与上下文管理"""
+    @abstractmethod
+    async def stream_chat(
+        self,
+        session_id: str,
+        prompt: str,
+        system_instruction: Optional[str] = None,
+    ) -> AsyncGenerator[str, None]: ...
+
 ```
 
 ---

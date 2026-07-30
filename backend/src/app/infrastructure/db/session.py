@@ -1,24 +1,16 @@
 """数据库引擎与异步 Session 管理"""
 
+from app.utils.path import get_db_dir
 import os
 from pathlib import Path
 from typing import AsyncGenerator
 from sqlmodel import SQLModel
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-try:
-    from dotenv import load_dotenv, find_dotenv
-    load_dotenv(find_dotenv(usecwd=True))
-except ImportError:
-    pass
-
-
-from app.utils.path import get_workspace_dir
-
 
 def get_database_path() -> Path:
     """获取 SQLite 数据库物理文件绝对路径"""
-    return get_workspace_dir() / "db" / "app.db"
+    return get_db_dir() / "app.db"
 
 
 def get_database_url() -> str:

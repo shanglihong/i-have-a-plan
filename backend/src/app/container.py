@@ -13,11 +13,21 @@ from app.infrastructure.db.repositories.project_repository import ProjectReposit
 from app.infrastructure.db.repositories.task_repository import TaskRepository, NoteAttachmentRepositoryAdapter
 from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
 from app.infrastructure.db.repositories.note_repository import NoteRepositoryAdapter
+from app.infrastructure.db.repositories.agent_repository import InMemoryAgentRepositoryAdapter
 from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
 from app.infrastructure.file_storage.note_storage import LocalNoteFileStorageAdapter
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
+from app.infrastructure.llm.langchain_llm_service import LangChainLLMService
+from app.domain.agent.tools import build_tools
+from app.domain.agent.tools.tool_ports import BookQueryPort, ProjectTaskPort
+from app.domain.agent.entities import AgentMode
 
 # 领域层服务
+from app.domain.agent.service import (
+    AgentChatDomainService,
+    AgentStateService,
+    AgentQueryDomainService,
+)
 from app.domain.note.service import (
     NoteQueryDomainService,
     NoteStateDomainService,
@@ -158,6 +168,43 @@ class AppContainer:
             kb_repo=self.kb_repo,
             synthesized_repo=self.note_repo,
         )
+
+        # 4. Agent 领域服务 (Agent Domain Services)
+        self.agent_repo = InMemoryAgentRepositoryAdapter()
+
+        # 不同场景的工具集：由 stream_chat 调用时按 mode 动态传入
+        companion_tools = build_tools(
+            book_query_port=self.book_repo,
+            project_task_port=None,           # 伴读模式无需挂载任务树工具
+        )
+        task_tools = build_tools(
+            book_query_port=self.book_repo,
+            project_task_port=self.task_repo,
+        )
+        tools_by_mode = {
+            AgentMode.READING_COMPANION: companion_tools,
+            AgentMode.TASK_BREAKDOWN: task_tools,
+        }
+
+        self.llm_service = LangChainLLMService()
+        self.agent_chat_service = AgentChatDomainService(
+            repository=self.agent_repo,
+            llm_service=self.llm_service,
+        )
+        self.agent_state_service = AgentStateService(repository=self.agent_repo)
+        self.agent_query_service = AgentQueryDomainService(
+            repository=self.agent_repo,
+            llm_service=self.llm_service,
+        )
+
+    def get_agent_use_cases(self) -> Dict[str, Any]:
+        """打包并提供 REST API 层使用的 Agent 领域用例/服务字典"""
+        return {
+            "agent_chat_service": self.agent_chat_service,
+            "agent_state_service": self.agent_state_service,
+            "agent_query_service": self.agent_query_service,
+        }
+
 
     def get_book_use_cases(self) -> Dict[str, Any]:
         """打包并提供 REST API 层使用的 Book 领域用例字典"""

@@ -1,8 +1,10 @@
 """统一 Agent 领域 Ports 端口抽象模块"""
 
+from langchain_core.messages import BaseMessage
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Dict, List, Optional
-from app.domain.agent.entities import AgentMessage, AgentSession
+from typing import Any, AsyncGenerator, AsyncIterator, Dict, List, Optional
+from app.domain.agent.entities import AgentSession
+from app.domain.agent.stream_events import StreamEvent
 
 
 class AgentRepositoryPort(ABC):
@@ -19,49 +21,43 @@ class AgentRepositoryPort(ABC):
         pass
 
     @abstractmethod
-    async def save_message(self, message: AgentMessage) -> None:
-        """保存 Agent 消息实体"""
+    async def find_session_by_id(self, session_id: str) -> Optional[AgentSession]:
+        """通过 ID 查找 Agent 会话"""
+        pass
+
+
+class LLMServicePort(ABC):
+    """大模型调用服务端口 (Outbound Port)"""
+
+    @abstractmethod
+    async def stream_chat(
+        self,
+        session_id: str,
+        prompt: str,
+        system_instruction: Optional[str] = None,
+        source_anchor_id: Optional[str] = None,
+        tools: Optional[List] = None,
+    ) -> AsyncGenerator[StreamEvent, None]:
+        """流式大模型生成接口，内部支持持久化与上下文管理
+
+        Args:
+            tools: 当前调用场景的工具列表，为空则退化为纯对话模式。
+        Yields:
+            StreamEvent 实例，可用 .type 区分事件种类，.data 取负载数据。
+        """
         pass
 
     @abstractmethod
-    async def list_messages(
-        self, session_id: str, page: int = 1, page_size: int = 20
-    ) -> tuple[List[AgentMessage], int]:
-        """获取 Agent 会话历史消息列表"""
+    async def get_messages(self, session_id: str) -> List[BaseMessage]:
+        """获取指定会话的历史消息列表"""
         pass
 
     @abstractmethod
-    async def find_message_by_id(self, message_id: str) -> Optional[AgentMessage]:
-        """通过 ID 查找 Agent 消息"""
-        pass
-
-
-class SandboxRunnerPort(ABC):
-    """受限物理沙箱 Agent 运行端口 (PA-05)"""
-
-    @abstractmethod
-    async def ensure_runner_started(self, agent_id: str) -> str:
-        """保证沙箱 Runner 懒加载启动，返回 runner 句柄"""
+    async def get_message_by_id(self, session_id: str, message_id: str) -> Optional[BaseMessage]:
+        """获取会话中指定 ID 的消息"""
         pass
 
     @abstractmethod
-    async def execute_stream(
-        self, runner_handle: str, formatted_prompt: str
-    ) -> AsyncGenerator[Dict[str, str], None]:
-        """通过 Pipe 管道向沙箱发送 Prompt，流式生成 Token 及 Action Cards"""
+    async def update_message_kwargs(self, session_id: str, message_id: str, additional_kwargs: dict) -> None:
+        """更新指定消息的 additional_kwargs"""
         pass
-
-
-class AgentDomainPort(ABC):
-    """Agent 领域组装与绑定 Outbound Port 依赖防腐接口 (暴露跨领域服务)"""
-
-    @abstractmethod
-    async def assemble_and_bind_agent(self, project_id: str, skill_id: Optional[str] = None) -> str:
-        """组装计划监督 Agent，返回 assigned_agent_id 句柄"""
-        pass
-
-    @abstractmethod
-    async def assemble_and_bind_companion_agent(self, project_id: str, skill_id: Optional[str] = None) -> str:
-        """组装伴读 Agent，返回 assigned_agent_id 句柄"""
-        pass
-

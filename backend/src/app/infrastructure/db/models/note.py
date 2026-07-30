@@ -17,6 +17,7 @@ class MaterialNoteDO(SQLModel, table=True):
     user_interpretation: str = Field(default="")
     context_reflection: Optional[str] = Field(default=None)
     anchor_json: Optional[str] = Field(default=None)  # 序列化后的 SourceAnchor json 字符串
+    discuss_message_id: Optional[str] = Field(default=None, index=True)
     tags: Any = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

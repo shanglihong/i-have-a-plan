@@ -51,6 +51,7 @@ class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositor
                 user_interpretation=note.user_interpretation,
                 context_reflection=note.context_reflection,
                 anchor_json=anchor_json,
+                discuss_message_id=note.discuss_message_id,
                 tags=note.tags,
                 created_at=created_at_utc,
                 updated_at=updated_at_utc
@@ -64,6 +65,7 @@ class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositor
             do.user_interpretation = note.user_interpretation
             do.context_reflection = note.context_reflection
             do.anchor_json = anchor_json
+            do.discuss_message_id = note.discuss_message_id
             do.tags = note.tags
             do.updated_at = updated_at_utc
             
@@ -99,6 +101,7 @@ class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositor
             user_interpretation=do.user_interpretation,
             context_reflection=do.context_reflection,
             source_anchor=anchor,
+            discuss_message_id=do.discuss_message_id,
             tags=list(do.tags or [])
         )
         note.id = do.id
@@ -141,6 +144,7 @@ class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositor
                 user_interpretation=do.user_interpretation,
                 context_reflection=do.context_reflection,
                 source_anchor=anchor,
+                discuss_message_id=do.discuss_message_id,
                 tags=list(do.tags or [])
             )
             note.id = do.id
@@ -215,6 +219,7 @@ class NoteRepositoryAdapter(MaterialNoteRepositoryPort, SynthesizedNoteRepositor
                 user_interpretation=do.user_interpretation,
                 context_reflection=do.context_reflection,
                 source_anchor=anchor,
+                discuss_message_id=do.discuss_message_id,
                 tags=list(do.tags or [])
             )
             note.id = do.id

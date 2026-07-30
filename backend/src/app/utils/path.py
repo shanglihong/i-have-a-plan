@@ -8,6 +8,9 @@ def get_workspace_dir() -> Path:
     """获取工作空间绝对路径 (优先使用 WORKSPACE_DIR 环境变量，默认使用当前工作目录)"""
     return Path(os.getenv("WORKSPACE_DIR") or os.getcwd()).expanduser().resolve()
 
+def get_db_dir() -> Path:
+    return Path(get_workspace_dir()) / "db"
+
 def get_project_dir() -> Path:
     return Path(get_workspace_dir()) / "projects"
 

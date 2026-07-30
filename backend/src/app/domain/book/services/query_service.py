@@ -8,7 +8,7 @@ from app.domain.book.exceptions import (
     BookParsingFailedException,
     ChapterNotFoundException
 )
-from app.utils.cache import LRUCache, book_content_cache
+from app.utils.cache import LRUCache
 
 
 class BookQueryDomainService:
@@ -55,7 +55,7 @@ class BookChapterContentDomainService:
     ):
         self.repository = repository
         self.file_storage = file_storage
-        self.cache = cache if cache is not None else book_content_cache
+        self.cache = cache if cache is not None else LRUCache[dict](capacity=50)
 
     async def _get_all_parsed_content(self, content_json_path: str) -> Dict[str, Any]:
         """获取图书的全量解析数据（优先命中 LRU 缓存）"""
