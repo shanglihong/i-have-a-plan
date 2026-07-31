@@ -133,6 +133,11 @@ class Book(BaseEntity):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
+    @property
+    def toc_tree(self) -> List[TocNode]:
+        """获取强类型的 TocNode 目录大纲节点列表"""
+        return [TocNode.from_dict(item) for item in self.parsed_structure]
+
     def is_completed(self) -> bool:
         return self.parsing_status == ParsingStatus.COMPLETED
 

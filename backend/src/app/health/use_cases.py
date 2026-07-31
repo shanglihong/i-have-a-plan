@@ -1,11 +1,11 @@
-"""应用层启动自愈用例 (StartupHealingUseCase)"""
+"""启动全局自愈用例 (StartupHealingUseCase)"""
 
 import logging
 from typing import List
 
-from app.application.health.book_health import BookHealing
-from app.application.health.note_health import NoteHealing
-from app.application.health.project_health import ProjectHealing
+from app.health.book_health import BookHealing
+from app.health.note_health import NoteHealing
+from app.health.project_health import ProjectHealing
 from app.infrastructure.db.session import get_async_session
 from app.container import AppContainer
 

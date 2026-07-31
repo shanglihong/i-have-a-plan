@@ -79,7 +79,7 @@ class GetBookTocUseCase:
         b_id, toc_tree = await self.query_service.get_toc_tree(book_id)
         return TocResponseDTO(
             book_id=b_id,
-            toc_tree=toc_tree
+            toc_tree=[node.model_dump(mode="json") for node in toc_tree]
         )
 
 

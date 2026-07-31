@@ -1,7 +1,7 @@
 """书籍领域查询服务 (Domain Services)"""
 
 from typing import List, Dict, Any, Tuple, Optional
-from app.domain.book.entities import Book, ChapterContent, ContentBlock, ParsingStatus
+from app.domain.book.entities import Book, TocNode, ChapterContent, ContentBlock, ParsingStatus
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.exceptions import (
     BookNotFoundException,
@@ -17,11 +17,11 @@ class BookQueryDomainService:
     def __init__(self, repository: BookRepositoryPort):
         self.repository = repository
 
-    async def get_toc_tree(self, book_id: str) -> Tuple[str, List[Dict[str, Any]]]:
+    async def get_toc_tree(self, book_id: str) -> Tuple[str, List[TocNode]]:
         book = await self.repository.find_by_id(book_id)
         if not book:
             raise BookNotFoundException(book_id)
-        return book.id, book.parsed_structure or []
+        return book.id, book.toc_tree
 
     async def get_book_by_id(self, book_id: str) -> Book:
         book = await self.repository.find_by_id(book_id)
@@ -51,23 +51,34 @@ class BookChapterContentDomainService:
         self,
         repository: BookRepositoryPort,
         file_storage: BookFileStoragePort,
-        cache: Optional[LRUCache[Dict[str, Any]]] = None
+        cache: Optional[LRUCache[Dict[str, List[ContentBlock]]]] = None
     ):
         self.repository = repository
         self.file_storage = file_storage
         self.cache = cache if cache is not None else LRUCache[dict](capacity=50)
 
-    async def _get_all_parsed_content(self, content_json_path: str) -> Dict[str, Any]:
-        """获取图书的全量解析数据（优先命中 LRU 缓存）"""
+    async def _get_all_parsed_content(self, content_json_path: str) -> Dict[str, List[ContentBlock]]:
+        """获取图书的全量解析数据（章节 ID -> ContentBlock 列表，优先命中 LRU 缓存）"""
         cached_content = self.cache.get(content_json_path)
         if cached_content is not None:
             return cached_content
 
-        all_parsed = await self.file_storage.read_all_parsed_content(content_json_path) or {}
-        if all_parsed:
-            self.cache.set(content_json_path, all_parsed)
+        raw_parsed = await self.file_storage.read_all_parsed_content(content_json_path) or {}
+        parsed_domain_map: Dict[str, List[ContentBlock]] = {}
 
-        return all_parsed
+        if raw_parsed:
+            for chapter_id, raw_blocks in raw_parsed.items():
+                if isinstance(raw_blocks, list):
+                    parsed_domain_map[chapter_id] = [
+                        ContentBlock.from_dict(b) if isinstance(b, dict) else b
+                        for b in raw_blocks
+                    ]
+                else:
+                    parsed_domain_map[chapter_id] = []
+
+            self.cache.set(content_json_path, parsed_domain_map)
+
+        return parsed_domain_map
 
     async def get_chapter_content(
         self,
@@ -90,15 +101,10 @@ class BookChapterContentDomainService:
             raise ChapterNotFoundException(chapter_id)
 
         # 3. 计算章节内 ContentBlock 分页切片
-        raw_blocks = all_parsed.get(chapter_id, [])
-        total_blocks = len(raw_blocks)
-        sliced_raw = raw_blocks[offset: offset + limit]
+        chapter_blocks = all_parsed.get(chapter_id, [])
+        total_blocks = len(chapter_blocks)
+        sliced_blocks = chapter_blocks[offset: offset + limit]
         has_more = (offset + limit) < total_blocks
-
-        sliced_blocks = [
-            ContentBlock.from_dict(b) if isinstance(b, dict) else b
-            for b in sliced_raw
-        ]
 
         # 4. 计算前一章与后一章 ID
         all_chapter_ids = list(all_parsed.keys())
@@ -133,7 +139,7 @@ class BookChapterContentDomainService:
         except Exception:
             return False
 
-    async def get_chapter_content_blocks(self, book_id: str, chapter_id: str) -> List[dict]:
+    async def get_chapter_content_blocks(self, book_id: str, chapter_id: str) -> List[ContentBlock]:
         """读取章节 ContentBlock 列表以进行锚点三层重锚定解算"""
         try:
             content = await self.get_chapter_content(
@@ -142,14 +148,29 @@ class BookChapterContentDomainService:
                 offset=0,
                 limit=99999
             )
-            return [
-                {
-                    "block_id": b.block_id,
-                    "block_type": b.block_type.value,
-                    "text": b.text,
-                    "sequence_index": b.sequence_index
-                }
-                for b in content.blocks
-            ]
+            return content.blocks
         except Exception:
             return []
+
+    async def get_block_by_id(self, block_id: str, book_id: str) -> Optional[Tuple[ContentBlock, str]]:
+        try:
+            target_books: List[Book] = []
+            single_book = await self.repository.find_by_id(book_id)
+            if single_book and single_book.is_completed():
+                target_books = [single_book]
+
+            for book in target_books:
+                if not book.content_json_path:
+                    continue
+
+                all_parsed = await self._get_all_parsed_content(book.content_json_path)
+                if not all_parsed:
+                    continue
+
+                for chapter_id, blocks in all_parsed.items():
+                    for block in blocks:
+                        if block.block_id == block_id:
+                            return block, chapter_id
+            return None
+        except Exception:
+            return None

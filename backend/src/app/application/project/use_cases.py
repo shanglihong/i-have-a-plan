@@ -4,18 +4,28 @@
 严禁直接依赖 RepositoryPort 或存储接口。
 """
 
+import logging
 from app.domain.agent import AgentMode
 from app.domain.agent import AgentStateService
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from fastapi import UploadFile, HTTPException, status
 
 from app.domain.base import SortOrder
-from app.domain.project.entities import ProjectStatus, ProjectType, ProjectSortBy
+from app.domain.project.entities import (
+    ProjectStatus,
+    ProjectType,
+    ProjectSortBy,
+    TaskChain,
+    Task,
+    TaskChainType,
+    TaskStatus,
+)
 from app.domain.project.services import (
     ProjectStateDomainService,
     ProjectQueryDomainService,
     ExperienceNoteDomainService,
+    TaskOperationDomainService,
 )
 from app.utils.path import get_book_dir
 
@@ -23,7 +33,9 @@ from app.domain.book.services import (
     BookCreationDomainService,
     BookQueryDomainService,
 )
-from app.domain.book.entities import ParsingStatus
+from app.domain.book.entities import ParsingStatus, TocNode
+
+logger = logging.getLogger(__name__)
 from app.application.project.dtos import (
     CreatePlanProjectDTO,
     UpdateProjectDTO,
@@ -311,4 +323,69 @@ class CompletePlanTaskTreeUseCase:
                 status_code=status.HTTP_409_CONFLICT,
                 detail=str(e),
             )
+
+
+class MountBookTaskTreeUseCase:
+    """电子书解析完成后自动构建大纲并挂载激活项目 UseCase"""
+
+    def __init__(
+        self,
+        book_service: BookQueryDomainService,
+        task_op_service: TaskOperationDomainService,
+    ):
+        self.book_service = book_service
+        self.task_op_service = task_op_service
+
+    async def execute(self, project_id: str, book_id: str) -> None:
+        """从图书查询大纲树，转换为 TaskChain 并完成挂载与项目激活"""
+        toc_tree: List[TocNode] = []
+        try:
+            _, toc_tree = await self.book_service.get_toc_tree(book_id)
+        except Exception as e:
+            logger.error(f"获取 Book 大纲树失败 (book_id={book_id}): {e}", exc_info=True)
+
+        task_chains = self._build_task_chains_from_toc_tree(
+            project_id=project_id,
+            book_id=book_id,
+            toc_tree=toc_tree,
+        )
+        await self.task_op_service.mount_task_tree_and_activate(
+            project_id=project_id,
+            task_chains=task_chains,
+        )
+
+    @staticmethod
+    def _build_task_chains_from_toc_tree(
+        project_id: str, book_id: str, toc_tree: List[TocNode]
+    ) -> List[TaskChain]:
+        """根据 Book 目录大纲树构建 READING_CHAPTER 领域任务链列表"""
+        chains: List[TaskChain] = []
+
+        for idx, node in enumerate(toc_tree, start=1):
+            chain_id = f"chain_{node.id or idx}"
+            chapter_id = node.target_chapter_id or f"chap_{idx:02d}"
+            title = node.title or f"第 {idx} 章"
+
+            read_task = Task(
+                id=f"task_{chapter_id}_read",
+                title=f"精读 {title}",
+                description="完成对应章节正文切片阅读",
+                sequence_order=1,
+                status=TaskStatus.PENDING,
+            )
+
+            chain = TaskChain(
+                id=chain_id,
+                project_id=project_id,
+                title=title,
+                chain_type=TaskChainType.READING_CHAPTER,
+                sequence_order=idx,
+                status=TaskStatus.PENDING,
+                book_id=book_id,
+                chapter_id=chapter_id,
+                tasks=[read_task],
+            )
+            chains.append(chain)
+
+        return chains
 

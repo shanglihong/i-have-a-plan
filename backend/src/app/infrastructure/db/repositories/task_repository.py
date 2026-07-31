@@ -1,9 +1,10 @@
 """TaskRepository 实现模块 (专注 task_chains 与 tasks 表数据存储)"""
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, delete
 
+from app.utils.snow import id_worker
 from app.domain.project.entities import TaskChain, Task, TaskChainType, TaskStatus
 from app.domain.project.ports import TaskRepositoryPort, NoteAttachmentRepositoryPort
 from app.infrastructure.db.models.project import TaskChainDO, TaskDO, NoteAttachmentDO

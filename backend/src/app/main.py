@@ -13,7 +13,7 @@ from app.api.error_handler import register_error_handlers
 
 
 from app.consumers import register_consumers
-from app.application.health import StartupHealingUseCase
+from app.health import StartupHealingUseCase
 
 
 @asynccontextmanager

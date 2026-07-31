@@ -39,17 +39,7 @@ class PromptFactory:
     ) -> str:
         """根据 AgentMode 与 TriggerType 动态组装 Prompt"""
         # 统一提取参数默认值，并将 None 值替换为空白字符串，以便 format 替换
-        args = {
-            "skill_instruction": context.skill_instruction or "",
-            "chapter_summary": context.chapter_summary or "",
-            "selected_text": context.selected_text or "",
-            "context_blocks": (
-                "\n".join([str(b) for b in context.neighbor_blocks[:3]])
-                if context.neighbor_blocks
-                else ""
-            ),
-            "user_content": context.user_content or "",
-        }
+        args = context.to_template_args()
 
         # 根据模式选择对应的模板
         if mode == AgentMode.READING_COMPANION:

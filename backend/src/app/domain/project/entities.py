@@ -355,41 +355,6 @@ class Project(BaseEntity):
         self._rebuild_maps()
         self.updated_at = datetime.now(timezone.utc)
 
-    def attach_toc_tree(self, toc_tree: List[dict]) -> None:
-        """根据 Book 目录大纲树实例化 READING_CHAPTER 任务链树"""
-        chains: List[TaskChain] = []
-
-        for idx, node in enumerate(toc_tree, start=1):
-            chain_id = f"chain_{node.get('id', idx)}"
-            chapter_id = node.get("target_chapter_id", f"chap_{idx:02d}")
-            title = node.get("title", f"第 {idx} 章")
-
-            # 生成章节精读任务
-            read_task = Task(
-                id=f"task_{chapter_id}_read",
-                title=f"精读 {title}",
-                description="完成对应章节正文切片阅读",
-                sequence_order=1,
-                status=TaskStatus.PENDING,
-            )
-
-            chain = TaskChain(
-                id=chain_id,
-                project_id=self.id,
-                title=title,
-                chain_type=TaskChainType.READING_CHAPTER,
-                sequence_order=idx,
-                status=TaskStatus.PENDING,
-                book_id=self.book_id,
-                chapter_id=chapter_id,
-                tasks=[read_task],
-            )
-            chains.append(chain)
-
-        self.task_chains = chains
-        self._rebuild_maps()
-        self.updated_at = datetime.now(timezone.utc)
-
     def transit_to_active(self) -> None:
         """从 INIT 状态转换为 ACTIVE"""
         if self.status != ProjectStatus.INIT:

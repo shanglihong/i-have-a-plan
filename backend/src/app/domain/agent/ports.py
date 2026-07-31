@@ -35,7 +35,7 @@ class LLMServicePort(ABC):
         session_id: str,
         prompt: str,
         system_instruction: Optional[str] = None,
-        source_anchor_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         tools: Optional[List] = None,
     ) -> AsyncGenerator[StreamEvent, None]:
         """流式大模型生成接口，内部支持持久化与上下文管理

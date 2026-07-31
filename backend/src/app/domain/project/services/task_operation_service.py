@@ -1,7 +1,8 @@
 """任务写操作与树挂载领域服务 (Domain Service)"""
 
+from app.domain.project import TaskChain
 import logging
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from app.domain.project.entities import Project, Task
 from app.domain.project.ports import ProjectRepositoryPort, TaskRepositoryPort, NoteAttachmentRepositoryPort
@@ -31,18 +32,18 @@ class TaskOperationDomainService:
     async def mount_task_tree_and_activate(
         self,
         project_id: str,
-        toc_tree: List[dict]
+        task_chains: List[TaskChain]
     ) -> Optional[Project]:
         """
-        挂载任务树并扭转项目状态为 ACTIVE
+        挂载领域任务树 (TaskChain 结构) 并扭转项目状态为 ACTIVE
         """
         project = await self.project_repo.get_by_id(project_id)
         if not project:
             logger.warning(f"挂载任务树失败，未找到项目: project_id={project_id}")
             return None
 
-        # 挂载解析后的目录大纲树，并扭转项目为 ACTIVE
-        project.attach_toc_tree(toc_tree)
+        # 挂载结构化任务树并扭转项目状态为 ACTIVE
+        project.attach_task_tree(task_chains)
         project.transit_to_active()
 
         # 持久化落盘
@@ -59,8 +60,7 @@ class TaskOperationDomainService:
         await self.event_publisher.publish(created_event)
         await self.event_publisher.publish(TaskTreeCreatedEvent(project_id=project.id))
 
-
-        logger.info(f"成功挂载图书大纲与任务树并激活项目: project_id={project_id}")
+        logger.info(f"成功挂载任务树并激活项目: project_id={project_id}")
         return project
 
 

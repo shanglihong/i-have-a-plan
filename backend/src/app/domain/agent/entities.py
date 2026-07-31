@@ -85,10 +85,26 @@ class TriggerType(str, Enum):
 class PromptContext:
     """Agent 拼装 Prompt 所需的上下文数据值对象"""
     user_content: str
+    project_id: Optional[str] = None
     skill_instruction: Optional[str] = None
     selected_text: Optional[str] = None
     chapter_summary: Optional[str] = None
     neighbor_blocks: Optional[List[Any]] = None
+
+    def to_template_args(self) -> dict:
+        """将上下文参数转为用于模板字符串格式化的字典（自动补充默认空串）"""
+        return {
+            "project_id": self.project_id or "",
+            "skill_instruction": self.skill_instruction or "",
+            "chapter_summary": self.chapter_summary or "",
+            "selected_text": self.selected_text or "",
+            "context_blocks": (
+                "\n".join([str(b) for b in self.neighbor_blocks[:3]])
+                if self.neighbor_blocks
+                else ""
+            ),
+            "user_content": self.user_content or "",
+        }
 
 
 

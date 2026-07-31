@@ -18,15 +18,16 @@ from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAda
 from app.infrastructure.file_storage.note_storage import LocalNoteFileStorageAdapter
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 from app.infrastructure.llm.langchain_llm_service import LangChainLLMService
-from app.domain.agent.tools import build_tools
-from app.domain.agent.tools.tool_ports import BookQueryPort, ProjectTaskPort
-from app.domain.agent.entities import AgentMode
 
 # 领域层服务
 from app.domain.agent.service import (
     AgentChatDomainService,
     AgentStateService,
     AgentQueryDomainService,
+)
+from app.infrastructure.adapters import (
+    TaskOperationProjectTaskAdapter,
+    BookQueryDomainAdapter,
 )
 from app.domain.note.service import (
     NoteQueryDomainService,
@@ -62,6 +63,7 @@ from app.application.project.use_cases import (
     ManageProjectStateUseCase,
     CreateExperienceNoteUseCase,
     CompletePlanTaskTreeUseCase,
+    MountBookTaskTreeUseCase,
 )
 from app.application.project.task_use_cases import (
     GetTaskTreeUseCase,
@@ -171,27 +173,19 @@ class AppContainer:
 
         # 4. Agent 领域服务 (Agent Domain Services)
         self.agent_repo = InMemoryAgentRepositoryAdapter()
-
-        # 不同场景的工具集：由 stream_chat 调用时按 mode 动态传入
-        companion_tools = build_tools(
-            book_query_port=self.book_repo,
-            project_task_port=None,           # 伴读模式无需挂载任务树工具
-        )
-        task_tools = build_tools(
-            book_query_port=self.book_repo,
-            project_task_port=self.task_repo,
-        )
-        tools_by_mode = {
-            AgentMode.READING_COMPANION: companion_tools,
-            AgentMode.TASK_BREAKDOWN: task_tools,
-        }
-
         self.llm_service = LangChainLLMService()
         self.agent_chat_service = AgentChatDomainService(
             repository=self.agent_repo,
             llm_service=self.llm_service,
+            tool_book_query=BookQueryDomainAdapter(
+                chapter_content_service=self.book_content_service,
+            ),
+            tool_project_task_port=TaskOperationProjectTaskAdapter(self.task_op_service),
         )
-        self.agent_state_service = AgentStateService(repository=self.agent_repo)
+        self.agent_state_service = AgentStateService(
+            repository=self.agent_repo,
+            event_publisher=self.event_bus,
+        )
         self.agent_query_service = AgentQueryDomainService(
             repository=self.agent_repo,
             llm_service=self.llm_service,
@@ -228,6 +222,10 @@ class AppContainer:
             "complete_tree_use_case": CompletePlanTaskTreeUseCase(
                 self.project_state_service,
                 self.project_query_service,
+            ),
+            "mount_book_task_tree_use_case": MountBookTaskTreeUseCase(
+                self.book_service,
+                self.task_op_service,
             ),
         }
 

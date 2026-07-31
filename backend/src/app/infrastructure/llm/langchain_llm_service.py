@@ -98,7 +98,7 @@ class LangChainLLMService(LLMServicePort):
         self,
         prompt: str,
         system_instruction: Optional[str] = None,
-        source_anchor_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, List[BaseMessage]]:
         """准备工作流输入消息"""
         messages = []
@@ -106,8 +106,8 @@ class LangChainLLMService(LLMServicePort):
             messages.append(SystemMessage(content=system_instruction))
         
         human_msg = HumanMessage(content=prompt)
-        if source_anchor_id:
-            human_msg.additional_kwargs["source_anchor_id"] = source_anchor_id
+        if metadata:
+            human_msg.additional_kwargs.update(metadata)
         messages.append(human_msg)
         return {"messages": messages}
 
@@ -165,7 +165,7 @@ class LangChainLLMService(LLMServicePort):
         session_id: str,
         prompt: str,
         system_instruction: Optional[str] = None,
-        source_anchor_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         tools: Optional[List] = None,
     ) -> AsyncGenerator[StreamEvent, None]:
         """使用 LangGraph 异步 SQLite checkpointer 执行流式对话生成
@@ -177,7 +177,7 @@ class LangChainLLMService(LLMServicePort):
             raise ValueError("OPENAI_API_KEY is not configured in environment variables.")
 
         async with self._get_compiled_app(tools=tools) as app:
-            inputs = self._prepare_inputs(prompt, system_instruction, source_anchor_id)
+            inputs = self._prepare_inputs(prompt, system_instruction, metadata)
             config: RunnableConfig = {"configurable": {"thread_id": session_id}}
             async for event in self._parse_event_stream(app.astream_events(inputs, config, version="v2")):
                 yield event

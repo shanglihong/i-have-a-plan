@@ -1,5 +1,11 @@
 """Agent 对话核心流程领域服务"""
 
+from app.domain.agent.tools import (
+    BookQueryPort,
+    ProjectTaskPort,
+    make_attach_task_tree_tool,
+    make_get_book_content_tool,
+)
 import uuid
 from typing import Any, AsyncGenerator, Dict, Optional
 from app.domain.agent.entities import AgentMode, TriggerType, PromptContext
@@ -21,9 +27,17 @@ class AgentChatDomainService:
         self,
         repository: AgentRepositoryPort,
         llm_service: LLMServicePort,
+
+        tool_book_query: BookQueryPort,
+        tool_project_task_port: ProjectTaskPort,
     ):
         self.repository = repository
         self.llm_service = llm_service
+
+        self.tools_by_mode = {
+            AgentMode.TASK_BREAKDOWN: [make_attach_task_tree_tool(tool_project_task_port)],
+            AgentMode.READING_COMPANION: [make_get_book_content_tool(tool_book_query)],
+        }
 
     async def stream_chat(
         self,
@@ -31,7 +45,7 @@ class AgentChatDomainService:
         mode: AgentMode,
         trigger_type: TriggerType,
         context: PromptContext,
-        source_anchor_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """流式对话与大模型交互"""
         session = await self.repository.get_active_session(project_id)
@@ -51,10 +65,10 @@ class AgentChatDomainService:
         try:
             # 真实调用大模型流式输出
             full_response_content = ""
-            async for event in self.llm_service.stream_chat( # TODO 传递message会不会好点！！！！！！！
+            async for event in self.llm_service.stream_chat(
                 session_id=session.id,
                 prompt=formatted_prompt,
-                source_anchor_id=source_anchor_id,
+                metadata=metadata,
                 tools=self.tools_by_mode.get(mode, []),
             ):
                 if event.type == StreamEventType.TOKEN:
@@ -71,7 +85,6 @@ class AgentChatDomainService:
             if mode == AgentMode.TASK_BREAKDOWN:
                 print("----------------------------------------")
                 # TODO 真正的挂载工具 ---------------------
-                # TODO 提示词优化 --------------
                 # task_chains = TaskTreeParserService.parse_task_tree_json(full_response_content)
                 # if task_chains:
                 #     # 挂载任务树

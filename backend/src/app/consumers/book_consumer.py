@@ -6,9 +6,9 @@
 
 import logging
 from app.domain.book.events import BookCreatedEvent, BookParsedEvent
+from app.application.project.use_cases import MountBookTaskTreeUseCase
 from app.infrastructure.db.session import get_async_session
 from app.container import AppContainer
-from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +34,11 @@ async def handle_book_parsed(event: BookParsedEvent) -> None:
     try:
         async for session in get_async_session():
             container = AppContainer(session)
-
-            toc_tree: List[Dict[str, Any]] = []
-            try:
-                _, toc_tree = await container.book_service.get_toc_tree(event.book_id)
-            except Exception as e:
-                logger.error(f"获取 Book 大纲树失败 (book_id={event.book_id}): {e}", exc_info=True)
-
-            await container.task_op_service.mount_task_tree_and_activate(project_id=event.project_id, toc_tree=toc_tree)
+            use_case = MountBookTaskTreeUseCase(
+                book_service=container.book_service,
+                task_op_service=container.task_op_service,
+            )
+            await use_case.execute(project_id=event.project_id, book_id=event.book_id)
             logger.info(f"[BookConsumer] 项目任务(Task)树挂载并激活成功: project_id={event.project_id}")
             break
     except Exception as e:
