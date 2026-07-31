@@ -3,8 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from langchain_core.tools import BaseTool
-from app.domain.agent.entities import AgentMode, TriggerType
-from app.domain.agent.context import BaseAgentContext
+from app.domain.agent.entities import AgentMode, TriggerType, PromptContext
 
 
 class AgentSpecification(ABC):
@@ -22,6 +21,7 @@ class AgentSpecification(ABC):
         pass
 
     @abstractmethod
-    def format_prompt(self, context: BaseAgentContext, trigger_type: TriggerType) -> str:
+    def format_prompt(self, context: PromptContext, trigger_type: TriggerType) -> str:
         """根据上下文与触发类型格式化提示词"""
         pass
+

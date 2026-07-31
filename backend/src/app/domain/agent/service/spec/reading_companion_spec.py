@@ -3,8 +3,7 @@
 from typing import List
 from langchain_core.tools import BaseTool
 
-from app.domain.agent.context import BaseAgentContext
-from app.domain.agent.entities import AgentMode, TriggerType
+from app.domain.agent.entities import AgentMode, TriggerType, PromptContext
 from app.domain.agent.prompt.factory import PromptFactory
 from app.domain.agent.service.spec.base import AgentSpecification
 from app.domain.agent.tools import (
@@ -28,9 +27,10 @@ class ReadingCompanionAgentSpec(AgentSpecification):
     def get_tools(self) -> List[BaseTool]:
         return [self.book_content_tool, self.common_card_tool]
 
-    def format_prompt(self, context: BaseAgentContext, trigger_type: TriggerType) -> str:
+    def format_prompt(self, context: PromptContext, trigger_type: TriggerType) -> str:
         return PromptFactory.create_prompt(
             mode=self.mode,
             trigger_type=trigger_type,
             context=context,
         )
+

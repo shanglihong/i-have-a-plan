@@ -21,3 +21,10 @@ class InMemoryAgentRepositoryAdapter(AgentRepositoryPort):
 
     async def find_session_by_id(self, session_id: str) -> Optional[AgentSession]:
         return self._sessions.get(session_id)
+
+    async def find_session_by_agent_id(self, agent_id: str) -> Optional[AgentSession]:
+        for session in self._sessions.values():
+            if session.agent_id == agent_id and session.status != "TERMINATED":
+                return session
+        return None
+

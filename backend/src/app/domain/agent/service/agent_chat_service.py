@@ -1,8 +1,7 @@
 """Agent 对话核心流程领域服务"""
 
 from typing import Any, AsyncGenerator, Dict, List, Optional
-from app.domain.agent.context import BaseAgentContext
-from app.domain.agent.entities import AgentMode, TriggerType, AgentSession
+from app.domain.agent.entities import AgentMode, TriggerType, AgentSession, PromptContext
 from app.domain.agent.exceptions import AgentSessionNotFoundException
 from app.domain.agent.ports import AgentRepositoryPort, LLMServicePort
 from app.domain.agent.service.spec import AgentSpecificationRegistry
@@ -32,8 +31,9 @@ class AgentChatDomainService:
         project_id: str,
         mode: AgentMode,
         trigger_type: TriggerType,
-        context: BaseAgentContext,
+        context: PromptContext,
     ) -> AsyncGenerator[StreamEvent, None]:
+
         """公有流式对话业务入口：获取 Session、Agent 策略组装并驱动底层流"""
         session = await self.repository.get_active_session(project_id)
         if not session:

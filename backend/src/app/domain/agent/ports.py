@@ -25,6 +25,12 @@ class AgentRepositoryPort(ABC):
         """通过 ID 查找 Agent 会话"""
         pass
 
+    @abstractmethod
+    async def find_session_by_agent_id(self, agent_id: str) -> Optional[AgentSession]:
+        """通过 Agent ID 查找 Agent 会话"""
+        pass
+
+
 
 class LLMServicePort(ABC):
     """大模型调用服务端口 (Outbound Port)"""

@@ -1,8 +1,8 @@
 """Agent 领域应用层 Use Cases 流程编排模块"""
 
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
-from app.domain.agent.entities import AgentMode, TriggerType, ActionCard
-from app.domain.agent.context import BaseAgentContext
+from app.domain.agent.entities import AgentMode, TriggerType, ActionCard, PromptContext
+from app.domain.agent.context import CardInteractionContext
 from app.domain.agent.exceptions import AgentSessionNotFoundException
 from app.domain.agent.ports import AgentRepositoryPort, LLMServicePort
 from app.domain.agent.service.agent_chat_service import AgentChatDomainService
@@ -37,25 +37,26 @@ class AgentChatUseCase:
         project_id: str,
         mode: AgentMode,
         trigger_type: TriggerType,
-        context: BaseAgentContext,
+        context: PromptContext,
     ) -> AsyncGenerator[Dict[str, Any], None]:
+
         """应用层串联：卡片履约前置、驱动流对话、SSE 解析推送与卡片保存"""
         session = await self.repository.get_active_session(project_id)
         if not session:
             raise AgentSessionNotFoundException(f"未找到项目 {project_id} 的活动 Agent 会话")
 
-        card_id = getattr(context, "card_id", None)
-        card_response = getattr(context, "card_response", None)
-        message_id = getattr(context, "message_id", None)
+        # 通过skillId获取skill-content TODO
 
         # 1. 前置处理卡片履约记录
-        if trigger_type == TriggerType.CARD_INTERACTION and card_id:
-            await self.card_service.record_card_fulfillment(
-                session_id=session.id,
-                card_id=card_id,
-                card_response=card_response,
-                message_id=message_id,
-            )
+        if trigger_type == TriggerType.CARD_INTERACTION and isinstance(context, CardInteractionContext):
+            if context.card_id:
+                await self.card_service.record_card_fulfillment(
+                    session_id=session.id,
+                    card_id=context.card_id,
+                    card_response=context.card_response,
+                    message_id=context.message_id,
+                )
+
 
         # 2. 驱动底层 Chat 领域服务，并在应用层解析 SSE 事件流
         async for event in self.chat_service.stream_chat(
