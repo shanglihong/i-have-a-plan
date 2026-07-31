@@ -6,7 +6,7 @@ stream_chat 生成器统一 yield StreamEvent 实例，作为领域层的流协�
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 
 class StreamEventType:
@@ -24,6 +24,10 @@ class StreamEventType:
     # data: {"tool": str, "output": Any}
     TOOL_END = "TOOL_END"
 
+    # 卡片推送事件
+    # data: {"card_type": str, "title": str, "content": str, "payload": dict, "card_id": str}
+    CARD = "CARD"
+
     # 对话流完成标识
     # data: {"message_id": str, "session_id": str}
     DONE = "DONE"
@@ -37,34 +41,73 @@ class StreamEvent:
     避免各处手动拼装裸 dict，同时获得类型提示与字段约束。
     """
 
-    type: str
+    type: StreamEventType
     data: Dict[str, Any] = field(default_factory=dict)
+    message_id: Optional[str] = None
+
+    @property
+    def is_token(self) -> bool:
+        return self.type == StreamEventType.TOKEN
+    
+    @property
+    def is_tool_start(self) -> bool:
+        return self.type == StreamEventType.TOOL_START
+    
+    @property
+    def is_tool_end(self) -> bool:
+        return self.type == StreamEventType.TOOL_END
+    
+    @property
+    def is_card(self) -> bool:
+        return self.type == StreamEventType.CARD
+    
+    @property
+    def is_done(self) -> bool:
+        return self.type == StreamEventType.DONE
 
     def to_dict(self) -> Dict[str, Any]:
         """序列化为字典，供 SSE/JSON 层使用"""
-        return {"type": self.type, "data": self.data}
+        res = {"type": self.type, "data": self.data}
+        if self.message_id:
+            res["message_id"] = self.message_id
+        return res
 
     # --- 静态工厂方法 ---
 
     @staticmethod
-    def token(content: str) -> "StreamEvent":
+    def token(content: str, message_id: Optional[str] = None) -> "StreamEvent":
         """LLM 生成的 token 片段事件"""
-        return StreamEvent(type=StreamEventType.TOKEN, data={"content": content})
+        return StreamEvent(type=StreamEventType.TOKEN, data={"content": content}, message_id=message_id)
 
     @staticmethod
-    def tool_start(tool: str, input: Dict[str, Any]) -> "StreamEvent":
+    def tool_start(tool: str, input: Dict[str, Any], message_id: Optional[str] = None) -> "StreamEvent":
         """工具调用开始事件"""
-        return StreamEvent(type=StreamEventType.TOOL_START, data={"tool": tool, "input": input})
+        return StreamEvent(type=StreamEventType.TOOL_START, data={"tool": tool, "input": input}, message_id=message_id)
 
     @staticmethod
-    def tool_end(tool: str, output: Any) -> "StreamEvent":
+    def tool_end(tool: str, output: Any, message_id: Optional[str] = None) -> "StreamEvent":
         """工具调用结束事件"""
-        return StreamEvent(type=StreamEventType.TOOL_END, data={"tool": tool, "output": output})
+        return StreamEvent(type=StreamEventType.TOOL_END, data={"tool": tool, "output": output}, message_id=message_id)
 
     @staticmethod
-    def done(message_id: str, session_id: str) -> "StreamEvent":
+    def card(data: Dict[str, Any]) -> "StreamEvent":
+        return StreamEvent(
+            type=StreamEventType.CARD,
+            data=data,
+            message_id=data.get("message_id") or None,
+        )
+
+    @staticmethod
+    def done(message_id: Optional[str] = None, session_id: Optional[str] = None) -> "StreamEvent":
         """对话流完成标识事件"""
+        data = {}
+        if message_id:
+            data["message_id"] = message_id
+        if session_id:
+            data["session_id"] = session_id
+
         return StreamEvent(
             type=StreamEventType.DONE,
-            data={"message_id": message_id, "session_id": session_id},
+            data=data,
+            message_id=message_id,
         )

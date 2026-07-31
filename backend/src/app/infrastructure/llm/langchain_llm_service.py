@@ -128,21 +128,26 @@ class LangChainLLMService(LLMServicePort):
             # LLM 流式 token，仅取 chatbot 节点输出（排除 ToolNode 内部调 LLM 的响应）
             if event_type == self.EVENT_CHAT_MODEL_STREAM and node == self.CHATBOT_NODE:
                 chunk = event["data"]["chunk"]
+                msg_id = getattr(chunk, "id", None) or event.get("run_id")
                 if chunk.content:
-                    yield StreamEvent.token(chunk.content)
+                    yield StreamEvent.token(chunk.content, message_id=msg_id)
 
             # 工具执行开始
             elif event_type == self.EVENT_TOOL_START and node == self.TOOLS_NODE:
+                msg_id = event.get("run_id")
                 yield StreamEvent.tool_start(
                     tool=event["name"],
                     input=event["data"].get("input", {}),
+                    message_id=msg_id,
                 )
 
             # 工具执行结束
             elif event_type == self.EVENT_TOOL_END and node == self.TOOLS_NODE:
+                msg_id = event.get("run_id")
                 yield StreamEvent.tool_end(
                     tool=event["name"],
                     output=event["data"].get("output"),
+                    message_id=msg_id,
                 )
 
     @asynccontextmanager

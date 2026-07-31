@@ -30,7 +30,7 @@ class LLMServicePort(ABC):
     """大模型调用服务端口 (Outbound Port)"""
 
     @abstractmethod
-    async def stream_chat(
+    def stream_chat(
         self,
         session_id: str,
         prompt: str,

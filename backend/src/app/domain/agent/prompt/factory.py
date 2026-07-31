@@ -25,6 +25,9 @@ COMPANION_CHAPTER_END_TEMPLATE = _load_prompt_template(
 COMPANION_USER_ACTIVE_TEMPLATE = _load_prompt_template(
     "reading_companion_user_active.md"
 )
+COMPANION_CARD_INTERACTION_TEMPLATE = _load_prompt_template(
+    "reading_companion_card_interaction.md"
+)
 BREAKDOWN_TEMPLATE = _load_prompt_template("task_breakdown.md")
 
 
@@ -45,6 +48,8 @@ class PromptFactory:
         if mode == AgentMode.READING_COMPANION:
             if trigger_type == TriggerType.CHAPTER_END_95:
                 template = COMPANION_CHAPTER_END_TEMPLATE
+            elif trigger_type == TriggerType.CARD_INTERACTION:
+                template = COMPANION_CARD_INTERACTION_TEMPLATE
             else:
                 template = COMPANION_USER_ACTIVE_TEMPLATE
         elif mode == AgentMode.TASK_BREAKDOWN:

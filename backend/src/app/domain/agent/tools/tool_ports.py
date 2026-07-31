@@ -6,7 +6,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
@@ -35,6 +35,21 @@ class TaskChainInput(BaseModel):
     sequence_order: int = Field(1, description="阶段链条的顺序号")
     type: str = Field("DEFAULT", description="阶段类型，如 DEFAULT, PLAN_STAGE, READING_CHAPTER 等")
     tasks: List[TaskInput] = Field(default_factory=list, description="该阶段下包含的子任务列表")
+
+
+class CardInput(BaseModel):
+    """卡片展示结构化输入数据模型"""
+
+    card_type: str = Field(
+        ...,
+        description="卡片类型，例如 KNOWLEDGE (知识拓展卡), THINKING_PROMPT (思考互动卡), SUMMARY (阶段总结卡)",
+    )
+    title: str = Field(..., description="卡片主标题，需简明扼要")
+    content: str = Field(..., description="卡片核心展示正文内容（支持 Markdown 语法）")
+    payload: Optional[Dict[str, Any]] = Field(
+        default_factory=dict,
+        description="卡片附加拓展数据（如关联切片 ID block_id、互动选项列表等）",
+    )
 
 
 class BookQueryPort(ABC):

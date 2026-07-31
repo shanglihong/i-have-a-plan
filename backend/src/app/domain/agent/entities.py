@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 from app.domain.base import BaseEntity
 
 
@@ -79,6 +79,66 @@ class TriggerType(str, Enum):
     """Agent 对话交互触发类型"""
     CHAPTER_END_95 = "CHAPTER_END_95"
     USER_ACTIVE = "USER_ACTIVE"
+    CARD_INTERACTION = "CARD_INTERACTION"
+
+
+class CardStatus(str, Enum):
+    """Action Card 履约状态枚举"""
+    PENDING = "PENDING"
+    INTERACTED = "INTERACTED"
+    EXPIRED = "EXPIRED"
+
+
+class CardType(str, Enum):
+    """Action Card 类型枚举"""
+    KNOWLEDGE = "KNOWLEDGE"
+    THINKING_PROMPT = "THINKING_PROMPT"
+    SUMMARY = "SUMMARY"
+
+
+@dataclass
+class ActionCard:
+    """Action Card 领域实体"""
+    card_id: str
+    card_type: str
+    title: str
+    content: str
+    payload: Dict[str, Any]
+    status: CardStatus = CardStatus.PENDING
+    user_response: Optional[Dict[str, Any]] = None
+
+    def mark_interacted(self, user_response: Optional[Dict[str, Any]] = None) -> None:
+        """标记卡片履约被交互"""
+        self.status = CardStatus.INTERACTED
+        if user_response is not None:
+            self.user_response = user_response
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典用于持久化/传输"""
+        return {
+            "card_id": self.card_id,
+            "card_type": self.card_type if isinstance(self.card_type, str) else self.card_type.value,
+            "title": self.title,
+            "content": self.content,
+            "payload": self.payload or {},
+            "status": self.status.value if isinstance(self.status, Enum) else self.status,
+            "user_response": self.user_response,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ActionCard":
+        """从字典反序列化构建领域实体"""
+        raw_status = data.get("status", CardStatus.PENDING.value)
+        status = CardStatus(raw_status) if raw_status in CardStatus._value2member_map_ else CardStatus.PENDING
+        return cls(
+            card_id=data.get("card_id", ""),
+            card_type=data.get("card_type", ""),
+            title=data.get("title", ""),
+            content=data.get("content", ""),
+            payload=data.get("payload") or {},
+            status=status,
+            user_response=data.get("user_response"),
+        )
 
 
 @dataclass(frozen=True)
@@ -90,9 +150,13 @@ class PromptContext:
     selected_text: Optional[str] = None
     chapter_summary: Optional[str] = None
     neighbor_blocks: Optional[List[Any]] = None
+    card_id: Optional[str] = None
+    card_response: Optional[Dict[str, Any]] = None
+    message_id: Optional[str] = None
 
     def to_template_args(self) -> dict:
         """将上下文参数转为用于模板字符串格式化的字典（自动补充默认空串）"""
+        import json
         return {
             "project_id": self.project_id or "",
             "skill_instruction": self.skill_instruction or "",
@@ -104,6 +168,8 @@ class PromptContext:
                 else ""
             ),
             "user_content": self.user_content or "",
+            "card_id": self.card_id or "",
+            "card_response_json": json.dumps(self.card_response, ensure_ascii=False) if self.card_response else "",
         }
 
 

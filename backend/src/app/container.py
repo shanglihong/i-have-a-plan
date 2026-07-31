@@ -24,7 +24,9 @@ from app.domain.agent.service import (
     AgentChatDomainService,
     AgentStateService,
     AgentQueryDomainService,
+    AgentCardDomainService,
 )
+from app.application.agent.use_cases import AgentChatUseCase, AgentQueryUseCase
 from app.infrastructure.adapters import (
     TaskOperationProjectTaskAdapter,
     BookQueryDomainAdapter,
@@ -171,9 +173,10 @@ class AppContainer:
             synthesized_repo=self.note_repo,
         )
 
-        # 4. Agent 领域服务 (Agent Domain Services)
+        # 4. Agent 领域服务与应用 UseCases
         self.agent_repo = InMemoryAgentRepositoryAdapter()
         self.llm_service = LangChainLLMService()
+        self.agent_card_service = AgentCardDomainService(llm_service=self.llm_service)
         self.agent_chat_service = AgentChatDomainService(
             repository=self.agent_repo,
             llm_service=self.llm_service,
@@ -181,6 +184,15 @@ class AppContainer:
                 chapter_content_service=self.book_content_service,
             ),
             tool_project_task_port=TaskOperationProjectTaskAdapter(self.task_op_service),
+        )
+        self.agent_chat_use_case = AgentChatUseCase(
+            repository=self.agent_repo,
+            llm_service=self.llm_service,
+            tool_book_query=BookQueryDomainAdapter(
+                chapter_content_service=self.book_content_service,
+            ),
+            tool_project_task_port=TaskOperationProjectTaskAdapter(self.task_op_service),
+            card_service=self.agent_card_service,
         )
         self.agent_state_service = AgentStateService(
             repository=self.agent_repo,
@@ -190,13 +202,20 @@ class AppContainer:
             repository=self.agent_repo,
             llm_service=self.llm_service,
         )
+        self.agent_query_use_case = AgentQueryUseCase(
+            repository=self.agent_repo,
+            llm_service=self.llm_service,
+        )
 
     def get_agent_use_cases(self) -> Dict[str, Any]:
         """打包并提供 REST API 层使用的 Agent 领域用例/服务字典"""
         return {
             "agent_chat_service": self.agent_chat_service,
+            "agent_chat_use_case": self.agent_chat_use_case,
+            "agent_card_service": self.agent_card_service,
             "agent_state_service": self.agent_state_service,
             "agent_query_service": self.agent_query_service,
+            "agent_query_use_case": self.agent_query_use_case,
         }
 
 
