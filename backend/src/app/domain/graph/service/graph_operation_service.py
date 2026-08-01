@@ -17,7 +17,6 @@ from app.domain.graph.entities import (
     GraphRelationTypeEnum,
     SourceTypeEnum,
 )
-from app.domain.graph.events import GraphSyncCompletedEvent
 from app.domain.graph.ports import (
     GraphRepositoryPort,
     VectorStorePort,
@@ -25,7 +24,7 @@ from app.domain.graph.ports import (
 )
 
 
-class GraphSyncDomainService:
+class GraphOperationDomainService:
     """闲时增量构建与 Graph RAG 批处理领域服务"""
 
     def __init__(

@@ -19,7 +19,6 @@ from .entities import (
     TagSuperNode,
 )
 from .events import (
-    GraphSyncCompletedEvent,
     GraphNodeFalsifiedEvent,
     GraphOrphanNodePrunedEvent,
     GraphUpdated,
@@ -37,11 +36,8 @@ from .ports import (
     LLMGraphRAGExtractorPort,
 )
 from .service import (
-    GraphSyncDomainService,
-    QuickPeekDomainService,
-    GlobalGraphQueryDomainService,
+    GraphOperationDomainService,
     GraphStateDomainService,
-    GraphCleanupDomainService,
 )
 
 __all__ = [

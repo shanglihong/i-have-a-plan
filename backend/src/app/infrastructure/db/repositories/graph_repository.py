@@ -1,7 +1,7 @@
 """旁路图谱与 RAG SQLite 仓储及向量扩展适配器模块 (包含 DO 模型防腐映射)"""
 
 from contextlib import asynccontextmanager
-from typing import List, Optional, Tuple, set
+from typing import List, Optional, Tuple, Set
 from sqlmodel import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 

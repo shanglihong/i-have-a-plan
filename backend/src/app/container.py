@@ -25,9 +25,9 @@ from app.infrastructure.llm.langchain_llm_service import LangChainLLMService
 
 # 领域层服务
 from app.domain.graph.service import (
-    GlobalGraphQueryDomainService,
+    GraphQueryDomainService,
     GraphStateDomainService,
-    GraphSyncDomainService,
+    GraphOperationDomainService,
 )
 from app.domain.agent.service import (
     AgentChatDomainService,
@@ -219,11 +219,11 @@ class AppContainer:
         )
 
         # 5. Graph 旁路图谱领域服务 (Graph Domain Services)
-        self.graph_query_service = GlobalGraphQueryDomainService(graph_repo=self.graph_repo)
+        self.graph_query_service = GraphQueryDomainService(graph_repo=self.graph_repo)
         self.graph_state_service = GraphStateDomainService(
             graph_repo=self.graph_repo, vector_store=self.vector_store
         )
-        self.graph_sync_service = GraphSyncDomainService(
+        self.graph_sync_service = GraphOperationDomainService(
             graph_repo=self.graph_repo,
             vector_store=self.vector_store,
             llm_extractor=self.llm_service,

@@ -45,7 +45,7 @@ class BookQueryDomainService:
 
     async def get_completed_list(self, size: int = 100) -> List[Book]:
         books, total = await self.repository.list_books(
-            parsing_status=ParsingStatus.SUCCESS,
+            parsing_status=ParsingStatus.COMPLETED,
             size=size,
         )
         return books
