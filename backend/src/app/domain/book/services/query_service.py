@@ -43,6 +43,13 @@ class BookQueryDomainService:
         )
         return books
 
+    async def get_completed_list(self, size: int = 100) -> List[Book]:
+        books, total = await self.repository.list_books(
+            parsing_status=ParsingStatus.SUCCESS,
+            size=size,
+        )
+        return books
+
 
 class BookChapterContentDomainService:
     """章节 ContentBlock 正文切片懒加载领域服务"""

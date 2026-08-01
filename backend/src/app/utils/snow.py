@@ -25,8 +25,8 @@ class SnowflakeIDGenerator:
         self.last_timestamp = -1
         self._lock = threading.Lock()  # 线程锁，确保高并发线程安全
 
-    def next_id_str(self):
-        return str(self.next_id_str())
+    def next_id_str(self) -> str:
+        return str(self.next_id())
 
     def next_id(self) -> int:
         """生成下一个严格递增的全局唯一 ID"""

@@ -14,12 +14,21 @@ from app.infrastructure.db.repositories.task_repository import TaskRepository, N
 from app.infrastructure.db.repositories.book_repository import BookRepositoryAdapter
 from app.infrastructure.db.repositories.note_repository import NoteRepositoryAdapter
 from app.infrastructure.db.repositories.agent_repository import InMemoryAgentRepositoryAdapter
+from app.infrastructure.db.repositories.graph_repository import (
+    SQLiteGraphRepositoryAdapter,
+    SQLiteVectorStoreRepositoryAdapter,
+)
 from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
 from app.infrastructure.file_storage.note_storage import LocalNoteFileStorageAdapter
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
 from app.infrastructure.llm.langchain_llm_service import LangChainLLMService
 
 # 领域层服务
+from app.domain.graph.service import (
+    GlobalGraphQueryDomainService,
+    GraphStateDomainService,
+    GraphSyncDomainService,
+)
 from app.domain.agent.service import (
     AgentChatDomainService,
     AgentStateService,
@@ -100,6 +109,8 @@ class AppContainer:
         self.note_repo = NoteRepositoryAdapter(session)
         self.kb_repo = KnowledgeRepository(session)
         self.note_attachment_repo = NoteAttachmentRepositoryAdapter(session)
+        self.graph_repo = SQLiteGraphRepositoryAdapter(session)
+        self.vector_store = SQLiteVectorStoreRepositoryAdapter(session)
         self.file_storage = LocalBookFileStorageAdapter()
         self.note_file_storage = LocalNoteFileStorageAdapter()
         self.event_bus = global_event_bus
@@ -205,6 +216,17 @@ class AppContainer:
         self.agent_query_use_case = AgentQueryUseCase(
             repository=self.agent_repo,
             llm_service=self.llm_service,
+        )
+
+        # 5. Graph 旁路图谱领域服务 (Graph Domain Services)
+        self.graph_query_service = GlobalGraphQueryDomainService(graph_repo=self.graph_repo)
+        self.graph_state_service = GraphStateDomainService(
+            graph_repo=self.graph_repo, vector_store=self.vector_store
+        )
+        self.graph_sync_service = GraphSyncDomainService(
+            graph_repo=self.graph_repo,
+            vector_store=self.vector_store,
+            llm_extractor=self.llm_service,
         )
 
     def get_agent_use_cases(self) -> Dict[str, Any]:

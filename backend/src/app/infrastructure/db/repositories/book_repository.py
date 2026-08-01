@@ -131,7 +131,7 @@ class BookRepositoryAdapter(BookRepositoryPort):
         page: int = 1,
         size: int = 100,
     ) -> Tuple[List[Book], int]:
-        statement = select(BookDO)
+        statement = select(BookDO).order_by(BookDO.updated_at.desc())
         if parsing_status:
             status_str = parsing_status.value if hasattr(parsing_status, "value") else str(parsing_status)
             statement = statement.where(BookDO.parsing_status == status_str)

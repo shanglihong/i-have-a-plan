@@ -4,6 +4,7 @@ import logging
 from typing import List
 
 from app.health.book_health import BookHealing
+from app.health.graph_health import GraphHealing
 from app.health.note_health import NoteHealing
 from app.health.project_health import ProjectHealing
 from app.infrastructure.db.session import get_async_session
@@ -25,3 +26,4 @@ class StartupHealingUseCase:
             await BookHealing(container).handle()
             await ProjectHealing(container).handle()
             await NoteHealing(container).handle()
+            await GraphHealing(container).handle()
