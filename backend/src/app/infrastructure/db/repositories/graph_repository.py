@@ -39,6 +39,29 @@ class SQLiteGraphRepositoryAdapter(GraphRepositoryPort):
         async with self.session.begin_nested():
             yield
 
+    async def save_graph_batch(
+        self,
+        nodes: List[GraphNode],
+        edges: List[GraphEdge],
+        tags: List[TagSuperNode],
+        pending_block: Optional[GraphPendingBlock] = None,
+    ) -> None:
+        """在一个独立的 ACID 事务中批量原子保存节点、关系边、标签及 PendingBlock"""
+        async with self.session.begin_nested():
+            for node in nodes:
+                do = self._node_to_do(node)
+                await self.session.merge(do)
+            for edge in edges:
+                do = self._edge_to_do(edge)
+                await self.session.merge(do)
+            for tag in tags:
+                do = self._tag_to_do(tag)
+                await self.session.merge(do)
+            if pending_block:
+                do = self._pending_to_do(pending_block)
+                await self.session.merge(do)
+        await self.session.commit()
+
     # --- Domain <-> DO Converter Helpers ---
     def _pending_to_domain(self, do: GraphPendingBlockDO) -> GraphPendingBlock:
         return GraphPendingBlock(
@@ -46,6 +69,7 @@ class SQLiteGraphRepositoryAdapter(GraphRepositoryPort):
             block_id=do.block_id,
             source_type=SourceTypeEnum(do.source_type),
             project_id=do.project_id,
+            book_id=do.book_id or "",
             status=PendingStatusEnum(do.status),
             retry_count=do.retry_count,
         )
@@ -56,6 +80,7 @@ class SQLiteGraphRepositoryAdapter(GraphRepositoryPort):
             block_id=entity.block_id,
             source_type=entity.source_type.value,
             project_id=entity.project_id,
+            book_id=entity.book_id,
             status=entity.status.value,
             retry_count=entity.retry_count,
         )

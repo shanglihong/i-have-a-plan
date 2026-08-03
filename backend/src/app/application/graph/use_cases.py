@@ -29,7 +29,7 @@ class ProcessPendingGraphBlocksUseCase:
     async def execute(self, limit: int = 20) -> int:
         """获取并批量处理待建图切片，返回实际处理的切片条数"""
         pending_blocks: List[GraphPendingBlock] = (
-            await self.graph_query_service.fetch_pending_blocks(limit=limit)
+            await self.graph_query_service.fetch_pending_blocks(limit=1)
         )
         if not pending_blocks:
             return 0
@@ -63,7 +63,7 @@ class ProcessPendingGraphBlocksUseCase:
 
             elif block.source_type == SourceTypeEnum.BOOK_BLOCK:
                 result = await self.book_content_service.get_block_by_id(
-                    block_id=block.block_id, book_id=block.project_id
+                    block_id=block.block_id, book_id=block.book_id or block.project_id
                 )
                 if result:
                     content_block, _ = result

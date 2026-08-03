@@ -14,6 +14,7 @@ class GraphPendingBlockDO(SQLModel, table=True):
     block_id: str = Field(index=True, unique=True)
     source_type: str
     project_id: str = Field(index=True)
+    book_id: str = Field(default="", index=True)
     status: str = Field(index=True)
     retry_count: int = Field(default=0)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -17,6 +17,7 @@ class PhysicalBlockCandidate:
     block_id: str
     source_type: SourceTypeEnum
     project_id: str = ""
+    book_id: str = ""
 
 
 def _flatten_toc(nodes: list) -> list:
@@ -81,7 +82,8 @@ class GraphHealing:
                                 PhysicalBlockCandidate(
                                     block_id=block.block_id,
                                     source_type=SourceTypeEnum.BOOK_BLOCK,
-                                    project_id=book.id,
+                                    project_id=book.project_id,
+                                    book_id=book.id,
                                 )
                             )
 
@@ -110,6 +112,7 @@ class GraphHealing:
                         block_id=candidate.block_id,
                         source_type=candidate.source_type,
                         project_id=candidate.project_id,
+                        book_id=candidate.book_id,
                     )
                     recovered_count += 1
 

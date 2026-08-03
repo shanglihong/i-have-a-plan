@@ -20,6 +20,7 @@ from app.domain.graph.entities import (
     GraphRelationTypeEnum,
     SourceTypeEnum,
 )
+from app.domain.graph.exceptions import GraphTextMissingException
 from app.domain.graph.ports import (
     GraphRepositoryPort,
     VectorStorePort,
@@ -45,6 +46,7 @@ class GraphOperationDomainService:
         block_id: str,
         source_type: SourceTypeEnum = SourceTypeEnum.NOTE_CARD,
         project_id: str = "",
+        book_id: str = "",
     ) -> GraphPendingBlock:
         """接收领域事件广播，往独立 graph_pending_blocks 写入 PENDING 记录"""
         existing = await self.graph_repo.find_pending_block_by_block_id(block_id)
@@ -58,6 +60,7 @@ class GraphOperationDomainService:
             block_id=block_id,
             source_type=source_type,
             project_id=project_id,
+            book_id=book_id,
             status=PendingStatusEnum.PENDING,
         )
         await self.graph_repo.save_pending_block(pending_block)
@@ -73,7 +76,7 @@ class GraphOperationDomainService:
         if not real_text:
             block.mark_failed(increment_retry=True)
             await self.graph_repo.save_pending_block(block)
-            return
+            raise GraphTextMissingException(f"block_id={block.block_id}, source_type={block.source_type}")
 
         block.mark_processing()
         await self.graph_repo.save_pending_block(block)
@@ -86,8 +89,8 @@ class GraphOperationDomainService:
                 await self.graph_repo.save_pending_block(block)
                 return
 
-            # 2. 向量化 + 查询相关的graph节点
-            embedding, related_nodes = await self._find_related_nodes(text=real_text)
+            # 2. 向量化
+            embedding = await self.llm_extractor.compute_embedding(text=real_text)
 
             # 3. vec 持久化
             vec_index = VectorChunkIndex(
@@ -99,83 +102,102 @@ class GraphOperationDomainService:
             )
             await self.vector_store.save_vector_index(vec_index)
 
-            # LLM 抽取 graph 节点和关系
-            extracted_entities, extracted_relations, tags = (
-                await self.llm_extractor.extract_entities_and_relations(
-                    real_text, [node.name for node in related_nodes]
-                )
+            # 图书段落切片 (BOOK_BLOCK) 仅需保存向量索引用于 RAG 检索，不抽取知识图谱节点与关系
+            if block.source_type == SourceTypeEnum.BOOK_BLOCK:
+                block.mark_completed()
+                await self.graph_repo.save_pending_block(block)
+                return
+
+            # 4. 抽取并生成旁路图谱实体、关系边及超标签节点
+            update_nodes, update_edges, update_tags = await self._extract_and_build_graph(
+                block=block,
+                real_text=real_text,
+                embedding=embedding,
             )
 
-            node_name_to_id: Dict[str, str] = {node.name: node.id for node in related_nodes}
+            # 5. 标记完成并调用仓储原子批量持久化旁路图谱与状态
+            block.mark_completed()
+            await self.graph_repo.save_graph_batch(
+                nodes=update_nodes,
+                edges=update_edges,
+                tags=update_tags,
+                pending_block=block,
+            )
 
-            # 实体概念合并
-            update_nodes: dict[str, GraphNode] = dict[str, GraphNode]()
-            for ext_entity in extracted_entities:
-                update_node = await self._get_new_node(GraphNode.from_extracted(
+        except Exception as e:
+            block.mark_failed(increment_retry=True)
+            await self.graph_repo.save_pending_block(block)
+            raise e
+
+    async def _extract_and_build_graph(
+        self,
+        block: GraphPendingBlock,
+        real_text: str,
+        embedding: List[float],
+    ) -> Tuple[List[GraphNode], List[GraphEdge], List[TagSuperNode]]:
+        """调用 LLM 结构化抽取并构建合并图原子节点、认知关系边及超标签节点"""
+        # 1. 查询相关的 graph 节点
+        related_nodes = await self._find_related_nodes(embedding=embedding)
+
+        # 2. LLM 结构化抽取实体、关系与主题标签
+        extracted_entities, extracted_relations, tags = (
+            await self.llm_extractor.extract_entities_and_relations(
+                real_text, [node.name for node in related_nodes]
+            )
+        )
+
+        node_name_to_id: Dict[str, str] = {node.name: node.id for node in related_nodes}
+
+        # 3. 实体概念合并与新建
+        update_nodes: dict[str, GraphNode] = dict[str, GraphNode]()
+        for ext_entity in extracted_entities:
+            update_node = await self._get_new_node(
+                GraphNode.from_extracted(
                     ext_entity=ext_entity,
                     block_id=block.block_id,
                     project_id=block.project_id,
-                ))
-                update_nodes[update_node.id] = update_node
-                node_name_to_id[ext_entity.name] = update_node.id
-
-            # 认知关系边处理
-            update_edges: dict[str, GraphEdge] = dict[str, GraphEdge]()
-            for ext_rel in extracted_relations:
-                src_id = node_name_to_id.get(ext_rel.source_node_name)
-                tgt_id = node_name_to_id.get(ext_rel.target_node_name)
-
-                if src_id and tgt_id and src_id != tgt_id:
-                    update_edge = await self._get_new_edge(
-                        GraphEdge.from_extracted(
-                            ext_rel=ext_rel,
-                            source_node_id=src_id,
-                            target_node_id=tgt_id,
-                        )
-                    )
-                    if update_edge:
-                        update_edges[update_edge.id] = update_edge
-                        # 节点证伪
-                        if update_edge.relation_type == GraphRelationTypeEnum.FALSIFIE and (node := update_nodes.get(tgt_id)):
-                            node.falsify()
-
-            # 超节点处理
-            update_tags: dict[str, TagSuperNode] = dict[str, TagSuperNode]()
-            for tag_name in tags:
-                tag_node = await self._get_new_tag(tag_name)
-                update_tags[tag_node.id] = tag_node
-
-            async with self.graph_repo.transaction():
-                for node in update_nodes.values():
-                    await self.graph_repo.save_node(node)
-                for edge in update_edges.values():
-                    await self.graph_repo.save_edge(edge)
-                for tag in update_tags.values():
-                    await self.graph_repo.save_tag_super_node(tag)
-                # 标记完成
-                block.mark_completed()
-                await self.graph_repo.save_pending_block(block)
-
-        except Exception as e:
-            logger.error(
-                f"[GraphOperationDomainService] 处理建图切片失败: block_id={block.block_id}, source_type={block.source_type}, error={str(e)}",
-                exc_info=True,
+                )
             )
-            block.mark_failed(increment_retry=True)
-            await self.graph_repo.save_pending_block(block)
+            update_nodes[update_node.id] = update_node
+            node_name_to_id[ext_entity.name] = update_node.id
+
+        # 4. 认知关系边处理与证伪判断
+        update_edges: dict[str, GraphEdge] = dict[str, GraphEdge]()
+        for ext_rel in extracted_relations:
+            src_id = node_name_to_id.get(ext_rel.source_node_name)
+            tgt_id = node_name_to_id.get(ext_rel.target_node_name)
+
+            if src_id and tgt_id and src_id != tgt_id:
+                update_edge = await self._get_new_edge(
+                    GraphEdge.from_extracted(
+                        ext_rel=ext_rel,
+                        source_node_id=src_id,
+                        target_node_id=tgt_id,
+                    )
+                )
+                if update_edge:
+                    update_edges[update_edge.id] = update_edge
+                    # 节点证伪
+                    if update_edge.relation_type == GraphRelationTypeEnum.FALSIFIE and (node := update_nodes.get(tgt_id)):
+                        node.falsify()
+
+        # 5. 超标签节点处理
+        update_tags: dict[str, TagSuperNode] = dict[str, TagSuperNode]()
+        for tag_name in tags:
+            tag_node = await self._get_new_tag(tag_name)
+            update_tags[tag_node.id] = tag_node
+
+        return list(update_nodes.values()), list(update_edges.values()), list(update_tags.values())
+            
 
 
     async def _find_related_nodes(
         self,
-        text: str,
+        embedding: list[float],
         top_k: int = 20,
         max_limit: int = 100,
     ) -> Tuple[list[float], List[GraphNode]]:
         """通过文本算向量在 vector_store 中通过向量相似度检索"""
-        if not text:
-            return []
-
-        embedding = await self.llm_extractor.compute_embedding(text)
         similar_chunks = await self.vector_store.search_similar_vectors(embedding, top_k=top_k)
 
         node_map: Dict[str, GraphNode] = {}

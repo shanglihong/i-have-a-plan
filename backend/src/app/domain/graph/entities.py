@@ -79,6 +79,7 @@ class GraphPendingBlock(BaseEntity):
     block_id: str = ""
     source_type: SourceTypeEnum = SourceTypeEnum.NOTE_CARD
     project_id: str = ""
+    book_id: str = ""
     status: PendingStatusEnum = PendingStatusEnum.PENDING
     retry_count: int = 0
 

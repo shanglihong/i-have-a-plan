@@ -25,6 +25,17 @@ class GraphRepositoryPort(DomainPort):
         """仓储底层事务上下文接口"""
         ...
 
+    @abstractmethod
+    async def save_graph_batch(
+        self,
+        nodes: List[GraphNode],
+        edges: List[GraphEdge],
+        tags: List[TagSuperNode],
+        pending_block: Optional[GraphPendingBlock] = None,
+    ) -> None:
+        """原子批量保存节点、关系边、标签超节点及待处理切片任务"""
+        ...
+
     # --- Pending Tasks Operations ---
     @abstractmethod
     async def save_pending_block(self, pending_block: GraphPendingBlock) -> None:

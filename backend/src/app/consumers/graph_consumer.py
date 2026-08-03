@@ -73,7 +73,8 @@ async def handle_book_parsed(event: BookParsedEvent) -> None:
                         await container.graph_sync_service.enqueue_block(
                             block_id=block.block_id,
                             source_type=SourceTypeEnum.BOOK_BLOCK,
-                            project_id=event.project_id or book.id,
+                            project_id=event.project_id,
+                            book_id=event.book_id,
                         )
                         count += 1
 

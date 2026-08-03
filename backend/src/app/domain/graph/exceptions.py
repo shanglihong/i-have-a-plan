@@ -73,3 +73,17 @@ class GraphSyncFailedException(GraphDomainException):
             f"图谱同步建图失败: {reason}",
             error_code="GRAPH_SYNC_FAILED",
         )
+
+
+class GraphTextMissingException(GraphDomainException):
+    """待建图切片缺少真实物理文本异常"""
+
+    error_type: str = "graph-text-missing"
+    title: str = "Graph Text Missing"
+    status_code: int = 400
+
+    def __init__(self, message: str):
+        super().__init__(
+            f"待建图切片缺少真实物理文本: {message}",
+            error_code="GRAPH_TEXT_MISSING",
+        )

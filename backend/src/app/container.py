@@ -20,8 +20,8 @@ from app.infrastructure.db.repositories.graph_repository import (
 )
 from app.infrastructure.file_storage.book_storage import LocalBookFileStorageAdapter
 from app.infrastructure.file_storage.note_storage import LocalNoteFileStorageAdapter
+from app.infrastructure.llm import LangChainLLMService, LangChainGraphRAGExtractorAdapter
 from app.infrastructure.event_bus.asyncio_event_bus import global_event_bus
-from app.infrastructure.llm.langchain_llm_service import LangChainLLMService
 
 # 领域层服务
 from app.domain.graph.service import (
@@ -220,6 +220,7 @@ class AppContainer:
         )
 
         # 5. Graph 旁路图谱领域服务 (Graph Domain Services)
+        self.graph_rag_extractor = LangChainGraphRAGExtractorAdapter()
         self.graph_query_service = GraphQueryDomainService(graph_repo=self.graph_repo)
         self.graph_state_service = GraphStateDomainService(
             graph_repo=self.graph_repo, vector_store=self.vector_store
@@ -227,7 +228,7 @@ class AppContainer:
         self.graph_sync_service = GraphOperationDomainService(
             graph_repo=self.graph_repo,
             vector_store=self.vector_store,
-            llm_extractor=self.llm_service,
+            llm_extractor=self.graph_rag_extractor,
         )
         self.process_pending_blocks_use_case = ProcessPendingGraphBlocksUseCase(
             graph_query_service=self.graph_query_service,
