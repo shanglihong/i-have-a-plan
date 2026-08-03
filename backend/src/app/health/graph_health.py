@@ -19,6 +19,15 @@ class PhysicalBlockCandidate:
     project_id: str = ""
 
 
+def _flatten_toc(nodes: list) -> list:
+    flat = []
+    for n in nodes:
+        flat.append(n)
+        if hasattr(n, "children") and n.children:
+            flat.extend(_flatten_toc(n.children))
+    return flat
+
+
 class GraphHealing:
     """旁路图谱与 RAG 任务自愈与缺失切片补全服务"""
 
@@ -60,10 +69,12 @@ class GraphHealing:
             for book in completed_books:
                 if not book.toc_tree:
                     continue
-                for node in book.toc_tree:
-                    if node.chapter_id:
+                all_nodes = _flatten_toc(book.toc_tree)
+                for node in all_nodes:
+                    chapter_id = node.target_chapter_id or node.id
+                    if chapter_id:
                         chapter_content = await self.container.book_content_service.get_chapter_content(
-                            book_id=book.id, chapter_id=node.chapter_id, limit=100
+                            book_id=book.id, chapter_id=chapter_id, limit=100
                         )
                         for block in chapter_content.blocks:
                             candidates.append(

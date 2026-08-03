@@ -72,7 +72,7 @@ export function CreatePlanProjectModal({
         },
         onError: (err: any) => {
           const detail =
-            err?.response?.data?.detail || "创建项目失败，请检查输入或接口依赖";
+            err?.detail || err?.message || err?.response?.data?.detail || "创建项目失败，请检查输入或接口依赖";
           setFormError(detail);
         },
       }

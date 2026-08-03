@@ -117,7 +117,7 @@ class CreateProjectUseCase:
             title=title,
             deadline=deadline,
             book_id=book.id,
-            agent_id=session,
+            agent_id=session.agent_id,
         )
 
         return ProjectResponseDTO.from_domain(

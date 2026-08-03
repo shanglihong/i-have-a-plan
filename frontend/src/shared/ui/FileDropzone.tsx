@@ -17,7 +17,7 @@ export function FileDropzone({
   selectedFile,
   onFileSelect,
   onFileRemove,
-  accept = ".pdf,.md,.markdown,.txt",
+  accept = ".epub,.pdf,.md,.markdown,.txt",
   maxSizeMB = 50,
   className = "",
 }: FileDropzoneProps) {
@@ -55,7 +55,7 @@ export function FileDropzone({
         >
           <UploadCloud size={28} className="mx-auto text-cyan-400 mb-2 opacity-80" />
           <p className="text-xs font-medium text-slate-200">
-            点击或拖拽上传 PDF / MD 文档
+            点击或拖拽上传 EPUB / PDF / MD / TXT 文档
           </p>
           <p className="text-xs text-slate-400 mt-1">
             支持 {accept} 格式，最大不超过 {maxSizeMB}MB

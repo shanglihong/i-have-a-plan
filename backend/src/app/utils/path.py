@@ -20,3 +20,6 @@ def get_book_dir(id: str) -> Path:
 def get_note_dir() -> Path:
     return Path(get_workspace_dir()) / "notes"
 
+def get_log_dir() -> Path:
+    return Path(get_workspace_dir()) / "log"
+

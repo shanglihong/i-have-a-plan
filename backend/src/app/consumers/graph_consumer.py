@@ -39,6 +39,15 @@ async def handle_material_note_created(event: MaterialNoteCreatedEvent) -> None:
         )
 
 
+def _flatten_toc(nodes: list) -> list:
+    flat = []
+    for n in nodes:
+        flat.append(n)
+        if hasattr(n, "children") and n.children:
+            flat.extend(_flatten_toc(n.children))
+    return flat
+
+
 async def handle_book_parsed(event: BookParsedEvent) -> None:
     """消费 BookParsedEvent 事件，批量获取图书解析切片并推入图谱建图队列"""
     logger.info(
@@ -53,10 +62,12 @@ async def handle_book_parsed(event: BookParsedEvent) -> None:
                 break
 
             count = 0
-            for node in book.toc_tree:
-                if node.chapter_id:
+            all_nodes = _flatten_toc(book.toc_tree)
+            for node in all_nodes:
+                chapter_id = node.target_chapter_id or node.id
+                if chapter_id:
                     chapter_content = await container.book_content_service.get_chapter_content(
-                        book_id=book.id, chapter_id=node.chapter_id, limit=500
+                        book_id=book.id, chapter_id=chapter_id, limit=500
                     )
                     for block in chapter_content.blocks:
                         await container.graph_sync_service.enqueue_block(

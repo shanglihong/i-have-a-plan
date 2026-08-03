@@ -58,7 +58,7 @@ export function CreateReadingProjectModal({
     }
 
     if (!selectedFile) {
-      setFormError("阅读项目必须上传关联文档（PDF / MD / TXT）");
+      setFormError("阅读项目必须上传关联文档（EPUB / PDF / MD / TXT）");
       return;
     }
 
@@ -76,7 +76,7 @@ export function CreateReadingProjectModal({
         },
         onError: (err: any) => {
           const detail =
-            err?.response?.data?.detail || "创建项目失败，请检查输入或接口依赖";
+            err?.detail || err?.message || err?.response?.data?.detail || "创建项目失败，请检查输入或接口依赖";
           setFormError(detail);
         },
       }
@@ -213,7 +213,7 @@ export function CreateReadingProjectModal({
                   <label className="text-xs text-slate-300 mb-1.5 block font-medium">
                     关联文档 <span className="text-cyan-400">*</span>
                     <span className="text-slate-400 font-normal ml-1">
-                      PDF / MD / TXT
+                      EPUB / PDF / MD / TXT
                     </span>
                   </label>
                   <FileDropzone

@@ -256,6 +256,7 @@ class AppContainer:
             "create_use_case": CreateProjectUseCase(
                 self.project_creation_service,
                 book_creation_service=self.book_creation_service,
+                agent_state_service=self.agent_state_service,
             ),
             "query_use_case": ProjectQueryUseCase(self.project_query_service, self.book_service),
             "manage_state_use_case": ManageProjectStateUseCase(self.project_state_service),

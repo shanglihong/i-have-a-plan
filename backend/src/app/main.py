@@ -11,7 +11,6 @@ from app.api.routers.tasks import tasks_router, task_chains_router
 from app.api.routers.notes import router as notes_router
 from app.api.error_handler import register_error_handlers
 
-
 from app.consumers import register_consumers
 from app.health import StartupHealingUseCase
 
