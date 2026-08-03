@@ -208,3 +208,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   filter: invert(1);
 }
 
+/* 自定义细体暗色滚动条 */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+
