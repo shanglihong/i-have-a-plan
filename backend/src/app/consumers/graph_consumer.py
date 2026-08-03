@@ -13,7 +13,7 @@ from app.container import AppContainer
 
 logger = logging.getLogger(__name__)
 
-# TODO 笔记更新事件, 还有沉淀笔记
+# TODO 笔记更新事件, 还有沉淀笔记相关
 async def handle_material_note_created(event: MaterialNoteCreatedEvent) -> None:
     """消费 MaterialNoteCreatedEvent 事件，往 graph_pending_blocks 推入待建图切片"""
     logger.info(
