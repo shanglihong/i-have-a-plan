@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, Check, ChevronDown, Layers } from "lucide-react";
 import { useSearchSkillsQuery } from "../../../entities";
+import { cn } from "../../../shared/ui";
 
 interface PresetSkillSelectorProps {
   selectedSkillId: string;
@@ -89,11 +90,12 @@ export function PresetSkillSelector({
         aria-label="选择技能模板"
         onClick={() => setIsOpen((prev) => !prev)}
         onKeyDown={handleKeyDown}
-        className={`w-full min-h-[42px] bg-slate-900/90 border rounded-xl px-3 py-2 text-sm text-slate-100 outline-none transition-all flex items-center justify-between cursor-pointer group ${
+        className={cn(
+          "w-full min-h-[42px] bg-slate-900/90 border rounded-xl px-3 py-2 text-sm text-slate-100 outline-none transition-all flex items-center justify-between cursor-pointer group",
           isOpen
             ? "border-violet-500/60 ring-1 ring-violet-500/40 shadow-lg shadow-violet-950/30"
             : "border-slate-700/80 hover:border-slate-600/90 hover:bg-slate-850"
-        }`}
+        )}
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
           {isLoading ? (
@@ -125,9 +127,10 @@ export function PresetSkillSelector({
 
         <ChevronDown
           size={15}
-          className={`text-slate-400 shrink-0 transition-transform duration-200 ${
+          className={cn(
+            "text-slate-400 shrink-0 transition-transform duration-200",
             isOpen ? "rotate-180 text-violet-400" : "group-hover:text-slate-300"
-          }`}
+          )}
         />
       </button>
 
@@ -141,7 +144,7 @@ export function PresetSkillSelector({
             transition={{ duration: 0.15, ease: "easeOut" }}
             role="listbox"
             aria-label="技能模板选项"
-            className="absolute left-0 right-0 mt-1.5 z-50 bg-[#0F172A]/95 backdrop-blur-xl border border-slate-800 rounded-xl p-1.5 shadow-2xl shadow-slate-950/80 space-y-1 max-h-56 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            className="absolute left-0 right-0 mt-1.5 z-50 bg-[#0F172A]/95 backdrop-blur-xl border border-slate-800 rounded-xl p-1.5 shadow-2xl shadow-slate-950/80 space-y-1 max-h-56 overflow-y-auto custom-scrollbar"
           >
             {/* 「不使用模板」选项 */}
             <button
@@ -152,19 +155,21 @@ export function PresetSkillSelector({
                 onSelectSkill("");
                 setIsOpen(false);
               }}
-              className={`w-full min-h-[38px] p-2 rounded-lg text-left cursor-pointer transition-all flex items-center justify-between text-xs group ${
+              className={cn(
+                "w-full min-h-[38px] p-2 rounded-lg text-left cursor-pointer transition-all flex items-center justify-between text-xs group",
                 selectedSkillId === ""
                   ? "bg-violet-500/15 text-violet-300 font-medium"
                   : "text-slate-300 hover:text-slate-100 hover:bg-slate-800/60"
-              }`}
+              )}
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                  className={cn(
+                    "w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors",
                     selectedSkillId === ""
                       ? "bg-violet-500/30 text-violet-300"
                       : "border border-slate-600 group-hover:border-slate-500"
-                  }`}
+                  )}
                 >
                   {selectedSkillId === "" && <Check size={10} strokeWidth={2.5} />}
                 </span>
@@ -189,31 +194,28 @@ export function PresetSkillSelector({
                     onSelectSkill(sk.id);
                     setIsOpen(false);
                   }}
-                  className={`w-full min-h-[38px] p-2 rounded-lg text-left cursor-pointer transition-all flex items-center justify-between text-xs group ${
+                  className={cn(
+                    "w-full min-h-[38px] p-2 rounded-lg text-left cursor-pointer transition-all flex items-center justify-between text-xs group",
                     isSel
                       ? "bg-violet-500/15 text-violet-300 font-medium"
                       : "text-slate-300 hover:text-slate-100 hover:bg-slate-800/60"
-                  }`}
+                  )}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span
-                      className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                      className={cn(
+                        "w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-colors",
                         isSel
                           ? "bg-violet-500/30 text-violet-300"
                           : "border border-slate-600 group-hover:border-slate-500"
-                      }`}
-                    >
-                      {isSel ? (
-                        <Check size={10} strokeWidth={2.5} />
-                      ) : (
-                        <Sparkles size={9} className="text-slate-500 group-hover:text-slate-400" />
                       )}
+                    >
+                      {isSel && <Check size={10} strokeWidth={2.5} />}
                     </span>
-                    <span className="truncate">{sk.title}</span>
+                    <span className="font-medium truncate">{sk.title}</span>
                   </div>
-
-                  <span className="text-[11px] text-slate-500 shrink-0 ml-2">
-                    {sk.nodesCount}节 · {sk.category}
+                  <span className="text-slate-500 text-[11px] shrink-0 ml-2 font-mono">
+                    {sk.nodesCount} 节
                   </span>
                 </button>
               );
