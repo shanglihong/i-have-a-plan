@@ -29,7 +29,7 @@ class ProcessPendingGraphBlocksUseCase:
     async def execute(self, limit: int = 20) -> int:
         """获取并批量处理待建图切片，返回实际处理的切片条数"""
         pending_blocks: List[GraphPendingBlock] = (
-            await self.graph_query_service.fetch_pending_blocks(limit=1)
+            await self.graph_query_service.fetch_pending_blocks(limit=limit)
         )
         if not pending_blocks:
             return 0
