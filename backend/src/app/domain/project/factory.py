@@ -24,7 +24,7 @@ class ProjectFactory:
             updated_at=now,
         )
         if project_id:
-            p.project_id = project_id
+            p.id = project_id
         return p
 
     @staticmethod
@@ -45,5 +45,5 @@ class ProjectFactory:
             updated_at=now,
         )
         if project_id:
-            p.project_id = project_id
+            p.id = project_id
         return p

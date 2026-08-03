@@ -12,6 +12,7 @@ from app.api.routers.notes import router as notes_router
 from app.api.error_handler import register_error_handlers
 
 from app.consumers import register_consumers
+from app.schedulers import scheduler, register_schedulers
 from app.health import StartupHealingUseCase
 
 
@@ -20,9 +21,12 @@ async def lifespan(app: FastAPI):
     # 启动钩子：初始化数据库表结构与事件消费者，并触发系统冷启动自愈
     await init_db()
     register_consumers()
+    register_schedulers()
+    scheduler.start()
     await StartupHealingUseCase().execute()
     yield
-    # 关闭钩子
+    # 关闭钩子：优雅关停定时任务调度器
+    scheduler.shutdown()
 
 
 def create_app() -> FastAPI:

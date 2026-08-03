@@ -36,6 +36,7 @@ from app.domain.agent.service import (
     AgentCardDomainService,
 )
 from app.application.agent.use_cases import AgentChatUseCase, AgentQueryUseCase
+from app.application.graph.use_cases import ProcessPendingGraphBlocksUseCase
 from app.infrastructure.adapters import (
     TaskOperationProjectTaskAdapter,
     BookQueryDomainAdapter,
@@ -228,6 +229,21 @@ class AppContainer:
             vector_store=self.vector_store,
             llm_extractor=self.llm_service,
         )
+        self.process_pending_blocks_use_case = ProcessPendingGraphBlocksUseCase(
+            graph_query_service=self.graph_query_service,
+            graph_sync_service=self.graph_sync_service,
+            note_query_service=self.note_query_service,
+            book_content_service=self.book_content_service,
+        )
+
+    def get_graph_use_cases(self) -> Dict[str, Any]:
+        """打包并提供旁路图谱 (Graph) 领域用例字典"""
+        return {
+            "process_pending_blocks_use_case": self.process_pending_blocks_use_case,
+            "graph_query_service": self.graph_query_service,
+            "graph_state_service": self.graph_state_service,
+            "graph_sync_service": self.graph_sync_service,
+        }
 
     def get_agent_use_cases(self) -> Dict[str, Any]:
         """打包并提供 REST API 层使用的 Agent 领域用例/服务字典"""

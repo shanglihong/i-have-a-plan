@@ -1,10 +1,13 @@
 """旁路图谱与 RAG 领域操作与建图构建服务模块"""
 
 import hashlib
+import logging
 from app.domain.agent.service.spec import reading_companion_spec
 from app.domain.graph.entities import ExtractedEntity
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
+
+logger = logging.getLogger(__name__)
 
 from app.domain.graph.entities import (
     GraphPendingBlock,
@@ -153,7 +156,11 @@ class GraphOperationDomainService:
                 block.mark_completed()
                 await self.graph_repo.save_pending_block(block)
 
-        except Exception:
+        except Exception as e:
+            logger.error(
+                f"[GraphOperationDomainService] 处理建图切片失败: block_id={block.block_id}, source_type={block.source_type}, error={str(e)}",
+                exc_info=True,
+            )
             block.mark_failed(increment_retry=True)
             await self.graph_repo.save_pending_block(block)
 
