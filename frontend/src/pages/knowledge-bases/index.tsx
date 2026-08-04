@@ -19,7 +19,7 @@ import { NoteDocumentItem } from "./utils/exportUtils"
 import { NoteDocumentEditor } from "./components/NoteDocumentEditor"
 import { NotesPickerDrawer } from "./components/NotesPickerDrawer"
 import { MOCK_READING_NOTES_FALLBACK } from "../../mock"
-import { NoteCardData } from "../reading/components/UnifiedNoteCard"
+import { NoteCardData } from "../../features"
 
 const INITIAL_NOTE_DOCUMENTS: NoteDocumentItem[] = [
   {

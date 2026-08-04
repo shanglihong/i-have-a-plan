@@ -12,6 +12,7 @@ export type ProjectStatus =
 
 export interface Project {
   id: string;
+  book_id?: string;
   title: string;
   type: ProjectType;
   status: ProjectStatus;

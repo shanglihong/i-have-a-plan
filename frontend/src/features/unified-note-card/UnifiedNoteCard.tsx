@@ -14,7 +14,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react"
-import { READING_TOKENS } from "../../../shared/constants"
+import { READING_TOKENS } from "../../shared/constants"
+import { cn } from "../../shared/utils/cn"
 
 export interface NoteCardData {
   id: string
@@ -52,7 +53,7 @@ export function UnifiedNoteCard({
   const menuRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // 1. 无滚动条 Auto-Growing Textarea 高度自适应
+  // 无滚动条 Auto-Growing Textarea 高度自适应
   const adjustHeight = useCallback(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto"
@@ -105,7 +106,7 @@ export function UnifiedNoteCard({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // 计算是否属于超长需要折叠的笔记 (基于文本字数与引用总长)
+  // 计算是否属于超长需要折叠的笔记
   const isLongContent = (note.quote?.length || 0) + content.length > 110
 
   return (
@@ -119,9 +120,11 @@ export function UnifiedNoteCard({
         setIsHovered(false)
         setShowMenu(false)
       }}
-      className={`group p-3 relative font-sans ${READING_TOKENS.surface.hoverCard} ${
-        isReadOnly ? "opacity-65 cursor-not-allowed" : ""
-      }`}
+      className={cn(
+        "group p-3 relative font-sans",
+        READING_TOKENS.surface.hoverCard,
+        isReadOnly && "opacity-65 cursor-not-allowed"
+      )}
     >
       {/* ── 1. Card Header: Anchor Label + Primary [原文定位] + More Menu ── */}
       <div className="flex items-center justify-between gap-1.5 mb-2">
@@ -130,7 +133,7 @@ export function UnifiedNoteCard({
             {note.anchor}
           </span>
           {note.createdAt && (
-            <span className={`${READING_TOKENS.typography.meta} hidden sm:inline-flex items-center gap-1 shrink-0`}>
+            <span className={cn(READING_TOKENS.typography.meta, "hidden sm:inline-flex items-center gap-1 shrink-0")}>
               <Clock size={11} />
               {note.createdAt}
             </span>
@@ -153,9 +156,10 @@ export function UnifiedNoteCard({
             <button
               onClick={() => setShowMenu(!showMenu)}
               disabled={isReadOnly}
-              className={`p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800/80 transition-opacity cursor-pointer ${
+              className={cn(
+                "p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800/80 transition-opacity cursor-pointer",
                 isHovered || showMenu ? "opacity-100" : "opacity-50"
-              }`}
+              )}
               title="更多操作"
             >
               <MoreHorizontal size={14} />
@@ -209,16 +213,16 @@ export function UnifiedNoteCard({
       </div>
 
       {/* ── Card Content Container with Collapsible Max Height & Gradient Mask ── */}
-      <div className={`relative transition-all duration-200 ${isLongContent && !isExpanded ? "max-h-36 overflow-hidden" : ""}`}>
-        {/* ── 2. High-Contrast Quote Block (清晰高对比划选原文，非斜体) ── */}
+      <div className={cn("relative transition-all duration-200", isLongContent && !isExpanded && "max-h-36 overflow-hidden")}>
+        {/* ── 2. High-Contrast Quote Block ── */}
         {note.quote && (
-          <div className={`mb-2 px-3 py-2 ${READING_TOKENS.surface.quote} select-text flex items-start gap-2`}>
+          <div className={cn("mb-2 px-3 py-2 select-text flex items-start gap-2", READING_TOKENS.surface.quote)}>
             <Quote size={13} className="text-emerald-400 shrink-0 mt-0.5" />
-            <span className={isExpanded ? "leading-relaxed" : "line-clamp-3 leading-relaxed"}>{note.quote}</span>
+            <span className={cn(isExpanded ? "leading-relaxed" : "line-clamp-3 leading-relaxed")}>{note.quote}</span>
           </div>
         )}
 
-        {/* ── 3. Direct Auto-Expanding Textarea (无内部滚动条，高度自适应伸展) ── */}
+        {/* ── 3. Direct Auto-Expanding Textarea ── */}
         <div className="relative">
           <textarea
             ref={textareaRef}
@@ -227,9 +231,11 @@ export function UnifiedNoteCard({
             disabled={isReadOnly}
             placeholder={isReadOnly ? "只读模式" : "记下感悟与思考..."}
             rows={1}
-            className={`w-full bg-transparent ${READING_TOKENS.typography.body} placeholder:text-slate-500 focus:outline-none resize-none overflow-hidden leading-relaxed block ${
-              isReadOnly ? "cursor-not-allowed" : ""
-            }`}
+            className={cn(
+              "w-full bg-transparent placeholder:text-slate-500 focus:outline-none resize-none overflow-hidden leading-relaxed block",
+              READING_TOKENS.typography.body,
+              isReadOnly && "cursor-not-allowed"
+            )}
           />
 
           {/* Auto-Save Status Badge */}
@@ -250,13 +256,13 @@ export function UnifiedNoteCard({
           )}
         </div>
 
-        {/* 渐变模糊遮罩 Gradient Masking (折叠时触发) */}
+        {/* 渐变模糊遮罩 Gradient Masking */}
         {isLongContent && !isExpanded && (
           <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent pointer-events-none" />
         )}
       </div>
 
-      {/* ── 4. Expand / Collapse Action Control (查看更多 / 收起) ── */}
+      {/* ── 4. Expand / Collapse Action Control ── */}
       {isLongContent && (
         <div className="flex justify-center pt-1 mt-1 border-t border-slate-800/40">
           <button

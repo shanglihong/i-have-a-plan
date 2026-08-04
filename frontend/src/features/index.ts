@@ -13,4 +13,7 @@ export { GlobalSearchBar } from "./global-search";
 export { NotificationDropdown } from "./notification-center";
 export { FontScaleSelector } from "./font-scale-control";
 export { BreadcrumbNav } from "./breadcrumb-nav";
+export * from "./reading-companion";
+export * from "./unified-note-card";
+
 

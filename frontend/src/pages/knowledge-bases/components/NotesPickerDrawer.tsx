@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Search, Plus, Bookmark, X, Quote, Sparkles } from "lucide-react"
-import { NoteCardData } from "../../reading/components/UnifiedNoteCard"
+import { NoteCardData } from "../../../features"
 
 interface NotesPickerDrawerProps {
   isOpen: boolean

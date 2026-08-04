@@ -3,6 +3,7 @@ import { Project } from "../../../shared/types";
 export const MOCK_PROJECTS_DATA: Project[] = [
   {
     id: "1",
+    book_id: "book_101",
     title: "深入理解 Linux 内核架构与网络协议栈",
     type: "READING",
     status: "ACTIVE",

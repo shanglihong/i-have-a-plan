@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown, ChevronRight, Folder, FolderOpen, BookOpen } from "lucide-react"
-import { UnifiedNoteCard, NoteCardData } from "./UnifiedNoteCard"
+import { UnifiedNoteCard, type NoteCardData } from "../unified-note-card"
+import { cn } from "../../shared/utils/cn"
 
 export interface ChapterGroup {
   id: string
@@ -118,7 +119,7 @@ export function ChapterNoteTree({
         </div>
       </div>
 
-      {/* Chapter Nodes Tree Stream (去框化与三层通透系统) */}
+      {/* Chapter Nodes Tree Stream */}
       {chapterGroups.map((group) => {
         const isExpanded = !!expandedChapters[group.id]
         const isActive = activeChapterId === group.id
@@ -126,13 +127,14 @@ export function ChapterNoteTree({
 
         return (
           <div key={group.id} className="space-y-1">
-            {/* Chapter Node Header (无框轻量 Accordion) */}
             <button
               onClick={() => toggleChapter(group.id)}
-              className={`w-full px-2.5 py-1.5 flex items-center justify-between text-left cursor-pointer rounded-xl transition-all ${isActive
+              className={cn(
+                "w-full px-2.5 py-1.5 flex items-center justify-between text-left cursor-pointer rounded-xl transition-all",
+                isActive
                   ? "bg-cyan-950/40 text-cyan-300 font-medium"
                   : "text-slate-300 hover:bg-slate-800/40"
-                }`}
+              )}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-slate-400">
@@ -142,8 +144,10 @@ export function ChapterNoteTree({
                   {isExpanded ? <FolderOpen size={14} /> : <Folder size={14} />}
                 </span>
                 <span
-                  className={`text-xs sm:text-sm truncate ${isActive ? "font-semibold text-cyan-200" : "font-medium text-slate-200"
-                    }`}
+                  className={cn(
+                    "text-xs sm:text-sm truncate",
+                    isActive ? "font-semibold text-cyan-200" : "font-medium text-slate-200"
+                  )}
                 >
                   {group.label}
                 </span>
@@ -151,18 +155,19 @@ export function ChapterNoteTree({
 
               {/* Note Count Badge */}
               <span
-                className={`text-[11px] font-mono px-2 py-0.5 rounded-full shrink-0 ${hasNotes
+                className={cn(
+                  "text-[11px] font-mono px-2 py-0.5 rounded-full shrink-0",
+                  hasNotes
                     ? isActive
                       ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                       : "bg-slate-800/80 text-slate-400"
                     : "bg-slate-900/60 text-slate-600"
-                  }`}
+                )}
               >
                 {group.notes.length} 条
               </span>
             </button>
 
-            {/* Collapsible Note Card Stream (通透直铺，解构沉陷内框) */}
             <AnimatePresence initial={false}>
               {isExpanded && (
                 <motion.div
@@ -181,7 +186,6 @@ export function ChapterNoteTree({
                       <div className="relative pl-3.5 space-y-3 border-l border-slate-800/80 ml-3 my-1">
                         {group.notes.map((note) => (
                           <div key={note.id} className="relative">
-                            {/* Timeline Node Indicator */}
                             <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-cyan-500/60 border border-cyan-400/80 shadow-xs ring-4 ring-[#090D16]" />
                             <UnifiedNoteCard
                               note={note}
@@ -203,7 +207,7 @@ export function ChapterNoteTree({
         )
       })}
 
-      {/* Unclassified Notes Group (if any) */}
+      {/* Unclassified Notes Group */}
       {unclassifiedNotes.length > 0 && (
         <div className="space-y-1">
           <button
@@ -233,7 +237,6 @@ export function ChapterNoteTree({
                   <div className="relative pl-3.5 space-y-3 border-l border-slate-800/80 ml-3 my-1">
                     {unclassifiedNotes.map((note) => (
                       <div key={note.id} className="relative">
-                        {/* Timeline Node Indicator */}
                         <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-cyan-500/60 border border-cyan-400/80 shadow-xs ring-4 ring-[#090D16]" />
                         <UnifiedNoteCard
                           note={note}

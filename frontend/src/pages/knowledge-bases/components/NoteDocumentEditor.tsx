@@ -13,7 +13,7 @@ import {
   MoveDown,
   PanelLeftOpen,
 } from "lucide-react"
-import { NoteCardData, UnifiedNoteCard } from "../../reading/components/UnifiedNoteCard"
+import { NoteCardData, UnifiedNoteCard } from "../../../features"
 import { NoteDocumentItem, downloadMarkdownFile, generateMarkdownFromDocument } from "../utils/exportUtils"
 
 interface NoteDocumentEditorProps {

@@ -21,9 +21,10 @@ import {
   ArrowRight,
   HelpCircle,
 } from "lucide-react"
-import { UnifiedNoteCard, NoteCardData } from "./UnifiedNoteCard"
+import { UnifiedNoteCard, type NoteCardData } from "../unified-note-card"
 import { ChapterNoteTree } from "./ChapterNoteTree"
-import { READING_TOKENS } from "../../../shared/constants"
+import { READING_TOKENS } from "../../shared/constants"
+import { cn } from "../../shared/utils/cn"
 
 export interface MessageItem {
   role: string
@@ -110,7 +111,7 @@ export function CompanionDrawer({
   const [likedIndex, setLikedIndex] = useState<number | null>(null)
   const [noteViewMode, setNoteViewMode] = useState<"tree" | "list">("tree")
 
-  // 动态计算屏幕 1/3 约占宽度（笔记本屏 ~33% 约 420-480px，大屏/2K屏 ~33% 约 540-800px）
+  // 动态计算屏幕 1/3 约占宽度
   const getOneThirdWidth = useCallback(() => {
     if (typeof window === "undefined") return 480
     const w = window.innerWidth
@@ -159,7 +160,7 @@ export function CompanionDrawer({
       window.addEventListener("mousemove", doDrag)
       window.addEventListener("mouseup", stopDrag)
     },
-    [currentWidth, isLaptopOrSmaller],
+    [currentWidth]
   )
 
   useEffect(() => {
@@ -200,7 +201,7 @@ export function CompanionDrawer({
     setTimeout(() => setAddedTaskIndex(null), 2500)
   }
 
-  // 格式化对话富文本排版（使用 READING_TOKENS 代替硬编码文本）
+  // 格式化对话富文本排版
   const formatMessageHtml = (rawContent: string) => {
     const paragraphs = rawContent.split(/\n\n+/)
     return paragraphs
@@ -218,7 +219,7 @@ export function CompanionDrawer({
     (n) =>
       n.content?.toLowerCase().includes(noteSearch.toLowerCase()) ||
       n.quote?.toLowerCase().includes(noteSearch.toLowerCase()) ||
-      n.anchor?.toLowerCase().includes(noteSearch.toLowerCase()),
+      n.anchor?.toLowerCase().includes(noteSearch.toLowerCase())
   )
 
   return (
@@ -236,9 +237,10 @@ export function CompanionDrawer({
             onMouseDown={startResizing}
             onDoubleClick={() => setCustomWidth(null)}
             title="按住左右拖动调节宽度，双击复位默认宽度"
-            className={`absolute left-0 top-0 bottom-0 w-1.5 hover:w-2 z-30 cursor-col-resize group flex items-center justify-center transition-all ${
+            className={cn(
+              "absolute left-0 top-0 bottom-0 w-1.5 hover:w-2 z-30 cursor-col-resize group flex items-center justify-center transition-all",
               isResizing ? "bg-cyan-500/40" : "hover:bg-cyan-500/20"
-            }`}
+            )}
           >
             <div className="h-10 w-1 rounded-full bg-slate-700/60 group-hover:bg-cyan-400 transition-colors flex items-center justify-center">
               <GripVertical size={10} className="text-slate-900 opacity-0 group-hover:opacity-100" />
@@ -251,9 +253,11 @@ export function CompanionDrawer({
               <div className="grid grid-cols-2 gap-1 bg-slate-950/90 p-1 rounded-xl border border-slate-800/90 shadow-inner w-[200px] sm:w-[230px] 2xl:w-[260px]">
                 <button
                   onClick={() => onTabChange("copilot")}
-                  className={`relative py-1.5 px-2 ${READING_TOKENS.typography.subtext} font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={cn(
+                    "relative py-1.5 px-2 font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5",
+                    READING_TOKENS.typography.subtext,
                     activeTab === "copilot" ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
-                  }`}
+                  )}
                 >
                   {activeTab === "copilot" && (
                     <motion.div
@@ -262,15 +266,17 @@ export function CompanionDrawer({
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
-                  <Sparkles size={14} className={`relative z-10 ${activeTab === "copilot" ? "text-cyan-400" : "text-slate-400"}`} />
+                  <Sparkles size={14} className={cn("relative z-10", activeTab === "copilot" ? "text-cyan-400" : "text-slate-400")} />
                   <span className="relative z-10 truncate">AI 伴读</span>
                 </button>
 
                 <button
                   onClick={() => onTabChange("notes")}
-                  className={`relative py-1.5 px-2 ${READING_TOKENS.typography.subtext} font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 ${
+                  className={cn(
+                    "relative py-1.5 px-2 font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5",
+                    READING_TOKENS.typography.subtext,
                     activeTab === "notes" ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
-                  }`}
+                  )}
                 >
                   {activeTab === "notes" && (
                     <motion.div
@@ -279,7 +285,7 @@ export function CompanionDrawer({
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
-                  <Bookmark size={14} className={`relative z-10 ${activeTab === "notes" ? "text-cyan-400" : "text-slate-400"}`} />
+                  <Bookmark size={14} className={cn("relative z-10", activeTab === "notes" ? "text-cyan-400" : "text-slate-400")} />
                   <span className="relative z-10 truncate">笔记 ({notes.length})</span>
                 </button>
               </div>
@@ -288,11 +294,12 @@ export function CompanionDrawer({
                 <button
                   onClick={() => onExtractSkill?.("L2")}
                   disabled={isReadOnly}
-                  className={`p-1.5 rounded-lg border transition-all ${
+                  className={cn(
+                    "p-1.5 rounded-lg border transition-all",
                     isReadOnly
                       ? "text-slate-600 border-transparent cursor-not-allowed"
                       : "text-violet-300 hover:text-violet-200 bg-violet-500/15 hover:bg-violet-500/25 border-violet-500/30 cursor-pointer"
-                  }`}
+                  )}
                   title="一键提取本章精华方法论 (L2 汇总提炼)"
                 >
                   <Zap size={15} className="text-violet-400" />
@@ -309,12 +316,12 @@ export function CompanionDrawer({
               </div>
             </div>
 
-            {/* ── TAB 1: AI COPILOT (DISCUSS) ── */}
+            {/* ── TAB 1: AI COPILOT ── */}
             {activeTab === "copilot" && (
               <div className="flex-1 flex flex-col min-h-0 bg-[#090D16] relative font-sans">
-                {/* Compact Prompt Chips Bar */}
+                {/* Prompt Chips Bar */}
                 <div className="p-3 border-b border-slate-800/60 bg-[#0C111D]/40 shrink-0">
-                  <div className={`flex items-center gap-1.5 ${READING_TOKENS.typography.subtext} font-medium mb-2`}>
+                  <div className={cn("flex items-center gap-1.5 font-medium mb-2", READING_TOKENS.typography.subtext)}>
                     <HelpCircle size={13} className="text-cyan-400" />
                     <span>本章启发提问</span>
                   </div>
@@ -333,7 +340,7 @@ export function CompanionDrawer({
                   </div>
                 </div>
 
-                {/* Chat Messages Stream with Standardized READING_TOKENS Typography */}
+                {/* Chat Messages Stream */}
                 <div
                   ref={chatRef}
                   className="flex-1 overflow-y-auto p-4 2xl:p-6 space-y-4.5 scrollbar-thin scrollbar-thumb-slate-800/80"
@@ -345,22 +352,24 @@ export function CompanionDrawer({
                         key={index}
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`flex ${isUser ? "justify-end" : "justify-start w-full"}`}
+                        className={cn("flex", isUser ? "justify-end" : "justify-start w-full")}
                       >
-                        <div className={`flex flex-col ${isUser ? "max-w-[82%] items-end" : "w-full items-start"}`}>
+                        <div className={cn("flex flex-col", isUser ? "max-w-[82%] items-end" : "w-full items-start")}>
                           {/* Quote Context Box */}
                           {msg.quote && (
-                            <div className={`mb-2 px-3 py-1.5 ${READING_TOKENS.surface.quote} flex items-center gap-1.5 shadow-xs leading-relaxed`}>
+                            <div className={cn("mb-2 px-3 py-1.5 flex items-center gap-1.5 shadow-xs leading-relaxed", READING_TOKENS.surface.quote)}>
                               <Quote size={12} className="shrink-0 text-emerald-400" />
                               <span className="truncate">{msg.quote}</span>
                             </div>
                           )}
 
-                          {/* Message Content Bubble with Unified Token Styles */}
+                          {/* Message Content Bubble */}
                           <div
-                            className={`p-4 ${READING_TOKENS.typography.body} ${
+                            className={cn(
+                              "p-4",
+                              READING_TOKENS.typography.body,
                               isUser ? READING_TOKENS.surface.userBubble : READING_TOKENS.surface.card
-                            }`}
+                            )}
                           >
                             <div
                               dangerouslySetInnerHTML={{
@@ -378,10 +387,10 @@ export function CompanionDrawer({
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <Sparkles size={14} className="text-cyan-400 shrink-0" />
                                 <div className="min-w-0">
-                                  <div className={`font-bold text-cyan-200 truncate ${READING_TOKENS.typography.subtext}`}>
+                                  <div className={cn("font-bold text-cyan-200 truncate", READING_TOKENS.typography.subtext)}>
                                     推荐实践：反向传播与链式求导公式复现
                                   </div>
-                                  <div className={`truncate ${READING_TOKENS.typography.meta}`}>
+                                  <div className={cn("truncate", READING_TOKENS.typography.meta)}>
                                     将本章方法论内化加入计划项目 Task 树
                                   </div>
                                 </div>
@@ -413,7 +422,7 @@ export function CompanionDrawer({
 
                               <button
                                 onClick={() => saveMessageAsNote(msg, index)}
-                                className={`${READING_TOKENS.typography.action} hover:text-cyan-300`}
+                                className={cn(READING_TOKENS.typography.action, "hover:text-cyan-300")}
                                 title="一键存为融合笔记卡片"
                               >
                                 {noteSavedIndex === index ? (
@@ -435,9 +444,10 @@ export function CompanionDrawer({
 
                               <button
                                 onClick={() => setLikedIndex(likedIndex === index ? null : index)}
-                                className={`transition-colors cursor-pointer p-0.5 ${
+                                className={cn(
+                                  "transition-colors cursor-pointer p-0.5",
                                   likedIndex === index ? "text-cyan-400" : "text-slate-500 hover:text-slate-300"
-                                }`}
+                                )}
                                 title="赞"
                               >
                                 <ThumbsUp size={12} />
@@ -453,7 +463,7 @@ export function CompanionDrawer({
                 {/* Multiline Input Area */}
                 <div className="p-3.5 border-t border-slate-800/80 bg-[#0C111D]/90 backdrop-blur-md shrink-0 space-y-2">
                   {quotedContext && (
-                    <div className={`px-3 py-2 ${READING_TOKENS.surface.quote} flex items-center justify-between gap-2`}>
+                    <div className={cn("px-3 py-2 flex items-center justify-between gap-2", READING_TOKENS.surface.quote)}>
                       <div className="flex items-center gap-1.5 min-w-0 italic">
                         <Quote size={13} className="shrink-0 text-emerald-400" />
                         <span className="truncate">{quotedContext}</span>
@@ -481,7 +491,10 @@ export function CompanionDrawer({
                       disabled={isReadOnly || streaming}
                       rows={1}
                       placeholder={isReadOnly ? "只读模式" : "向 AI 伴读提问或探索核心逻辑..."}
-                      className={`w-full bg-transparent ${READING_TOKENS.typography.body} placeholder:text-slate-500 focus:outline-none resize-none`}
+                      className={cn(
+                        "w-full bg-transparent placeholder:text-slate-500 focus:outline-none resize-none",
+                        READING_TOKENS.typography.body
+                      )}
                     />
 
                     <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/60">
@@ -489,7 +502,6 @@ export function CompanionDrawer({
                         Enter 发送 · Shift+Enter 换行
                       </span>
 
-                      {/* Send / Stop Generation Toggle Button */}
                       {streaming ? (
                         <button
                           onClick={onStopStreaming}
@@ -514,7 +526,7 @@ export function CompanionDrawer({
               </div>
             )}
 
-            {/* ── TAB 2: UNIFIED NOTES (WITH TREE / STREAM VIEW MODES) ── */}
+            {/* ── TAB 2: UNIFIED NOTES ── */}
             {activeTab === "notes" && (
               <div className="flex-1 flex flex-col min-h-0 bg-[#090D16] font-sans">
                 {/* Search Header & View Mode Switcher */}
@@ -523,11 +535,12 @@ export function CompanionDrawer({
                     <div className="flex bg-slate-950/80 p-0.5 rounded-xl border border-slate-800 text-xs">
                       <button
                         onClick={() => setNoteViewMode("tree")}
-                        className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1",
                           noteViewMode === "tree"
                             ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                             : "text-slate-400 hover:text-slate-200"
-                        }`}
+                        )}
                       >
                         <FolderTree size={13} />
                         <span>章节树</span>
@@ -535,11 +548,12 @@ export function CompanionDrawer({
 
                       <button
                         onClick={() => setNoteViewMode("list")}
-                        className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1",
                           noteViewMode === "list"
                             ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                             : "text-slate-400 hover:text-slate-200"
-                        }`}
+                        )}
                       >
                         <List size={13} />
                         <span>时间流</span>
@@ -553,7 +567,10 @@ export function CompanionDrawer({
                         value={noteSearch}
                         onChange={(e) => setNoteSearch(e.target.value)}
                         placeholder="搜索笔记..."
-                        className={`w-full bg-[#0F172A] border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 ${READING_TOKENS.typography.subtext} placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50`}
+                        className={cn(
+                          "w-full bg-[#0F172A] border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50",
+                          READING_TOKENS.typography.subtext
+                        )}
                       />
                     </div>
                   </div>
@@ -580,7 +597,6 @@ export function CompanionDrawer({
                     <div className="relative pl-3.5 space-y-3.5 border-l border-slate-800/80 ml-2 my-1">
                       {filteredNotes.map((note) => (
                         <div key={note.id} className="relative">
-                          {/* Timeline Node Indicator */}
                           <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-cyan-500/60 border border-cyan-400/80 shadow-xs ring-4 ring-[#090D16]" />
                           <UnifiedNoteCard
                             note={note}

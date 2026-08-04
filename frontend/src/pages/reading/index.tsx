@@ -1,14 +1,13 @@
-import { useParams } from "react-router-dom"
+import { useParams, useSearchParams } from "react-router-dom"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "../../shared/api"
 import {
-  useLayoutStore,
-  useFocusStore,
-  useFloatingMenuStore,
+  useLayoutStore as useLayout,
+  useFocusStore as useFocus,
+  useFloatingMenuStore as useFloatingMenu,
 } from "../../shared/store"
-
 import {
   ChevronRight,
   Bookmark,
@@ -27,10 +26,14 @@ import {
 } from "lucide-react"
 
 import { StatusBadge } from "../../shared/ui"
-import { CompanionDrawer } from "./components/CompanionDrawer"
-import { DualMetricProgressBar, ChapterMarker } from "./components/DualMetricProgressBar"
-import { RecommendationBubble } from "./components/RecommendationBubble"
-import { NoteCardData } from "./components/UnifiedNoteCard"
+import {
+  CompanionDrawer,
+  DualMetricProgressBar,
+  RecommendationBubble,
+  type ChapterMarker,
+  type NoteCardData,
+} from "../../features"
+import { cn } from "../../shared/utils/cn"
 import {
   MOCK_READING_CHAPTERS,
   MOCK_READING_INITIAL_MESSAGES,
@@ -40,20 +43,22 @@ import {
 
 export default function ReadingWorkspacePage() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
+  const bookId = searchParams.get("book_id")
   const queryClient = useQueryClient()
   const [activeChapter, setActiveChapter] = useState("ch3")
   const [rightTab, setRightTab] = useState<"copilot" | "notes">("copilot")
 
-  const outlineOpen = useLayoutStore((s) => s.outlineOpen)
-  const setOutlineOpen = useLayoutStore((s) => s.setOutlineOpen)
-  const discussOpen = useLayoutStore((s) => s.discussOpen)
-  const setDiscussOpen = useLayoutStore((s) => s.setDiscussOpen)
+  const outlineOpen = useLayout((s) => s.outlineOpen)
+  const setOutlineOpen = useLayout((s) => s.setOutlineOpen)
+  const discussOpen = useLayout((s) => s.discussOpen)
+  const setDiscussOpen = useLayout((s) => s.setDiscussOpen)
 
-  const targetAnchor = useFocusStore((s) => s.targetAnchor)
-  const setTargetAnchor = useFocusStore((s) => s.setTargetAnchor)
+  const targetAnchor = useFocus((s) => s.targetAnchor)
+  const setTargetAnchor = useFocus((s) => s.setTargetAnchor)
 
-  const floatingMenu = useFloatingMenuStore((s) => s.menu)
-  const setFloatingMenu = useFloatingMenuStore((s) => s.setMenu)
+  const floatingMenu = useFloatingMenu((s) => s.menu)
+  const setFloatingMenu = useFloatingMenu((s) => s.setMenu)
 
   const [discussMsg, setDiscussMsg] = useState("")
   const [quotedContext, setQuotedContext] = useState<string | null>(null)
@@ -77,7 +82,7 @@ export default function ReadingWorkspacePage() {
 
   const readerRef = useRef<HTMLDivElement>(null)
 
-  // 响应式检测大屏 (≥ 1536px) 与笔记本屏 (含 13" Mac 1440px/1366px)
+  // 响应式检测大屏 (≥ 1536px) 与笔记本屏
   useEffect(() => {
     const checkScreenSize = () => {
       const w = window.innerWidth
@@ -89,7 +94,7 @@ export default function ReadingWorkspacePage() {
     return () => window.removeEventListener("resize", checkScreenSize)
   }, [])
 
-  // 笔记本屏下打开伴读栏时自动收起左侧目录，保障最佳正文阅读宽度
+  // 笔记本屏下打开伴读栏时自动收起左侧目录
   const handleOpenDiscuss = () => {
     if (isLaptopOrSmaller) {
       setOutlineOpen(false)
@@ -109,7 +114,7 @@ export default function ReadingWorkspacePage() {
   }, [setFloatingMenu])
 
   const { data: notesData } = useQuery({
-    queryKey: ["project-notes", id],
+    queryKey: ["project-notes", id, bookId],
     queryFn: async () => {
       const res = await api.get(`/projects/${id}/notes`)
       return res.data
@@ -137,19 +142,17 @@ export default function ReadingWorkspacePage() {
     { id: "ch5", label: "第5章 · 深度模型实战", progressPercent: 95, estimatedMinutes: 30 },
   ]
 
-  // 点击笔记锚点平滑定位与 3 次脉冲闪烁高亮
+  // 点击笔记锚点平滑定位与发光高亮
   useEffect(() => {
     if (targetAnchor && readerRef.current) {
       const elements = Array.from(
-        readerRef.current.querySelectorAll("h1, h2, h3, p, div, blockquote"),
+        readerRef.current.querySelectorAll("h1, h2, h3, p, div, blockquote")
       )
       const targetEl = elements.find((el) =>
-        el.textContent?.includes(targetAnchor.split(" · ")[1] || targetAnchor),
+        el.textContent?.includes(targetAnchor.split(" · ")[1] || targetAnchor)
       )
       if (targetEl) {
         targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
-
-        // 触发 3 次脉冲闪烁发光高亮
         targetEl.classList.add("ring-2", "ring-cyan-400", "bg-cyan-950/40", "transition-all", "duration-500")
         setTimeout(() => {
           targetEl.classList.remove("ring-2", "ring-cyan-400", "bg-cyan-950/40")
@@ -207,7 +210,7 @@ export default function ReadingWorkspacePage() {
     setFloatingMenu(null)
   }
 
-  // 提炼技能 Skill Extraction Trigger (L1 / L2)
+  // 提炼技能 Trigger
   const handleExtractSkill = (scopeType: "L1" | "L2", _data?: any) => {
     const label = scopeType === "L1" ? `已成功将笔记提炼为沙箱技能 Draft` : `已打包本章精华并生成技能树`
     setExtractedToast(label)
@@ -271,10 +274,9 @@ export default function ReadingWorkspacePage() {
     const { scrollTop, scrollHeight, clientHeight } = readerRef.current
     const progress = Math.min(
       100,
-      Math.max(0, (scrollTop / (scrollHeight - clientHeight)) * 100),
+      Math.max(0, (scrollTop / (scrollHeight - clientHeight)) * 100)
     )
     setScrollProgress(progress)
-    // 章节末 5% 推荐气泡触发
     setShowBubble(progress >= 65 && progress <= 98)
   }, [])
 
@@ -297,7 +299,7 @@ export default function ReadingWorkspacePage() {
             className="border-r border-slate-800/80 bg-[#0C111D] shrink-0 z-20"
           >
             <div className="w-[300px] h-full flex flex-col">
-              {/* Sidebar Header with Integrated Progress Badge */}
+              {/* Sidebar Header */}
               <div className="h-12 px-4 border-b border-slate-800/80 bg-[#090D16]/50 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <BookOpen size={15} className="text-cyan-400" />
@@ -324,11 +326,13 @@ export default function ReadingWorkspacePage() {
                       key={ch.id}
                       onClick={() => setActiveChapter(ch.id)}
                       title={ch.label}
-                      className={`w-full text-left rounded-lg text-xs sm:text-[13px] transition-all flex items-center gap-2.5 cursor-pointer font-medium border ${ch.level === 1 ? "pl-7 pr-3 py-2" : "px-3 py-2.5"
-                        } ${isCurrent
+                      className={cn(
+                        "w-full text-left rounded-lg text-xs sm:text-[13px] transition-all flex items-center gap-2.5 cursor-pointer font-medium border",
+                        ch.level === 1 ? "pl-7 pr-3 py-2" : "px-3 py-2.5",
+                        isCurrent
                           ? "bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-300 border-cyan-500/30 shadow-sm shadow-cyan-950/50"
                           : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border-transparent"
-                        }`}
+                      )}
                     >
                       {ch.done ? (
                         <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
@@ -476,7 +480,7 @@ export default function ReadingWorkspacePage() {
             )}
           </AnimatePresence>
 
-          {/* Main Article Body (Max Width 720px for optimal readability) */}
+          {/* Main Article Body */}
           <article className="max-w-[720px] mx-auto text-slate-200 leading-relaxed font-sans">
             {/* Document Header */}
             <div className="mb-8 pb-4 border-b border-slate-800/80">
@@ -521,7 +525,7 @@ export default function ReadingWorkspacePage() {
                 <button
                   onClick={() =>
                     copyFormulaCode(
-                      "∂L/∂x = (∂L/∂f) · (∂f/∂g) · (∂g/∂h) · (∂h/∂x)",
+                      "∂L/∂x = (∂L/∂f) · (∂f/∂g) · (∂g/∂h) · (∂h/∂x)"
                     )
                   }
                   className="text-slate-400 hover:text-slate-200 p-1 rounded hover:bg-slate-800 transition-colors cursor-pointer"
@@ -546,10 +550,12 @@ export default function ReadingWorkspacePage() {
 
             {/* Paragraph Callout Box */}
             <div
-              className={`my-6 p-4 rounded-xl border transition-all duration-700 ${targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
-                ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
-                : "bg-slate-900/60 border-slate-800"
-                }`}
+              className={cn(
+                "my-6 p-4 rounded-xl border transition-all duration-700",
+                targetAnchor?.includes("梯度消失") || targetAnchor?.includes("3.2")
+                  ? "ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_30px_rgba(34,211,238,0.25)]"
+                  : "bg-slate-900/60 border-slate-800"
+              )}
             >
               <div className="flex items-start gap-3">
                 <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
@@ -586,7 +592,7 @@ export default function ReadingWorkspacePage() {
           </article>
         </div>
 
-        {/* Chapter End 5% Recommendation Bubble (Floating in Central Viewport) */}
+        {/* Chapter End Recommendation Bubble */}
         <RecommendationBubble
           isVisible={showBubble}
           isLaptopOrSmaller={isLaptopOrSmaller}

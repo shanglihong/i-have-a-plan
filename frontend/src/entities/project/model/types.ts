@@ -5,6 +5,7 @@ export type ProjectStatus = "INIT" | "ACTIVE" | "SUSPENDED" | "ARCHIVED" | "PARS
 // 持久化 DO & API 返回的基础实体
 export interface ProjectDO {
   id: string;
+  book_id?: string;
   title: string;
   type: ProjectType;
   status: ProjectStatus;

@@ -330,8 +330,15 @@ function StatusGroupNode({
           >
             {group.projects.map((p) => {
               const targetPath =
-                p.type === "PLAN" ? `/project/plan/${p.id}` : `/project/read/${p.id}`
-              const isActive = activePath === targetPath
+                p.type === "PLAN"
+                  ? `/project/plan/${p.id}`
+                  : p.book_id
+                    ? `/project/read/${p.id}?book_id=${p.book_id}`
+                    : `/project/read/${p.id}`
+              const isActive =
+                p.type === "PLAN"
+                  ? activePath === targetPath
+                  : activePath.startsWith(`/project/read/${p.id}`)
 
               return (
                 <ProjectItemButton
@@ -388,6 +395,7 @@ export function ProjectTreeDrawer({
     if (!apiProjectsData?.items) return []
     return apiProjectsData.items.map((item) => ({
       id: item.id,
+      book_id: item.book_id,
       title: item.title,
       type: item.type,
       status: item.status,
@@ -457,7 +465,9 @@ export function ProjectTreeDrawer({
       return expandedStatuses[statusKey]
     }
     const hasActiveProject = groupProjects.some(
-      (p) => location.pathname === `/project/read/${p.id}` || location.pathname === `/project/plan/${p.id}`
+      (p) =>
+        location.pathname.startsWith(`/project/read/${p.id}`) ||
+        location.pathname === `/project/plan/${p.id}`
     )
     if (hasActiveProject) return true
     return statusKey === "IN_PROGRESS"

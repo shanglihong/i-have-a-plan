@@ -34,6 +34,7 @@ export function useProjectsQuery(
       const res = await api.get("/projects", { params });
       const items = (res.data?.items || []).map((item: any) => ({
         ...item,
+        book_id: item.book_id || "",
         deadline: item.deadline || "",
         createdAt: item.createdAt || item.created_at,
         updatedAt: item.updatedAt || item.updated_at,

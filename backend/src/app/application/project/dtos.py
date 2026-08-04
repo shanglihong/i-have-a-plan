@@ -123,6 +123,7 @@ class ProjectListItemDTO(BaseModel):
     progress: int
     deadline: Optional[datetime] = None
     assigned_agent_id: Optional[str] = None
+    book_id: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
@@ -140,6 +141,7 @@ class ProjectListItemDTO(BaseModel):
             tags=entity.tags,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
+            book_id=entity.book_id,
         )
 
 

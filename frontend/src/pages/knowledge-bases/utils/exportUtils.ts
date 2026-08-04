@@ -1,4 +1,4 @@
-import { NoteCardData } from "../../reading/components/UnifiedNoteCard"
+import { NoteCardData } from "../../../features"
 
 export interface NoteDocumentItem {
   id: string
