@@ -1,4 +1,3 @@
-import { projectsHandlers } from "./modules/projects/handlers";
 import { dashboardHandlers } from "./modules/dashboard/handlers";
 import { notesHandlers } from "./modules/notes/handlers";
 import { skillsHandlers } from "./modules/skills/handlers";
@@ -15,7 +14,6 @@ export * from "./modules/graph/data";
 export * from "./modules/search/data";
 
 export const handlers = [
-  ...projectsHandlers,
   ...dashboardHandlers,
   ...notesHandlers,
   ...skillsHandlers,

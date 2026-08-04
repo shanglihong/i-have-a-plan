@@ -16,9 +16,42 @@ export interface ProjectDO {
   progress: number;
   createdAt?: string;
   updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
+export interface BookSummaryDTO {
+  id: string;
+  file_name: string;
+  parsing_status: string;
+  total_chapters: number;
+  total_word_count: number;
+}
 
+export interface TaskDTO {
+  id: string;
+  title: string;
+  description: string;
+  sequence_order: number;
+  status: string;
+  depends_on_task_ids: string[];
+}
+
+export interface TaskChainDTO {
+  id: string;
+  title: string;
+  type: string;
+  sequence_order: number;
+  status: string;
+  book_id?: string;
+  chapter_id?: string;
+  tasks: TaskDTO[];
+}
+
+export interface ProjectDetailDTO extends ProjectDO {
+  book?: BookSummaryDTO;
+  task_chains?: TaskChainDTO[];
+}
 
 // 前端使用 View Object (VO)
 export interface ProjectVO extends ProjectDO {

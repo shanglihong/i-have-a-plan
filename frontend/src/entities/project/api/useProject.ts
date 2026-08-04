@@ -2,35 +2,63 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../../shared/api";
 import {
   ProjectDO,
+  ProjectDetailDTO,
   ProjectStatus,
+  ProjectType,
   CreateProjectPayload,
 } from "../model/types";
 
 export const PROJECT_QUERY_KEYS = {
   all: ["projects"] as const,
   lists: () => [...PROJECT_QUERY_KEYS.all, "list"] as const,
-  list: (status?: string) => [...PROJECT_QUERY_KEYS.lists(), { status }] as const,
+  list: (status?: string, type?: string) =>
+    [...PROJECT_QUERY_KEYS.lists(), { status, type }] as const,
   details: () => [...PROJECT_QUERY_KEYS.all, "detail"] as const,
   detail: (id: string) => [...PROJECT_QUERY_KEYS.details(), id] as const,
 };
 
-export function useProjectsQuery(status?: ProjectStatus | "ALL") {
+export function useProjectsQuery(
+  status?: ProjectStatus | "ALL",
+  type?: ProjectType
+) {
   return useQuery<{ items: ProjectDO[]; total: number }>({
-    queryKey: PROJECT_QUERY_KEYS.list(status),
+    queryKey: PROJECT_QUERY_KEYS.list(status, type),
     queryFn: async () => {
-      const params = status && status !== "ALL" ? { status } : {};
+      const params: Record<string, any> = {};
+      if (status && status !== "ALL") {
+        params.status = status;
+      }
+      if (type) {
+        params.type = type;
+      }
       const res = await api.get("/projects", { params });
-      return res.data;
+      const items = (res.data?.items || []).map((item: any) => ({
+        ...item,
+        deadline: item.deadline || "",
+        createdAt: item.createdAt || item.created_at,
+        updatedAt: item.updatedAt || item.updated_at,
+        tags: item.tags || [],
+      }));
+      return {
+        items,
+        total: res.data?.total ?? items.length,
+      };
     },
   });
 }
 
 export function useProjectDetailQuery(id: string) {
-  return useQuery<ProjectDO>({
+  return useQuery<ProjectDetailDTO>({
     queryKey: PROJECT_QUERY_KEYS.detail(id),
     queryFn: async () => {
-      const res = await api.get(`/projects/${id}`);
-      return res.data;
+      const res = await api.get(`/projects/${id}/detail`);
+      const data = res.data;
+      return {
+        ...data,
+        deadline: data.deadline || "",
+        createdAt: data.createdAt || data.created_at,
+        updatedAt: data.updatedAt || data.updated_at,
+      };
     },
     enabled: !!id,
   });
@@ -56,7 +84,6 @@ export function useCreateProjectMutation() {
       if (payload.type === "READING") {
         const formData = new FormData();
         formData.append("title", payload.title.trim());
-        formData.append("type", "READING");
         formData.append("deadline", formattedDeadline);
         if (payload.file) {
           formData.append("file", payload.file);
@@ -82,12 +109,35 @@ export function useCreateProjectMutation() {
   });
 }
 
+export function useUpdateProjectMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      title,
+      deadline,
+    }: {
+      id: string;
+      title?: string;
+      deadline?: string;
+    }) => {
+      const res = await api.patch(`/projects/${id}`, { title, deadline });
+      return res.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEYS.lists() });
+    },
+  });
+}
+
 export function useSuspendProjectMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await api.post(`/projects/${id}/suspend`);
+      const res = await api.patch(`/projects/${id}`, { status: "SUSPENDED" });
       return res.data;
     },
     onSuccess: (_, id) => {
@@ -98,31 +148,44 @@ export function useSuspendProjectMutation() {
 }
 
 export function useResumeProjectMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await api.post(`/projects/${id}/resume`);
-      return res.data;
-    },
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEYS.detail(id) });
-      queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEYS.lists() });
-    },
-  });
+  return useReactivateProjectMutation();
 }
 
 export function useArchiveProjectMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, experienceContent }: { id: string; experienceContent?: string }) => {
-      const res = await api.post(`/projects/${id}/archive`, {
-        experience_content: experienceContent,
-      });
-      return res.data;
+    mutationFn: async ({
+      id,
+      experienceContent,
+    }: {
+      id: string;
+      experienceContent?: string;
+    }) => {
+      const archiveRes = await api.post(`/projects/${id}/archive`);
+      if (experienceContent) {
+        await api.post(`/projects/${id}/experience-note`, {
+          experience_content: experienceContent,
+        });
+      }
+      return archiveRes.data;
     },
     onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEYS.lists() });
+    },
+  });
+}
+
+export function useReactivateProjectMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.post(`/projects/${id}/reactivate`);
+      return res.data;
+    },
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEYS.detail(id) });
       queryClient.invalidateQueries({ queryKey: PROJECT_QUERY_KEYS.lists() });
     },
