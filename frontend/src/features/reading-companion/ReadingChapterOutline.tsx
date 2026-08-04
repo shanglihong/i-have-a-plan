@@ -18,6 +18,7 @@ interface ReadingChapterOutlineProps {
   activeChapter: string
   onSelectChapter: (id: string) => void
   scrollProgress: number
+  projectProgress: number
 }
 
 export function ReadingChapterOutline({
@@ -26,13 +27,12 @@ export function ReadingChapterOutline({
   activeChapter,
   onSelectChapter,
   scrollProgress,
+  projectProgress,
 }: ReadingChapterOutlineProps) {
   const outlineOpen = useLayout((s) => s.outlineOpen)
   const setOutlineOpen = useLayout((s) => s.setOutlineOpen)
-
-  const doneCount = chapters.filter((ch) => ch.done).length
   const totalCount = chapters.length
-  const completionPercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
+  const completionPercent = projectProgress
 
   return (
     <AnimatePresence initial={false}>

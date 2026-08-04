@@ -9,6 +9,7 @@ interface ReadingWorkspaceHeaderProps {
   chapterTitle?: string
   chapterItem?: ChapterItem
   estimatedMinutes?: number
+  status?: string
   onOpenDiscuss?: () => void
 }
 
@@ -18,6 +19,7 @@ export function ReadingWorkspaceHeader({
   chapterTitle,
   chapterItem,
   estimatedMinutes,
+  status,
   onOpenDiscuss,
 }: ReadingWorkspaceHeaderProps) {
   const outlineOpen = useLayout((s) => s.outlineOpen)
@@ -78,7 +80,7 @@ export function ReadingWorkspaceHeader({
           </div>
         )}
 
-        <StatusBadge status="ACTIVE" />
+        <StatusBadge status={status} />
 
         {!discussOpen && (
           <button

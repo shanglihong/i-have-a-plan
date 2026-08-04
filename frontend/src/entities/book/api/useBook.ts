@@ -66,3 +66,35 @@ export function useBookDetailQuery(bookId?: string) {
     enabled: Boolean(bookId),
   });
 }
+
+// 全量加载某章节的所有 blocks（内部循环请求分页直到 has_more=false）
+// 对外暴露与 useChapterContentQuery 相同的数据结构，调用方无需感知分页
+export function useAllChapterBlocksQuery(bookId?: string, chapterId?: string) {
+  return useQuery<ChapterContentResponseDTO>({
+    queryKey: [...BOOK_QUERY_KEYS.chapterContents(), bookId || "", chapterId || "", "all"],
+    queryFn: async () => {
+      if (!bookId || !chapterId) {
+        return { book_id: "", chapter_id: "", chapter_index: 0, total_blocks: 0, has_more: false, blocks: [] };
+      }
+
+      const limit = 50;
+      let offset = 0;
+      let allBlocks: ChapterContentResponseDTO["blocks"] = [];
+      let lastPage: ChapterContentResponseDTO | null = null;
+
+      while (true) {
+        const res = await api.get(`/books/${bookId}/chapters/${chapterId}`, {
+          params: { offset, limit },
+        });
+        const page: ChapterContentResponseDTO = res.data?.data || res.data;
+        allBlocks = [...allBlocks, ...page.blocks];
+        lastPage = page;
+        if (!page.has_more) break;
+        offset += limit;
+      }
+
+      return { ...lastPage!, blocks: allBlocks, has_more: false };
+    },
+    enabled: Boolean(bookId && chapterId),
+  });
+}

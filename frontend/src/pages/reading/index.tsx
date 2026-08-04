@@ -18,7 +18,8 @@ import {
   type NoteCardData,
   type ChapterItem,
 } from "../../features"
-import { useBookTocQuery, useBookDetailQuery, type TocNodeDO } from "../../entities/book"
+import { useBookTocQuery, useAllChapterBlocksQuery, type TocNodeDO } from "../../entities/book"
+import { useProjectDetailQuery } from "../../entities/project"
 import {
   MOCK_READING_INITIAL_MESSAGES,
   MOCK_READING_NOTES_FALLBACK,
@@ -53,8 +54,8 @@ export default function ReadingWorkspacePage() {
   const [activeChapter, setActiveChapter] = useState("")
   const [rightTab, setRightTab] = useState<"copilot" | "notes">("copilot")
 
-  const { data: bookDetail } = useBookDetailQuery(bookId || undefined)
   const { data: tocResponse, isLoading: isTocLoading } = useBookTocQuery(bookId || undefined)
+  const { data: projectDetail } = useProjectDetailQuery(id || "")
 
   const chapters: ChapterItem[] = useMemo(() => {
     if (tocResponse?.toc_tree && tocResponse.toc_tree.length > 0) {
@@ -104,6 +105,38 @@ export default function ReadingWorkspacePage() {
   const [extractedToast, setExtractedToast] = useState<string | null>(null)
 
   const readerRef = useRef<HTMLDivElement>(null)
+
+  // 从 project task_chains 中找到当前章节对应的 TaskChain，取其 status
+  const currentTaskChainStatus = useMemo(() => {
+    const chains = projectDetail?.task_chains || []
+    const matched = chains.find(
+      (c) => c.chapter_id === activeChapter || c.chapter_id === chapterMap.get(activeChapter)?.targetChapterId
+    )
+    const raw = matched?.status
+    // PENDING 在阅读视图语境下与 ACTIVE（进行中）等价
+    return raw === "PENDING" ? "ACTIVE" : raw
+  }, [projectDetail, activeChapter, chapterMap])
+
+  // 从 project task_chains 中找到当前章节对应的 TaskChain，取其 status
+  const projectProgress = useMemo(() => {
+    const chains = projectDetail?.task_chains || []
+    const count = chains.length
+
+    if (count === 0) return 0 // 防止除以 0 得到 NaN
+
+    const doneCount = chains.filter(
+      (c) => c.status === "COMPLETED" || c.status === "DONE"
+    ).length
+    return Math.round((doneCount / count) * 100)
+  }, [projectDetail])
+
+  // React Query 缓存与 ReadingArticleViewer 共用同一请求，不产生额外网络开销
+  const { data: chapterContentData } = useAllChapterBlocksQuery(bookId || undefined, activeChapter)
+  const estimatedMinutes = useMemo(() => {
+    const blocks = chapterContentData?.blocks || []
+    const totalChars = blocks.reduce((sum, b) => sum + (b.text?.length || 0), 0)
+    return Math.max(1, Math.ceil(totalChars / 400))
+  }, [chapterContentData])
 
   // 响应式检测大屏 (≥ 1536px) 与笔记本屏
   useEffect(() => {
@@ -305,6 +338,7 @@ export default function ReadingWorkspacePage() {
         activeChapter={activeChapter}
         onSelectChapter={setActiveChapter}
         scrollProgress={scrollProgress}
+        projectProgress={projectProgress}
       />
 
       {/* ──────────────── Center Reader Workspace ──────────────── */}
@@ -317,7 +351,8 @@ export default function ReadingWorkspacePage() {
           scrollProgress={scrollProgress}
           bookTitle=""
           chapterItem={chapterMap.get(activeChapter)}
-          estimatedMinutes={24} // 暂时固定，根据内容进行长度估算
+          estimatedMinutes={estimatedMinutes}
+          status={currentTaskChainStatus}
           onOpenDiscuss={handleOpenDiscuss}
         />
 
