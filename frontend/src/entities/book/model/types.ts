@@ -13,6 +13,27 @@ export interface TocResponseDTO {
   toc_tree: TocNodeDO[];
 }
 
+export interface ContentBlockDO {
+  block_id: string;
+  block_type: string;
+  sequence_index: number;
+  text: string;
+  html_or_markdown?: string | null;
+  page_number?: number | null;
+  bbox?: number[] | null;
+}
+
+export interface ChapterContentResponseDTO {
+  book_id: string;
+  chapter_id: string;
+  chapter_index: number;
+  total_blocks: number;
+  has_more: boolean;
+  prev_chapter_id?: string | null;
+  next_chapter_id?: string | null;
+  blocks: ContentBlockDO[];
+}
+
 export interface BookDetailDO {
   id: string;
   project_id: string;

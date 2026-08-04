@@ -1,8 +1,6 @@
-import { useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { BookOpen, PanelLeftClose, CheckCircle2, Circle } from "lucide-react"
 import { useLayoutStore as useLayout } from "../../shared/store"
-import { useBookTocQuery, type TocNodeDO } from "../../entities/book"
 import { DualMetricProgressBar } from "./DualMetricProgressBar"
 import { cn } from "../../shared/utils/cn"
 
@@ -15,54 +13,22 @@ export interface ChapterItem {
 }
 
 interface ReadingChapterOutlineProps {
-  bookId?: string
   chapters?: ChapterItem[]
+  isLoading?: boolean
   activeChapter: string
   onSelectChapter: (id: string) => void
   scrollProgress: number
 }
 
-/**
- * 将后端返回的 TocNodeDO 转换为 ChapterItem 列表。
- */
-function flattenTocNodes(nodes: TocNodeDO[]): ChapterItem[] {
-  const result: ChapterItem[] = []
-  function traverse(nodeList: TocNodeDO[], depth: number = 0) {
-    for (const node of nodeList) {
-      result.push({
-        id: node.id,
-        targetChapterId: node.target_chapter_id || node.id,
-        label: node.title,
-        level: depth,
-        done: false,
-      })
-      if (node.children && node.children.length > 0) {
-        traverse(node.children, depth + 1)
-      }
-    }
-  }
-  traverse(nodes, 0)
-  return result
-}
-
 export function ReadingChapterOutline({
-  bookId,
-  chapters: propChapters,
+  chapters = [],
+  isLoading = false,
   activeChapter,
   onSelectChapter,
   scrollProgress,
 }: ReadingChapterOutlineProps) {
   const outlineOpen = useLayout((s) => s.outlineOpen)
   const setOutlineOpen = useLayout((s) => s.setOutlineOpen)
-
-  const { data: tocResponse, isLoading } = useBookTocQuery(bookId)
-
-  const chapters: ChapterItem[] = useMemo(() => {
-    if (tocResponse?.toc_tree && tocResponse.toc_tree.length > 0) {
-      return flattenTocNodes(tocResponse.toc_tree)
-    }
-    return propChapters || []
-  }, [tocResponse, propChapters])
 
   const doneCount = chapters.filter((ch) => ch.done).length
   const totalCount = chapters.length

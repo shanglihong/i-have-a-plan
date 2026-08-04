@@ -7,6 +7,7 @@ import {
   useFocusStore as useFocus,
   useFloatingMenuStore as useFloatingMenu,
 } from "../../shared/store"
+import { useMemo } from "react"
 import {
   CompanionDrawer,
   RecommendationBubble,
@@ -14,22 +15,64 @@ import {
   ReadingWorkspaceHeader,
   ReadingFeedbackToast,
   ReadingArticleViewer,
-  type ChapterMarker,
   type NoteCardData,
+  type ChapterItem,
 } from "../../features"
+import { useBookTocQuery, useBookDetailQuery, type TocNodeDO } from "../../entities/book"
 import {
   MOCK_READING_INITIAL_MESSAGES,
   MOCK_READING_NOTES_FALLBACK,
   MOCK_READING_AI_REPLY,
 } from "../../mock"
 
+function flattenTocNodes(nodes: TocNodeDO[]): ChapterItem[] {
+  const result: ChapterItem[] = []
+  function traverse(nodeList: TocNodeDO[], depth: number = 0) {
+    for (const node of nodeList) {
+      result.push({
+        id: node.id,
+        targetChapterId: node.target_chapter_id || node.id,
+        label: node.title,
+        level: depth,
+        done: false,
+      })
+      if (node.children && node.children.length > 0) {
+        traverse(node.children, depth + 1)
+      }
+    }
+  }
+  traverse(nodes, 0)
+  return result
+}
+
 export default function ReadingWorkspacePage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const bookId = searchParams.get("book_id")
   const queryClient = useQueryClient()
-  const [activeChapter, setActiveChapter] = useState("ch3")
+  const [activeChapter, setActiveChapter] = useState("")
   const [rightTab, setRightTab] = useState<"copilot" | "notes">("copilot")
+
+  const { data: bookDetail } = useBookDetailQuery(bookId || undefined)
+  const { data: tocResponse, isLoading: isTocLoading } = useBookTocQuery(bookId || undefined)
+
+  const chapters: ChapterItem[] = useMemo(() => {
+    if (tocResponse?.toc_tree && tocResponse.toc_tree.length > 0) {
+      return flattenTocNodes(tocResponse.toc_tree)
+    }
+    return []
+  }, [tocResponse])
+
+  const chapterMap = useMemo(() => {
+    const map = new Map<string, ChapterItem>()
+    for (const item of chapters) {
+      map.set(item.id, item)
+      if (item.targetChapterId && item.targetChapterId !== item.id) {
+        map.set(item.targetChapterId, item)
+      }
+    }
+    return map
+  }, [chapters])
 
   const setOutlineOpen = useLayout((s) => s.setOutlineOpen)
   const discussOpen = useLayout((s) => s.discussOpen)
@@ -101,13 +144,13 @@ export default function ReadingWorkspacePage() {
     },
   })
 
-  const chapterMarkers: ChapterMarker[] = [
-    { id: "ch1", label: "第1章 · 前言与理论背景", progressPercent: 15, estimatedMinutes: 8 },
-    { id: "ch2", label: "第2章 · 神经网络基础", progressPercent: 35, estimatedMinutes: 15 },
-    { id: "ch3", label: "第3章 · 反向传播算法", progressPercent: 60, estimatedMinutes: 24 },
-    { id: "ch4", label: "第4章 · 优化器与正则化", progressPercent: 80, estimatedMinutes: 18 },
-    { id: "ch5", label: "第5章 · 深度模型实战", progressPercent: 95, estimatedMinutes: 30 },
-  ]
+  // 当真实章节目录加载完成后，若当前选中的章节不在目录中，自动定位至首个真实章节
+  useEffect(() => {
+    if (chapters.length > 0 && (!activeChapter || !chapterMap.has(activeChapter))) {
+      const firstTargetId = chapters[0].targetChapterId || chapters[0].id
+      setActiveChapter(firstTargetId)
+    }
+  }, [chapters, chapterMap, activeChapter])
 
   // 点击笔记锚点平滑定位与发光高亮
   useEffect(() => {
@@ -257,7 +300,8 @@ export default function ReadingWorkspacePage() {
     <div className="h-full flex overflow-hidden bg-[#090D16] text-slate-100 font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
       {/* ──────────────── Left Chapter Outline Sidebar ──────────────── */}
       <ReadingChapterOutline
-        bookId={bookId || undefined}
+        chapters={chapters}
+        isLoading={isTocLoading}
         activeChapter={activeChapter}
         onSelectChapter={setActiveChapter}
         scrollProgress={scrollProgress}
@@ -271,13 +315,18 @@ export default function ReadingWorkspacePage() {
         {/* Unified Top Header Bar */}
         <ReadingWorkspaceHeader
           scrollProgress={scrollProgress}
-          chapterTitle={chapterMarkers.find((c) => c.id === activeChapter)?.label}
+          bookTitle=""
+          chapterItem={chapterMap.get(activeChapter)}
+          estimatedMinutes={24} // 暂时固定，根据内容进行长度估算
           onOpenDiscuss={handleOpenDiscuss}
         />
 
         {/* Reader Scroll Container & Article Content */}
         <ReadingArticleViewer
           readerRef={readerRef}
+          bookId={bookId || undefined}
+          chapterId={activeChapter}
+          chapterTitle={chapterMap.get(activeChapter)?.label}
           targetAnchor={targetAnchor}
           copiedCode={copiedCode}
           onTextSelect={handleTextSelect}
@@ -292,7 +341,7 @@ export default function ReadingWorkspacePage() {
         <RecommendationBubble
           isVisible={showBubble}
           isLaptopOrSmaller={isLaptopOrSmaller}
-          chapterTitle={chapterMarkers.find((c) => c.id === activeChapter)?.label}
+          chapterTitle={chapterMap.get(activeChapter)?.label}
           onClose={() => setShowBubble(false)}
           onGenerateSkill={() => {
             handleExtractSkill("L2")
