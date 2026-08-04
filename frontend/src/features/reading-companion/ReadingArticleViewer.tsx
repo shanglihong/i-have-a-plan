@@ -2,7 +2,6 @@ import { RefObject, useState } from "react"
 import { Check, Copy, Lightbulb, BookOpen, Loader2, Info, Wand2, RotateCcw } from "lucide-react"
 import { ReadingSelectionToolbar } from "./ReadingSelectionToolbar"
 import {
-  useChapterContentQuery,
   type ContentBlockDO,
   useAIAnnotateMutation,
   useChapterAnnotationQuery,
@@ -325,105 +324,7 @@ export function ReadingArticleViewer({
     return <>{nodes}</>
   }
 
-  // 针对包含 HTML 标签的内容块进行双重重叠标注及防遮挡 HTML 替换
-  const getAnnotatedHTML = (htmlContent: string, annotations: TextAnnotation[]) => {
-    if (!htmlContent) return htmlContent
 
-    const rawMatches: RawMatch[] = []
-
-    if (htmlContent.includes(MOCK_NOTE_TEXT)) {
-      let searchIdx = 0
-      while (searchIdx < htmlContent.length) {
-        const idx = htmlContent.indexOf(MOCK_NOTE_TEXT, searchIdx)
-        if (idx === -1) break
-        rawMatches.push({
-          start: idx,
-          end: idx + MOCK_NOTE_TEXT.length,
-          text: MOCK_NOTE_TEXT,
-          category: "user-note",
-          explanation: MOCK_NOTE_EXPLANATION,
-        })
-        searchIdx = idx + MOCK_NOTE_TEXT.length
-      }
-    }
-
-    if (annotations && annotations.length > 0) {
-      annotations.forEach((ann) => {
-        if (!ann.text) return
-        let searchIdx = 0
-        while (searchIdx < htmlContent.length) {
-          const idx = htmlContent.indexOf(ann.text, searchIdx)
-          if (idx === -1) break
-          rawMatches.push({
-            start: idx,
-            end: idx + ann.text.length,
-            text: ann.text,
-            category: ann.category,
-            explanation: ann.explanation,
-          })
-          searchIdx = idx + ann.text.length
-        }
-      })
-    }
-
-    if (rawMatches.length === 0) return htmlContent
-
-    const combinedMatches = buildCombinedMatches(htmlContent, rawMatches)
-
-    let resultHTML = ""
-    let lastIndex = 0
-
-    combinedMatches.forEach((cm) => {
-      resultHTML += htmlContent.substring(lastIndex, cm.start)
-
-      const hasUserNote = Boolean(cm.userNote)
-      const primaryAI = cm.aiAnnotations[0]
-
-      let underlineClass = ""
-      if (primaryAI) {
-        if (primaryAI.category === "concept") underlineClass = "underline decoration-amber-400/90 decoration-[2px] underline-offset-[4px] text-amber-100"
-        else if (primaryAI.category === "conclusion") underlineClass = "underline decoration-cyan-400/90 decoration-[2px] underline-offset-[4px] text-cyan-100"
-        else if (primaryAI.category === "quote") underlineClass = "underline decoration-purple-400/90 decoration-[2px] underline-offset-[4px] text-purple-100"
-        else if (primaryAI.category === "contrast") underlineClass = "underline decoration-wavy decoration-emerald-400/90 decoration-[2px] underline-offset-[4px] text-emerald-100"
-      }
-
-      const highlightClass = hasUserNote
-        ? "bg-amber-400/20 text-amber-100 rounded-sm px-0.5 py-0.5"
-        : ""
-
-      const contentHTML = `<span class="${highlightClass} ${underlineClass} inline cursor-pointer">${cm.text}</span>`
-
-      let tooltipInnerHTML = ""
-
-      if (cm.userNote) {
-        tooltipInnerHTML += `<div class="flex flex-col gap-1.5"><div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5"><span class="text-amber-400 font-bold text-xs font-mono flex items-center gap-1.5"><span>📝</span> 读书笔记</span><span class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-950/80 text-amber-300 border border-amber-500/30">划线笔记</span></div><p class="text-slate-200 text-xs leading-relaxed font-normal">${cm.userNote.explanation}</p></div>`
-      }
-
-      if (cm.userNote && cm.aiAnnotations.length > 0) {
-        tooltipInnerHTML += `<div class="border-t border-slate-800/80 my-0.5"></div>`
-      }
-
-      cm.aiAnnotations.forEach((ai) => {
-        let labelTag = "核心概念"
-        if (ai.category === "conclusion") labelTag = "关键结论"
-        if (ai.category === "quote") labelTag = "经典金句"
-        if (ai.category === "contrast") labelTag = "概念对比"
-
-        tooltipInnerHTML += `<div class="flex flex-col gap-1.5"><div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5"><span class="text-cyan-400 font-bold text-xs font-mono flex items-center gap-1.5"><span>💡</span> AI 智能解析</span><span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-cyan-300 border border-cyan-500/30 font-normal">${labelTag}</span></div><p class="text-slate-200 text-xs leading-relaxed font-normal">${ai.explanation || `AI 标注分析 · ${ai.category}`}</p></div>`
-      })
-
-      const borderColorClass = hasUserNote ? "border-amber-500/50 shadow-amber-950/20" : "border-slate-700/90 shadow-black/50"
-      const arrowColorClass = hasUserNote ? "border-t-amber-500/50" : "border-t-slate-700/90"
-
-      const popupTooltipHTML = `<span class="relative group inline cursor-pointer">${contentHTML}<span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-3.5 bg-slate-900/98 border ${borderColorClass} rounded-xl shadow-2xl backdrop-blur-md opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50 text-xs font-normal text-left flex flex-col gap-2.5">${tooltipInnerHTML}<span class="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-x-6 border-x-transparent border-t-6 ${arrowColorClass}"></span></span></span>`
-
-      resultHTML += popupTooltipHTML
-      lastIndex = cm.end
-    })
-
-    resultHTML += htmlContent.substring(lastIndex)
-    return resultHTML
-  }
 
   // 从 HTML 字符串中提取纯文本（用于将 html_or_markdown 内容交给 React 路径渲染，避免 innerHTML+Tailwind group-hover 失效）
   const extractTextFromHTML = (html: string): string => {
