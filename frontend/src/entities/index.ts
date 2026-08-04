@@ -8,4 +8,6 @@ export * from "./graph";
 export * from "./dashboard";
 export * from "./notification";
 export * from "./search";
+export * from "./book";
+
 
