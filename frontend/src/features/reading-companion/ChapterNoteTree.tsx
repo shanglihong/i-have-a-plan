@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown, ChevronRight, Folder, FolderOpen, BookOpen } from "lucide-react"
+import { ChevronDown, ChevronRight, Folder, FolderOpen, BookOpen, Bookmark } from "lucide-react"
 import { UnifiedNoteCard, type NoteCardData } from "../unified-note-card"
 import { cn } from "../../shared/utils/cn"
+import type { ChapterItem } from "./ReadingChapterOutline"
+import { useMaterialNotesQuery } from "../../entities/note"
 
 export interface ChapterGroup {
   id: string
@@ -12,8 +14,11 @@ export interface ChapterGroup {
 }
 
 interface ChapterNoteTreeProps {
-  notes: NoteCardData[]
+  projectId: string
+  chapters?: ChapterItem[]
   activeChapterId?: string
+  viewMode?: "tree" | "list"
+  searchKeyword?: string
   isReadOnly?: boolean
   onTraceAnchor: (anchor: string) => void
   onUpdateNote?: (noteId: string, newContent: string) => void
@@ -21,25 +26,23 @@ interface ChapterNoteTreeProps {
   onExtractSkill?: (note: NoteCardData) => void
 }
 
-const DEFAULT_CHAPTER_STRUCTURE = [
-  { id: "ch1", label: "第1章 · 前言与理论背景", level: 0 },
-  { id: "ch2", label: "第2章 · 神经网络基础与激活函数", level: 0 },
-  { id: "ch3", label: "第3章 · 反向传播算法与微积分推导", level: 0 },
-  { id: "ch4", label: "第4章 · 优化器与正则化", level: 0 },
-  { id: "ch5", label: "第5章 · 深度模型实战", level: 0 },
-]
-
 export function ChapterNoteTree({
-  notes,
-  activeChapterId = "ch3",
+  projectId,
+  chapters = [],
+  activeChapterId,
+  viewMode = "tree",
+  searchKeyword = "",
   isReadOnly = false,
   onTraceAnchor,
   onUpdateNote,
   onDeleteNote,
   onExtractSkill,
 }: ChapterNoteTreeProps) {
-  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({
-    ch3: true,
+  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>(() => {
+    if (activeChapterId) {
+      return { [activeChapterId]: true }
+    }
+    return {}
   })
 
   useEffect(() => {
@@ -51,29 +54,64 @@ export function ChapterNoteTree({
     }
   }, [activeChapterId])
 
-  const chapterGroups: ChapterGroup[] = DEFAULT_CHAPTER_STRUCTURE.map((ch) => {
-    const matchedNotes = notes.filter((n) => {
-      if (!n.anchor) return false
-      return (
-        n.anchor.includes(ch.id) ||
-        n.anchor.includes(ch.label.slice(0, 4)) ||
-        (ch.id === "ch3" && (n.anchor.includes("3") || n.anchor.includes("反向传播")))
-      )
-    })
-    return {
-      ...ch,
-      notes: matchedNotes,
-    }
+  const { data: notesData, isLoading } = useMaterialNotesQuery({
+    project_id: projectId,
+    limit: 100,
   })
 
-  const unclassifiedNotes = notes.filter((n) => {
-    return !DEFAULT_CHAPTER_STRUCTURE.some(
-      (ch) =>
-        n.anchor?.includes(ch.id) ||
-        n.anchor?.includes(ch.label.slice(0, 4)) ||
-        (ch.id === "ch3" && (n.anchor?.includes("3") || n.anchor?.includes("反向传播"))),
+  const notes: NoteCardData[] = useMemo(() => {
+    const items = notesData?.items || []
+    return items.map((item: any) => ({
+      id: item.id,
+      anchor: item.anchor_summary || "",
+      quote: item.raw_quote,
+      content: item.user_interpretation,
+      createdAt: item.created_at,
+    }))
+  }, [notesData])
+
+  const filteredNotes = useMemo(() => {
+    if (!searchKeyword) return notes
+    const lower = searchKeyword.toLowerCase()
+    return notes.filter(
+      (n) =>
+        n.content?.toLowerCase().includes(lower) ||
+        n.quote?.toLowerCase().includes(lower) ||
+        n.anchor?.toLowerCase().includes(lower)
     )
-  })
+  }, [notes, searchKeyword])
+
+  const chapterGroups: ChapterGroup[] = useMemo(() => {
+    return chapters.map((ch) => {
+      const matchedNotes = filteredNotes.filter((n) => {
+        if (!n.anchor) return false
+        return (
+          n.anchor.includes(ch.id) ||
+          (ch.targetChapterId && n.anchor.includes(ch.targetChapterId)) ||
+          n.anchor.includes(ch.label) ||
+          (ch.label.length >= 4 && n.anchor.includes(ch.label.slice(0, 4)))
+        )
+      })
+      return {
+        id: ch.id,
+        label: ch.label,
+        level: ch.level,
+        notes: matchedNotes,
+      }
+    })
+  }, [chapters, filteredNotes])
+
+  const unclassifiedNotes = useMemo(() => {
+    return filteredNotes.filter((n) => {
+      return !chapters.some(
+        (ch) =>
+          n.anchor?.includes(ch.id) ||
+          (ch.targetChapterId && n.anchor?.includes(ch.targetChapterId)) ||
+          n.anchor?.includes(ch.label) ||
+          (ch.label.length >= 4 && n.anchor?.includes(ch.label.slice(0, 4)))
+      )
+    })
+  }, [chapters, filteredNotes])
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters((prev) => ({
@@ -84,7 +122,7 @@ export function ChapterNoteTree({
 
   const expandAll = () => {
     const allState: Record<string, boolean> = { unclassified: true }
-    DEFAULT_CHAPTER_STRUCTURE.forEach((ch) => {
+    chapters.forEach((ch) => {
       allState[ch.id] = true
     })
     setExpandedChapters(allState)
@@ -92,6 +130,43 @@ export function ChapterNoteTree({
 
   const collapseAll = () => {
     setExpandedChapters({})
+  }
+
+  if (isLoading) {
+    return (
+      <div className="py-12 text-center text-xs text-slate-500 font-mono">
+        正在读取笔记树数据...
+      </div>
+    )
+  }
+
+  if (viewMode === "list") {
+    if (filteredNotes.length === 0) {
+      return (
+        <div className="py-12 text-center text-xs sm:text-sm text-slate-500 flex flex-col items-center gap-2 font-sans">
+          <Bookmark size={26} className="text-slate-700" />
+          <span>暂无相关精读笔记，划选正文可快速添加</span>
+        </div>
+      )
+    }
+
+    return (
+      <div className="relative pl-3.5 space-y-3.5 border-l border-slate-800/80 ml-2 my-1">
+        {filteredNotes.map((note) => (
+          <div key={note.id} className="relative">
+            <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-cyan-500/60 border border-cyan-400/80 shadow-xs ring-4 ring-[#090D16]" />
+            <UnifiedNoteCard
+              note={note}
+              isReadOnly={isReadOnly}
+              onTraceAnchor={onTraceAnchor}
+              onUpdateNote={onUpdateNote}
+              onDeleteNote={onDeleteNote}
+              onExtractSkill={onExtractSkill}
+            />
+          </div>
+        ))}
+      </div>
+    )
   }
 
   return (

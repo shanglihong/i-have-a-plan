@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Bookmark,
@@ -23,6 +23,8 @@ import {
 } from "lucide-react"
 import { UnifiedNoteCard, type NoteCardData } from "../unified-note-card"
 import { ChapterNoteTree } from "./ChapterNoteTree"
+import type { ChapterItem } from "./ReadingChapterOutline"
+import { useMaterialNotesQuery } from "../../entities/note"
 import { READING_TOKENS } from "../../shared/constants"
 import { cn } from "../../shared/utils/cn"
 
@@ -39,6 +41,7 @@ export interface MessageItem {
 
 interface CompanionDrawerProps {
   isOpen: boolean
+  chapters?: ChapterItem[]
   onClose: () => void
   is25InchPlus: boolean
   isLaptopOrSmaller?: boolean
@@ -58,7 +61,7 @@ interface CompanionDrawerProps {
   onRegenerateLast?: () => void
   onAddTaskToPlan?: (taskTitle: string) => void
   // Notes Props
-  notes: NoteCardData[]
+  projectId: string
   noteSearch: string
   setNoteSearch: (search: string) => void
   onTraceNote: (anchor: string) => void
@@ -84,6 +87,7 @@ export function CompanionDrawer({
   activeTab,
   onTabChange,
   activeChapterId = "ch3",
+  chapters = [],
   messages,
   streaming,
   discussMsg,
@@ -94,7 +98,7 @@ export function CompanionDrawer({
   onStopStreaming,
   onRegenerateLast,
   onAddTaskToPlan,
-  notes,
+  projectId,
   noteSearch,
   setNoteSearch,
   onTraceNote,
@@ -184,12 +188,19 @@ export function CompanionDrawer({
     setTimeout(() => setCopiedIndex(null), 2000)
   }
 
+  const activeChapterLabel = useMemo(() => {
+    const active = chapters.find(
+      (ch) => ch.id === activeChapterId || ch.targetChapterId === activeChapterId
+    )
+    return active?.label || "其他补充笔记"
+  }, [chapters, activeChapterId])
+
   const saveMessageAsNote = (msg: MessageItem, index: number) => {
     const plainContent = msg.content.replace(/<[^>]+>/g, "").replace(/\*\*(.*?)\*\*/g, "$1")
     onCreateNote({
       content: plainContent,
       quote: msg.quote || undefined,
-      anchor: "第3章 · 反向传播算法",
+      anchor: activeChapterLabel,
     })
     setNoteSavedIndex(index)
     setTimeout(() => setNoteSavedIndex(null), 2000)
@@ -215,12 +226,11 @@ export function CompanionDrawer({
       .join("")
   }
 
-  const filteredNotes = notes.filter(
-    (n) =>
-      n.content?.toLowerCase().includes(noteSearch.toLowerCase()) ||
-      n.quote?.toLowerCase().includes(noteSearch.toLowerCase()) ||
-      n.anchor?.toLowerCase().includes(noteSearch.toLowerCase())
-  )
+  const { data: notesData } = useMaterialNotesQuery({
+    project_id: projectId,
+    limit: 100,
+  })
+  const notesCount = notesData?.items?.length || 0
 
   return (
     <AnimatePresence initial={false}>
@@ -286,7 +296,7 @@ export function CompanionDrawer({
                     />
                   )}
                   <Bookmark size={14} className={cn("relative z-10", activeTab === "notes" ? "text-cyan-400" : "text-slate-400")} />
-                  <span className="relative z-10 truncate">笔记 ({notes.length})</span>
+                  <span className="relative z-10 truncate">笔记 ({notesCount})</span>
                 </button>
               </div>
 
@@ -578,38 +588,18 @@ export function CompanionDrawer({
 
                 {/* Notes Stream Body */}
                 <div className="flex-1 overflow-y-auto p-3.5 2xl:p-5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800/80">
-                  {noteViewMode === "tree" ? (
-                    <ChapterNoteTree
-                      notes={filteredNotes}
-                      activeChapterId={activeChapterId}
-                      isReadOnly={isReadOnly}
-                      onTraceAnchor={onTraceNote}
-                      onUpdateNote={onUpdateNote}
-                      onDeleteNote={onDeleteNote}
-                      onExtractSkill={(n) => onExtractSkill?.("L1", n)}
-                    />
-                  ) : filteredNotes.length === 0 ? (
-                    <div className="py-12 text-center text-xs sm:text-sm text-slate-500 flex flex-col items-center gap-2 font-sans">
-                      <Bookmark size={26} className="text-slate-700" />
-                      <span>暂无相关精读笔记，划选正文可快速添加</span>
-                    </div>
-                  ) : (
-                    <div className="relative pl-3.5 space-y-3.5 border-l border-slate-800/80 ml-2 my-1">
-                      {filteredNotes.map((note) => (
-                        <div key={note.id} className="relative">
-                          <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-cyan-500/60 border border-cyan-400/80 shadow-xs ring-4 ring-[#090D16]" />
-                          <UnifiedNoteCard
-                            note={note}
-                            isReadOnly={isReadOnly}
-                            onTraceAnchor={onTraceNote}
-                            onUpdateNote={onUpdateNote}
-                            onDeleteNote={onDeleteNote}
-                            onExtractSkill={(n) => onExtractSkill?.("L1", n)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <ChapterNoteTree
+                    projectId={projectId}
+                    chapters={chapters}
+                    activeChapterId={activeChapterId}
+                    viewMode={noteViewMode}
+                    searchKeyword={noteSearch}
+                    isReadOnly={isReadOnly}
+                    onTraceAnchor={onTraceNote}
+                    onUpdateNote={onUpdateNote}
+                    onDeleteNote={onDeleteNote}
+                    onExtractSkill={(n) => onExtractSkill?.("L1", n)}
+                  />
                 </div>
               </div>
             )}

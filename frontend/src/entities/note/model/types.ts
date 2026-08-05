@@ -19,20 +19,42 @@ export interface UnifiedReadingNoteDO {
   source_anchor?: SourceAnchor;
 }
 
-export interface NoteVO extends UnifiedReadingNoteDO {
-  _ui_is_editable?: boolean;
+
+export interface MaterialSourceAnchor {
+  book_id: string;
+  chapter_id: string;
+  start_offset: number;
+  end_offset: number;
+  feature_text: string;
 }
 
-export interface CreateNotePayload {
+export interface CreateMaterialNotePayload {
   project_id: string;
-  content: string;
-  source_anchor?: SourceAnchor;
+  task_id: string;
+  source_type?: string;
+  raw_quote?: string;
+  user_interpretation: string;
+  context_reflection?: string;
+  source_anchor?: MaterialSourceAnchor;
+  tags?: string[];
 }
 
-export interface ExperienceNoteDO {
+export interface MaterialNoteDO {
   id: string;
   project_id: string;
-  associated_skill_id?: string;
-  content_path: string;
-  content?: string;
+  project_name?: string;
+  task_id: string;
+  source_type: string;
+  raw_quote?: string;
+  user_interpretation: string;
+  context_reflection?: string;
+  tags: string[];
+  created_at: string;
+  anchor_summary?: string;
+}
+
+export interface MaterialNotePage {
+  items: MaterialNoteDO[];
+  next_cursor: string | null;
+  has_next: boolean;
 }

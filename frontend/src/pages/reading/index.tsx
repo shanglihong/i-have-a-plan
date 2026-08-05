@@ -19,10 +19,10 @@ import {
   type ChapterItem,
 } from "../../features"
 import { useBookTocQuery, useAllChapterBlocksQuery, type TocNodeDO } from "../../entities/book"
+import { useCreateMaterialNoteMutation } from "../../entities/note"
 import { useProjectDetailQuery } from "../../entities/project"
 import {
   MOCK_READING_INITIAL_MESSAGES,
-  MOCK_READING_NOTES_FALLBACK,
   MOCK_READING_AI_REPLY,
 } from "../../mock"
 
@@ -158,24 +158,39 @@ export default function ReadingWorkspacePage() {
     setDiscussOpen(true)
   }
 
-  const { data: notesData } = useQuery({
-    queryKey: ["project-notes", id, bookId],
-    queryFn: async () => {
-      const res = await api.get(`/projects/${id}/notes`)
-      return res.data
-    },
-  })
-  const notes: NoteCardData[] = notesData?.items || MOCK_READING_NOTES_FALLBACK
+  const createMaterialNoteMutation = useCreateMaterialNoteMutation()
 
-  const createNoteMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await api.post(`/notes`, data)
-      return res.data
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-notes", id] })
-    },
-  })
+  const currentTaskId = useMemo(() => {
+    const chains = projectDetail?.task_chains || []
+    const matched = chains.find(
+      (c) => c.chapter_id === activeChapter || c.chapter_id === chapterMap.get(activeChapter)?.targetChapterId
+    )
+    if (matched && matched.tasks && matched.tasks.length > 0) {
+      return matched.tasks[0].id
+    }
+    return matched?.id || ""
+  }, [projectDetail, activeChapter, chapterMap])
+
+  const createNoteMutation = useMemo(() => {
+    return {
+      mutate: (data: { content: string; quote?: string; anchor: string }) => {
+        createMaterialNoteMutation.mutate({
+          project_id: id || "",
+          task_id: currentTaskId,
+          source_type: "BOOK_BLOCK",
+          raw_quote: data.quote,
+          user_interpretation: data.content,
+          source_anchor: {
+            book_id: bookId || "",
+            chapter_id: activeChapter || "",
+            start_offset: 0,
+            end_offset: 0,
+            feature_text: data.anchor || ""
+          }
+        })
+      }
+    }
+  }, [createMaterialNoteMutation, id, currentTaskId, bookId, activeChapter])
 
   // 当真实章节目录加载完成后，若当前选中的章节不在目录中，自动定位至首个真实章节
   useEffect(() => {
@@ -397,6 +412,7 @@ export default function ReadingWorkspacePage() {
         activeTab={rightTab}
         onTabChange={setRightTab}
         activeChapterId={activeChapter}
+        chapters={chapters}
         messages={messages}
         streaming={streaming}
         discussMsg={discussMsg}
@@ -410,7 +426,7 @@ export default function ReadingWorkspacePage() {
           setExtractedToast(`已将【${taskTitle}】成功注入计划项目执行任务树`)
           setTimeout(() => setExtractedToast(null), 3000)
         }}
-        notes={notes}
+        projectId={id || ""}
         noteSearch={noteSearch}
         setNoteSearch={setNoteSearch}
         onTraceNote={traceNote}

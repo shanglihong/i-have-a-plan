@@ -1,12 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../../shared/api";
-import { UnifiedReadingNoteDO, CreateNotePayload } from "../model/types";
+import {
+  UnifiedReadingNoteDO,
+  CreateMaterialNotePayload,
+  MaterialNotePage,
+} from "../model/types";
 
 export const NOTE_QUERY_KEYS = {
   all: ["notes"] as const,
   featured: () => [...NOTE_QUERY_KEYS.all, "featured"] as const,
-  byProject: (projectId: string, cursor?: string) =>
-    [...NOTE_QUERY_KEYS.all, "project", projectId, { cursor }] as const,
+  material: (projectId?: string, cursor?: string, keyword?: string) =>
+    [...NOTE_QUERY_KEYS.all, "material", { projectId, cursor, keyword }] as const,
 };
 
 export function useFeaturedNotesQuery() {
@@ -19,32 +23,34 @@ export function useFeaturedNotesQuery() {
   });
 }
 
-export function useProjectNotesQuery(projectId: string, cursor?: string) {
-  return useQuery<{ items: UnifiedReadingNoteDO[]; next_cursor: string | null; has_next: boolean }>({
-    queryKey: NOTE_QUERY_KEYS.byProject(projectId, cursor),
+export function useMaterialNotesQuery(params: {
+  project_id?: string;
+  cursor?: string;
+  limit?: number;
+  keyword?: string;
+}) {
+  return useQuery<MaterialNotePage>({
+    queryKey: NOTE_QUERY_KEYS.material(params.project_id, params.cursor, params.keyword),
     queryFn: async () => {
-      const res = await api.get(`/projects/${projectId}/notes`, {
-        params: { cursor, limit: 15 },
+      const res = await api.get("/notes/material", {
+        params,
       });
       return res.data;
     },
-    enabled: !!projectId,
   });
 }
 
-export function useCreateNoteMutation() {
+export function useCreateMaterialNoteMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: CreateNotePayload) => {
-      const res = await api.post("/notes", payload);
+    mutationFn: async (payload: CreateMaterialNotePayload) => {
+      const res = await api.post("/notes/material", payload);
       return res.data;
     },
     onSuccess: (_, payload) => {
-      queryClient.invalidateQueries({ queryKey: NOTE_QUERY_KEYS.featured() });
-      if (payload.project_id) {
-        queryClient.invalidateQueries({ queryKey: NOTE_QUERY_KEYS.byProject(payload.project_id) });
-      }
+      queryClient.invalidateQueries({ queryKey: NOTE_QUERY_KEYS.material(payload.project_id) });
+      queryClient.invalidateQueries({ queryKey: NOTE_QUERY_KEYS.material() });
     },
   });
 }
