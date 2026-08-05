@@ -89,8 +89,8 @@ class LangChainGraphRAGExtractorAdapter(LLMGraphRAGExtractorPort):
                 api_key=llm_api_key,
                 base_url=llm_api_base,
                 temperature=0.1,
-                timeout=30.0,
-                max_retries=2,
+                timeout=60.0,
+                max_retries=1,
             )
         else:
             self.llm = None

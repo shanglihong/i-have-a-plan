@@ -137,7 +137,7 @@ class GraphOperationDomainService:
     ) -> Tuple[List[GraphNode], List[GraphEdge], List[TagSuperNode]]:
         """调用 LLM 结构化抽取并构建合并图原子节点、认知关系边及超标签节点"""
         # 1. 查询相关的 graph 节点
-        related_nodes = await self._find_related_nodes(embedding=embedding)
+        _, related_nodes = await self._find_related_nodes(embedding=embedding)
 
         # 2. LLM 结构化抽取实体、关系与主题标签
         extracted_entities, extracted_relations, tags = (

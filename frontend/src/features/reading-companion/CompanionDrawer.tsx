@@ -65,7 +65,6 @@ interface CompanionDrawerProps {
   noteSearch: string
   setNoteSearch: (search: string) => void
   onTraceNote: (anchor: string) => void
-  onCreateNote: (data: { content: string; quote?: string; anchor: string }) => void
   onUpdateNote?: (noteId: string, newContent: string) => void
   onDeleteNote?: (noteId: string) => void
   onExtractSkill?: (scopeType: "L1" | "L2", data?: any) => void
@@ -102,7 +101,6 @@ export function CompanionDrawer({
   noteSearch,
   setNoteSearch,
   onTraceNote,
-  onCreateNote,
   onUpdateNote,
   onDeleteNote,
   onExtractSkill,
@@ -110,7 +108,6 @@ export function CompanionDrawer({
   const chatRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
-  const [noteSavedIndex, setNoteSavedIndex] = useState<number | null>(null)
   const [addedTaskIndex, setAddedTaskIndex] = useState<number | null>(null)
   const [likedIndex, setLikedIndex] = useState<number | null>(null)
   const [noteViewMode, setNoteViewMode] = useState<"tree" | "list">("tree")
@@ -186,24 +183,6 @@ export function CompanionDrawer({
     navigator.clipboard.writeText(plainText)
     setCopiedIndex(index)
     setTimeout(() => setCopiedIndex(null), 2000)
-  }
-
-  const activeChapterLabel = useMemo(() => {
-    const active = chapters.find(
-      (ch) => ch.id === activeChapterId || ch.targetChapterId === activeChapterId
-    )
-    return active?.label || "其他补充笔记"
-  }, [chapters, activeChapterId])
-
-  const saveMessageAsNote = (msg: MessageItem, index: number) => {
-    const plainContent = msg.content.replace(/<[^>]+>/g, "").replace(/\*\*(.*?)\*\*/g, "$1")
-    onCreateNote({
-      content: plainContent,
-      quote: msg.quote || undefined,
-      anchor: activeChapterLabel,
-    })
-    setNoteSavedIndex(index)
-    setTimeout(() => setNoteSavedIndex(null), 2000)
   }
 
   const handleAddTask = (title: string, index: number) => {
@@ -430,18 +409,7 @@ export function CompanionDrawer({
                                 <span>复制</span>
                               </button>
 
-                              <button
-                                onClick={() => saveMessageAsNote(msg, index)}
-                                className={cn(READING_TOKENS.typography.action, "hover:text-cyan-300")}
-                                title="一键存为融合笔记卡片"
-                              >
-                                {noteSavedIndex === index ? (
-                                  <Check size={12} className="text-emerald-400" />
-                                ) : (
-                                  <Bookmark size={12} className="text-cyan-400" />
-                                )}
-                                <span>存为笔记</span>
-                              </button>
+
 
                               <button
                                 onClick={() => onRegenerateLast?.()}

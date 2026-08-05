@@ -45,6 +45,35 @@ function flattenTocNodes(nodes: TocNodeDO[]): ChapterItem[] {
   traverse(nodes, 0)
   return result
 }
+function getSelectionOffsets(container: HTMLElement, range: Range) {
+  let startOffset = 0
+  let endOffset = 0
+
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    null
+  )
+
+  let charCount = 0
+  let node = walker.nextNode()
+
+  while (node) {
+    if (node === range.startContainer) {
+      startOffset = charCount + range.startOffset
+    }
+    if (node === range.endContainer) {
+      endOffset = charCount + range.endOffset
+      break
+    }
+
+    charCount += node.textContent?.length || 0
+    node = walker.nextNode()
+  }
+
+  return { startOffset, endOffset }
+}
+
 
 export default function ReadingWorkspacePage() {
   const { id } = useParams()
@@ -91,6 +120,7 @@ export default function ReadingWorkspacePage() {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [is25InchPlus, setIs25InchPlus] = useState(false)
   const [isLaptopOrSmaller, setIsLaptopOrSmaller] = useState(false)
+  const [selectedOffsets, setSelectedOffsets] = useState<{ start: number; end: number }>({ start: 0, end: 0 })
 
   const [messages, setMessages] = useState<
     Array<{
@@ -171,26 +201,6 @@ export default function ReadingWorkspacePage() {
     return matched?.id || ""
   }, [projectDetail, activeChapter, chapterMap])
 
-  const createNoteMutation = useMemo(() => {
-    return {
-      mutate: (data: { content: string; quote?: string; anchor: string }) => {
-        createMaterialNoteMutation.mutate({
-          project_id: id || "",
-          task_id: currentTaskId,
-          source_type: "BOOK_BLOCK",
-          raw_quote: data.quote,
-          user_interpretation: data.content,
-          source_anchor: {
-            book_id: bookId || "",
-            chapter_id: activeChapter || "",
-            start_offset: 0,
-            end_offset: 0,
-            feature_text: data.anchor || ""
-          }
-        })
-      }
-    }
-  }, [createMaterialNoteMutation, id, currentTaskId, bookId, activeChapter])
 
   // 当真实章节目录加载完成后，若当前选中的章节不在目录中，自动定位至首个真实章节
   useEffect(() => {
@@ -232,9 +242,14 @@ export default function ReadingWorkspacePage() {
       return
     }
     const range = sel.getRangeAt(0)
-    const rect = range.getBoundingClientRect()
     const containerRect = readerRef.current?.getBoundingClientRect()
-    if (!containerRect) return
+    if (!containerRect || !readerRef.current) return
+
+    // 动态计算在整章字符流中的物理绝对起止偏移量
+    const { startOffset, endOffset } = getSelectionOffsets(readerRef.current, range)
+    setSelectedOffsets({ start: startOffset, end: endOffset })
+
+    const rect = range.getBoundingClientRect()
 
     const rawX = rect.left - containerRect.left + rect.width / 2
     const rawY = rect.top - containerRect.top - 52
@@ -258,10 +273,20 @@ export default function ReadingWorkspacePage() {
 
   // 划词快速记笔记
   const handleCreateNoteFromSelection = (text: string) => {
-    createNoteMutation.mutate({
-      content: text,
-      quote: text,
-      anchor: "第3章 · 反向传播算法",
+    const activeChapterLabel = chapterMap.get(activeChapter)?.label || "其他补充笔记"
+    createMaterialNoteMutation.mutate({
+      project_id: id || "",
+      task_id: currentTaskId,
+      source_type: "BOOK_BLOCK",
+      raw_quote: text,
+      user_interpretation: text,
+      source_anchor: {
+        book_id: bookId || "",
+        chapter_id: activeChapter || "",
+        start_offset: selectedOffsets.start,
+        end_offset: selectedOffsets.end,
+        feature_text: activeChapterLabel,
+      }
     })
     setRightTab("notes")
     handleOpenDiscuss()
@@ -430,7 +455,6 @@ export default function ReadingWorkspacePage() {
         noteSearch={noteSearch}
         setNoteSearch={setNoteSearch}
         onTraceNote={traceNote}
-        onCreateNote={(data) => createNoteMutation.mutate(data)}
         onExtractSkill={handleExtractSkill}
       />
     </div>
