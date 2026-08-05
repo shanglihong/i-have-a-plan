@@ -1,5 +1,5 @@
 import { RefObject, useState } from "react"
-import { Check, Copy, Lightbulb, BookOpen, Loader2, Info, Wand2, RotateCcw } from "lucide-react"
+import { Check, Copy, Lightbulb, BookOpen, Loader2, Info, Wand2, RotateCcw, Sparkles } from "lucide-react"
 import { ReadingSelectionToolbar } from "./ReadingSelectionToolbar"
 import {
   type ContentBlockDO,
@@ -9,6 +9,7 @@ import {
   useAllChapterBlocksQuery,
 } from "../../entities"
 import { useMaterialNotesQuery } from "../../entities/note"
+import { useFloatingMenuStore as useFloatingMenu } from "../../shared/store"
 import { cn } from "../../shared/utils/cn"
 
 interface ReadingArticleViewerProps {
@@ -23,7 +24,7 @@ interface ReadingArticleViewerProps {
   onScroll: () => void
   onCopyFormulaCode: (code: string) => void
   onDiscussSelection: (text: string) => void
-  onCreateNoteFromSelection: (text: string) => void
+  onCreateNoteFromSelection: (text: string, interpretation?: string) => void
   onExtractSkill: (scopeType: "L1" | "L2", text?: string) => void
   onAIAnnotate?: () => void
 }
@@ -46,6 +47,10 @@ export function ReadingArticleViewer({
 }: ReadingArticleViewerProps) {
   const { data: contentData, isLoading } = useAllChapterBlocksQuery(bookId, chapterId)
   const blocks = contentData?.blocks || []
+
+  // 获取当前的划词菜单状态与输入想法状态
+  const menu = useFloatingMenu((s) => s.menu)
+  const isWritingNote = useFloatingMenu((s) => s.isWritingNote)
 
   // 获取真实的素材读书笔记数据
   const { data: notesData } = useMaterialNotesQuery({
@@ -108,6 +113,7 @@ export function ReadingArticleViewer({
     end: number
     text: string
     userNote?: RawMatch
+    tempSelection?: RawMatch
     aiAnnotations: RawMatch[]
   }
 
@@ -134,13 +140,15 @@ export function ReadingArticleViewer({
       if (activeMatches.length === 0) continue
 
       const userNote = activeMatches.find((r) => r.category === "user-note")
-      const aiAnnotations = activeMatches.filter((r) => r.category !== "user-note")
+      const tempSelection = activeMatches.find((r) => r.category === "temp-selection")
+      const aiAnnotations = activeMatches.filter((r) => r.category !== "user-note" && r.category !== "temp-selection")
 
       const prev = combinedMatches[combinedMatches.length - 1]
       const canMergeWithPrev =
         prev &&
         prev.end === pStart &&
         prev.userNote === userNote &&
+        prev.tempSelection === tempSelection &&
         prev.aiAnnotations.length === aiAnnotations.length &&
         prev.aiAnnotations.every((ai, idx) => ai === aiAnnotations[idx])
 
@@ -153,6 +161,7 @@ export function ReadingArticleViewer({
           end: pEnd,
           text: fullText.substring(pStart, pEnd),
           userNote,
+          tempSelection,
           aiAnnotations,
         })
       }
@@ -161,8 +170,8 @@ export function ReadingArticleViewer({
     return combinedMatches
   }
 
-  // 根据 AI 返回的 TextAnnotation 分类数据及读书笔记动态匹配并高亮/下划线渲染纯文本
-  const renderAnnotatedText = (text: string, annotations: TextAnnotation[]) => {
+  // 根据 AI 返回 of TextAnnotation 分类数据及读书笔记动态匹配并高亮/下划线渲染纯文本
+  const renderAnnotatedText = (text: string, annotations: TextAnnotation[], blockId?: string) => {
     if (!text) return text
 
     const rawMatches: RawMatch[] = []
@@ -194,6 +203,25 @@ export function ReadingArticleViewer({
         }
       }
     })
+
+    // 1.5. 收集当前选中的临时文本高亮（基于精确的 blockId 和偏移下标）
+    if (isWritingNote && menu && menu.blockId === blockId && menu.text) {
+      const start = menu.startOffset
+      const end = menu.endOffset
+      if (start >= 0 && end <= text.length && start < end) {
+        const isDuplicate = rawMatches.some(
+          (m) => m.category === "user-note" && m.start === start && m.end === end
+        )
+        if (!isDuplicate) {
+          rawMatches.push({
+            start,
+            end,
+            text: menu.text,
+            category: "temp-selection",
+          })
+        }
+      }
+    }
 
     // 2. 收集 AI 标注
     if (annotations && annotations.length > 0) {
@@ -240,14 +268,16 @@ export function ReadingArticleViewer({
         else if (primaryAI.category === "contrast") underlineClass = "underline decoration-wavy decoration-teal-400 decoration-[3px] underline-offset-[4px]"
       }
 
-      const highlightClass = hasUserNote
+      const hasTempSelection = Boolean(cm.tempSelection)
+      const highlightClass = (hasUserNote || hasTempSelection)
         ? "bg-amber-400/45 rounded-sm px-0.5"
         : ""
 
       const contentElement = (
         <span
           className={cn(
-            "inline cursor-pointer transition-colors duration-150",
+            "inline transition-colors duration-150",
+            (hasUserNote || primaryAI) && "cursor-pointer",
             highlightClass,
             underlineClass
           )}
@@ -256,79 +286,82 @@ export function ReadingArticleViewer({
         </span>
       )
 
-      nodes.push(
-        <span key={key} className="relative group inline cursor-pointer">
-          {contentElement}
+      // 只有在拥有真实读书笔记或 AI 解析时，才启用 Popover 悬浮气泡
+      const shouldShowPopover = hasUserNote || cm.aiAnnotations.length > 0
 
-          {/* 融合 Popover 卡片：使用标准 group 与 w-80 规范面板 */}
-          <span
-            className={cn(
-              "absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-3.5 bg-slate-900/98 rounded-xl shadow-2xl border backdrop-blur-md opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50 text-xs font-normal text-left flex flex-col gap-2.5",
-              hasUserNote ? "border-amber-500/50 shadow-amber-950/30" : "border-cyan-500/50 shadow-cyan-950/20"
-            )}
-          >
-            {/* 指向标注词的定位小三角 */}
+      if (shouldShowPopover) {
+        nodes.push(
+          <span key={key} className="relative group inline cursor-pointer">
+            {contentElement}
+
+            {/* 融合 Popover 卡片：使用标准 group 与 w-80 规范面板 */}
             <span
-              className={cn(
-                "absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-x-6 border-x-transparent border-t-6",
-                hasUserNote ? "border-t-amber-500/50" : "border-t-cyan-500/50"
-              )}
-            />
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-3.5 bg-slate-900/98 rounded-xl shadow-2xl border border-cyan-500/50 shadow-cyan-950/20 backdrop-blur-md opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50 text-xs font-normal text-left flex flex-col gap-2.5 select-none"
+            >
+              {/* 指向标注词的定位小三角 */}
+              <span
+                className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-x-6 border-x-transparent border-t-6 border-t-cyan-500/50"
+              />
 
-            {/* 1. 读书笔记区块 */}
-            {cm.userNote && (
-              <span className="flex flex-col gap-1">
-                <span className="flex items-center justify-between border-b border-slate-800 pb-1">
-                  <span className="text-amber-400 font-bold text-[11px] font-mono">
-                    读书笔记
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-950/80 text-amber-300 border border-amber-500/30">
-                    划线笔记
-                  </span>
-                </span>
-                <span className="text-slate-200 text-sm leading-relaxed block">
-                  {cm.userNote.explanation}
-                </span>
-              </span>
-            )}
-
-            {/* 如果两者同时存在，渲染分隔线 */}
-            {cm.userNote && cm.aiAnnotations.length > 0 && (
-              <span className="border-t border-slate-800 my-0.5 block" />
-            )}
-
-            {/* 2. AI 智能解析区块 */}
-            {cm.aiAnnotations.map((ai, aIdx) => {
-              let labelTag = "核心概念"
-              if (ai.category === "conclusion") labelTag = "关键结论"
-              if (ai.category === "quote") labelTag = "经典金句"
-              if (ai.category === "contrast") labelTag = "概念对比"
-
-              return (
-                <span key={aIdx} className="flex flex-col gap-1">
-                  <span className="flex items-center justify-between border-b border-slate-800 pb-1">
-                    <span className="text-cyan-400 font-bold text-[11px] font-mono">
-                      AI 智能解析
+              {/* 1. 读书笔记区块 */}
+              {cm.userNote && (
+                <span className="flex flex-col gap-1">
+                  <span className="flex items-center justify-between pb-1 border-b border-slate-800/40">
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-300 tracking-wide font-sans">
+                      <Sparkles size={11} className="text-cyan-400" />
+                      <span>读书笔记</span>
                     </span>
-                    <span className={cn(
-                      "px-1.5 py-0.5 rounded text-[10px] font-mono font-normal border",
-                      ai.category === "concept" && "bg-amber-950/60 text-amber-300 border-amber-500/30",
-                      ai.category === "conclusion" && "bg-violet-950/60 text-violet-300 border-violet-500/30",
-                      ai.category === "quote" && "bg-purple-950/60 text-purple-300 border-purple-500/30",
-                      ai.category === "contrast" && "bg-teal-950/60 text-teal-300 border-teal-500/30",
-                    )}>
-                      {labelTag}
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium font-sans bg-slate-800/60 text-slate-400">
+                      已保存
                     </span>
                   </span>
                   <span className="text-slate-200 text-sm leading-relaxed block">
-                    {ai.explanation || `AI 标注分析 · ${ai.category}`}
+                    {cm.userNote.explanation}
                   </span>
                 </span>
-              )
-            })}
+              )}
+
+              {/* 如果两者同时存在，渲染分隔线 */}
+              {cm.userNote && cm.aiAnnotations.length > 0 && (
+                <span className="border-t border-slate-800/40 my-0.5 block" />
+              )}
+
+              {/* 2. AI 智能解析区块 */}
+              {cm.aiAnnotations.map((ai, aIdx) => {
+                let labelTag = "核心概念"
+                if (ai.category === "conclusion") labelTag = "关键结论"
+                if (ai.category === "quote") labelTag = "经典金句"
+                if (ai.category === "contrast") labelTag = "概念对比"
+
+                return (
+                  <span key={aIdx} className="flex flex-col gap-1">
+                    <span className="flex items-center justify-between pb-1 border-b border-slate-800/40">
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-300 tracking-wide font-sans">
+                        <Sparkles size={11} className="text-cyan-400" />
+                        <span>AI 智能解析</span>
+                      </span>
+                      <span className={cn(
+                        "px-1.5 py-0.5 rounded text-[10px] font-mono font-normal border",
+                        ai.category === "concept" && "bg-amber-950/60 text-amber-300 border-amber-500/30",
+                        ai.category === "conclusion" && "bg-violet-950/60 text-violet-300 border-violet-500/30",
+                        ai.category === "quote" && "bg-purple-950/60 text-purple-300 border-purple-500/30",
+                        ai.category === "contrast" && "bg-teal-950/60 text-teal-300 border-teal-500/30"
+                      )}>
+                        {labelTag}
+                      </span>
+                    </span>
+                    <span className="text-slate-200 text-sm leading-relaxed block">
+                      {ai.explanation || `AI 标注分析 · ${ai.category}`}
+                    </span>
+                  </span>
+                )
+              })}
+            </span>
           </span>
-        </span>
-      )
+        )
+      } else {
+        nodes.push(<span key={key}>{contentElement}</span>)
+      }
 
       lastPos = cm.end
     })
@@ -378,7 +411,7 @@ export function ReadingArticleViewer({
           )}
         >
           <span className="text-cyan-400 font-mono">#{block.sequence_index + 1}</span>
-          <span>{renderAnnotatedText(plainText, activeAnnotations)}</span>
+          <span>{renderAnnotatedText(plainText, activeAnnotations, block.block_id)}</span>
         </h2>
       )
     }
@@ -435,7 +468,7 @@ export function ReadingArticleViewer({
             <div className="min-w-0 flex-1">
               <h4 className="text-xs font-bold text-slate-200 mb-1">重点标注</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                {renderAnnotatedText(plainText, activeAnnotations)}
+                {renderAnnotatedText(plainText, activeAnnotations, block.block_id)}
               </p>
             </div>
           </div>
@@ -453,7 +486,7 @@ export function ReadingArticleViewer({
           isTargeted && "ring-2 ring-cyan-400 bg-cyan-950/40"
         )}
       >
-        {renderAnnotatedText(plainText, activeAnnotations)}
+        {renderAnnotatedText(plainText, activeAnnotations, block.block_id)}
       </p>
     )
   }

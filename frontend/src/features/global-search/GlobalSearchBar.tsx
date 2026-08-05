@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X, Loader2, Folder, BookOpen, Network, Zap, ArrowRight, CornerDownLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useGlobalSearch } from './hooks/useGlobalSearch'
+import { READING_TOKENS } from '../../shared/constants'
 import type { SearchCategory, SearchResultItem } from '../../entities/search'
 
 export interface GlobalSearchBarProps {
@@ -78,7 +79,7 @@ export function GlobalSearchBar({ onSearchChange }: GlobalSearchBarProps) {
             animate={{ width: 340, opacity: 1 }}
             exit={{ width: 200, opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="flex items-center gap-2 px-3 py-1.5 bg-[#111827] border border-slate-700/80 rounded-xl shadow-xl focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/10 transition-all"
+            className={`flex items-center gap-2 px-3 py-1.5 ${READING_TOKENS.surface.inputWrapper}`}
           >
             {loading ? (
               <Loader2 size={14} className="text-cyan-400 animate-spin shrink-0" />
@@ -92,7 +93,7 @@ export function GlobalSearchBar({ onSearchChange }: GlobalSearchBarProps) {
               onChange={(e) => handleValueChange(e.target.value)}
               placeholder="搜索笔记、项目、图谱…"
               style={{ outline: 'none', boxShadow: 'none' }}
-              className="flex-1 bg-transparent text-xs text-slate-100 placeholder-slate-400 outline-none border-none focus:outline-none focus-visible:outline-none focus:ring-0 ring-0 shadow-none"
+              className={`flex-1 ${READING_TOKENS.surface.inputControl}`}
             />
             {searchVal ? (
               <button

@@ -242,24 +242,66 @@ export default function ReadingWorkspacePage() {
       return
     }
     const range = sel.getRangeAt(0)
-    const containerRect = readerRef.current?.getBoundingClientRect()
-    if (!containerRect || !readerRef.current) return
+    const container = readerRef.current
+    const containerRect = container?.getBoundingClientRect()
+    if (!containerRect || !container) return
 
-    // 动态计算在整章字符流中的物理绝对起止偏移量
-    const { startOffset, endOffset } = getSelectionOffsets(readerRef.current, range)
+    // 找出选区起点所在的 Block DOM 节点及其 ID
+    let startAnchor = range.startContainer
+    if (startAnchor.nodeType !== Node.ELEMENT_NODE) {
+      startAnchor = startAnchor.parentNode as Node
+    }
+    const startBlockEl = (startAnchor as Element).closest("p, h1, h2, h3, h4, h5, h6, pre, blockquote")
+    const blockId = startBlockEl?.getAttribute("id") || ""
+
+    // 找出选区终点所在的 Block DOM 节点
+    let endAnchor = range.endContainer
+    if (endAnchor.nodeType !== Node.ELEMENT_NODE) {
+      endAnchor = endAnchor.parentNode as Node
+    }
+    const endBlockEl = (endAnchor as Element).closest("p, h1, h2, h3, h4, h5, h6, pre, blockquote")
+
+    const isCrossBlock = startBlockEl !== endBlockEl
+
+    let startOffset = 0
+    let endOffset = 0
+    let noteText = text
+
+    if (startBlockEl) {
+      if (isCrossBlock) {
+        // 如果跨 Block，将选区截断在起点 Block 文本的末尾，防止 offset 错位导致不渲染
+        const tempOffsets = getSelectionOffsets(startBlockEl as HTMLElement, range)
+        startOffset = tempOffsets.startOffset
+        endOffset = startBlockEl.textContent?.length || 0
+        const fullText = startBlockEl.textContent || ""
+        noteText = fullText.substring(startOffset, endOffset).trim()
+      } else {
+        const tempOffsets = getSelectionOffsets(startBlockEl as HTMLElement, range)
+        startOffset = tempOffsets.startOffset
+        endOffset = tempOffsets.endOffset
+      }
+    } else {
+      const tempOffsets = getSelectionOffsets(container, range)
+      startOffset = tempOffsets.startOffset
+      endOffset = tempOffsets.endOffset
+    }
+
     setSelectedOffsets({ start: startOffset, end: endOffset })
 
     const rect = range.getBoundingClientRect()
 
-    const rawX = rect.left - containerRect.left + rect.width / 2
-    const rawY = rect.top - containerRect.top - 52
-    const clampedX = Math.max(120, Math.min(rawX, containerRect.width - 120))
+    const rawX = rect.left - containerRect.left + rect.width / 2 + container.scrollLeft
+    const rawY = rect.top - containerRect.top - 10 + container.scrollTop
+    const clampedX = Math.max(150, Math.min(rawX, containerRect.width - 150))
     const clampedY = Math.max(10, rawY)
 
     setFloatingMenu({
       x: clampedX,
       y: clampedY,
-      text,
+      text: noteText,
+      blockId,
+      startOffset,
+      endOffset,
     })
   }, [setFloatingMenu])
 
@@ -272,14 +314,14 @@ export default function ReadingWorkspacePage() {
   }
 
   // 划词快速记笔记
-  const handleCreateNoteFromSelection = (text: string) => {
+  const handleCreateNoteFromSelection = (text: string, interpretation?: string) => {
     const activeChapterLabel = chapterMap.get(activeChapter)?.label || "其他补充笔记"
     createMaterialNoteMutation.mutate({
       project_id: id || "",
       task_id: currentTaskId,
       source_type: "BOOK_BLOCK",
       raw_quote: text,
-      user_interpretation: text,
+      user_interpretation: interpretation || text,
       source_anchor: {
         book_id: bookId || "",
         chapter_id: activeChapter || "",

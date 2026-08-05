@@ -31,11 +31,29 @@ export const useFocusStore = create<FocusState>((set) => ({
 }));
 
 interface FloatingMenuState {
-  menu: { x: number; y: number; text: string } | null;
-  setMenu: (menu: { x: number; y: number; text: string } | null) => void;
+  menu: { 
+    x: number; 
+    y: number; 
+    text: string; 
+    blockId: string; 
+    startOffset: number; 
+    endOffset: number; 
+  } | null;
+  isWritingNote: boolean;
+  setMenu: (menu: { 
+    x: number; 
+    y: number; 
+    text: string; 
+    blockId: string; 
+    startOffset: number; 
+    endOffset: number; 
+  } | null) => void;
+  setIsWritingNote: (isWritingNote: boolean) => void;
 }
 
 export const useFloatingMenuStore = create<FloatingMenuState>((set) => ({
   menu: null,
-  setMenu: (menu) => set({ menu }),
+  isWritingNote: false,
+  setMenu: (menu) => set({ menu, isWritingNote: false }),
+  setIsWritingNote: (isWritingNote) => set({ isWritingNote }),
 }));

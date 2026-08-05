@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+import os
 from app.domain.agent.service.spec import reading_companion_spec
 from app.domain.graph.entities import ExtractedEntity
 from datetime import datetime
@@ -40,6 +41,7 @@ class GraphOperationDomainService:
         self.graph_repo = graph_repo
         self.vector_store = vector_store
         self.llm_extractor = llm_extractor
+        self.integrate_graph = os.getenv("INTEGRATE_GRAPH", "false").lower() in ("true", "1", "yes")
 
     async def enqueue_block(
         self,
@@ -104,6 +106,13 @@ class GraphOperationDomainService:
 
             # 图书段落切片 (BOOK_BLOCK) 仅需保存向量索引用于 RAG 检索，不抽取知识图谱节点与关系
             if block.source_type == SourceTypeEnum.BOOK_BLOCK:
+                block.mark_completed()
+                await self.graph_repo.save_pending_block(block)
+                return
+
+            # 检查是否集成旁路知识图谱 (默认不集成)
+            if not self.integrate_graph:
+                logger.info(f"[GraphOperation] INTEGRATE_GRAPH 为 False, 跳过知识图谱抽取与建图: block_id={block.block_id}")
                 block.mark_completed()
                 await self.graph_repo.save_pending_block(block)
                 return

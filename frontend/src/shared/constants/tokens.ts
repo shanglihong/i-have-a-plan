@@ -35,5 +35,9 @@ export const READING_TOKENS = {
     recommendationBubble: "bg-slate-900/95 border border-cyan-500/40 rounded-2xl shadow-2xl shadow-cyan-950/50 backdrop-blur-xl select-none",
     // 提炼技能主行动按钮
     recommendationAction: "flex-1 shrink-0 whitespace-nowrap px-3 py-1.5 text-xs font-semibold text-cyan-200 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 hover:border-cyan-400 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 shadow-xs group",
+    // 统一输入框包装容器 (支持 focus-within 青色环绕特效)
+    inputWrapper: "bg-[#111827] border border-slate-700/80 rounded-xl shadow-xl focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/10 transition-all",
+    // 统一输入控件 (无边框、无高亮、透明底色)
+    inputControl: "bg-transparent text-slate-100 placeholder-slate-400 outline-none border-none focus:outline-none focus-visible:outline-none focus:ring-0 ring-0 shadow-none",
   },
 } as const
