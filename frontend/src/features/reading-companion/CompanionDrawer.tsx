@@ -21,7 +21,6 @@ import {
   ArrowRight,
   HelpCircle,
 } from "lucide-react"
-import type { NoteCardData } from "../unified-note-card"
 import { ChapterNoteTree } from "./ChapterNoteTree"
 import type { ChapterItem } from "./ReadingChapterOutline"
 import { useMaterialNotesQuery } from "../../entities/note"
