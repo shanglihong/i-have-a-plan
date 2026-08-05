@@ -16,7 +16,6 @@ interface ReadingWorkspaceHeaderProps {
 export function ReadingWorkspaceHeader({
   scrollProgress,
   bookTitle,
-  chapterTitle,
   chapterItem,
   estimatedMinutes,
   status,
@@ -27,7 +26,7 @@ export function ReadingWorkspaceHeader({
   const discussOpen = useLayout((s) => s.discussOpen)
   const setDiscussOpen = useLayout((s) => s.setDiscussOpen)
 
-  const currentChapterTitle = chapterItem?.label || chapterTitle
+  const currentChapterTitle = chapterItem?.label
 
   const handleDiscussClick = () => {
     if (onOpenDiscuss) {

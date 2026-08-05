@@ -349,7 +349,6 @@ export default function ReadingWorkspacePage() {
         {/* Unified Top Header Bar */}
         <ReadingWorkspaceHeader
           scrollProgress={scrollProgress}
-          bookTitle=""
           chapterItem={chapterMap.get(activeChapter)}
           estimatedMinutes={estimatedMinutes}
           status={currentTaskChainStatus}
