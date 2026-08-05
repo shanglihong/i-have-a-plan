@@ -35,7 +35,9 @@ interface FloatingMenuState {
     x: number; 
     y: number; 
     text: string; 
-    blockId: string; 
+    blockId: string;         // 起点 Block id
+    endBlockId?: string;     // 终点 Block id（跨 Block 时使用）
+    middleBlockIds?: string[]; // 中间 Block ids（跨 3+ Block 时使用）
     startOffset: number; 
     endOffset: number; 
   } | null;
@@ -44,7 +46,9 @@ interface FloatingMenuState {
     x: number; 
     y: number; 
     text: string; 
-    blockId: string; 
+    blockId: string;
+    endBlockId?: string;
+    middleBlockIds?: string[];
     startOffset: number; 
     endOffset: number; 
   } | null) => void;

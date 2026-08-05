@@ -52,7 +52,22 @@ function getSelectionOffsets(container: HTMLElement, range: Range) {
   const walker = document.createTreeWalker(
     container,
     NodeFilter.SHOW_TEXT,
-    null
+    {
+      acceptNode: (node) => {
+        let parent = node.parentNode
+        while (parent && parent !== container) {
+          if (parent instanceof HTMLElement && (
+            parent.classList.contains("absolute") || 
+            parent.classList.contains("select-none") ||
+            parent.style.position === "absolute"
+          )) {
+            return NodeFilter.FILTER_REJECT
+          }
+          parent = parent.parentNode
+        }
+        return NodeFilter.FILTER_ACCEPT
+      }
+    }
   )
 
   let charCount = 0
@@ -262,22 +277,34 @@ export default function ReadingWorkspacePage() {
     const endBlockEl = (endAnchor as Element).closest("p, h1, h2, h3, h4, h5, h6, pre, blockquote")
 
     const isCrossBlock = startBlockEl !== endBlockEl
+    const endBlockId = isCrossBlock ? (endBlockEl?.getAttribute("id") || "") : undefined
+
+    // 收集起点与终点之间所有中间 Block 的 id（用于 3+ Block 跨段高亮）
+    const middleBlockIds: string[] = []
+    if (isCrossBlock && startBlockEl && endBlockEl) {
+      let current = startBlockEl.nextElementSibling
+      while (current && current !== endBlockEl) {
+        const id = current.getAttribute("id")
+        if (id) middleBlockIds.push(id)
+        current = current.nextElementSibling
+      }
+    }
 
     let startOffset = 0
     let endOffset = 0
     let noteText = text
 
     if (startBlockEl) {
+      const tempOffsets = getSelectionOffsets(startBlockEl as HTMLElement, range)
+      startOffset = tempOffsets.startOffset
+
       if (isCrossBlock) {
-        // 如果跨 Block，将选区截断在起点 Block 文本的末尾，防止 offset 错位导致不渲染
-        const tempOffsets = getSelectionOffsets(startBlockEl as HTMLElement, range)
-        startOffset = tempOffsets.startOffset
+        // 跨 Block 时：endOffset 锚定到起点 Block 文本末尾（用于 temp-selection 高亮当前 Block）
+        // noteText 保留完整的跨段选中内容（包含 \n），保存到 raw_quote 后
+        // ReadingArticleViewer 会按 \n 分割分别在各自 Block 里高亮
         endOffset = startBlockEl.textContent?.length || 0
-        const fullText = startBlockEl.textContent || ""
-        noteText = fullText.substring(startOffset, endOffset).trim()
+        noteText = text // text 已经是 sel.toString().trim()，跨段时包含 \n
       } else {
-        const tempOffsets = getSelectionOffsets(startBlockEl as HTMLElement, range)
-        startOffset = tempOffsets.startOffset
         endOffset = tempOffsets.endOffset
       }
     } else {
@@ -285,6 +312,7 @@ export default function ReadingWorkspacePage() {
       startOffset = tempOffsets.startOffset
       endOffset = tempOffsets.endOffset
     }
+
 
     setSelectedOffsets({ start: startOffset, end: endOffset })
 
@@ -300,6 +328,8 @@ export default function ReadingWorkspacePage() {
       y: clampedY,
       text: noteText,
       blockId,
+      endBlockId,
+      middleBlockIds: middleBlockIds.length > 0 ? middleBlockIds : undefined,
       startOffset,
       endOffset,
     })

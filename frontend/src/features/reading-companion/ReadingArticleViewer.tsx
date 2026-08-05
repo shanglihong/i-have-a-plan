@@ -178,9 +178,20 @@ export function ReadingArticleViewer({
 
     // 1. 收集真实的素材读书笔记
     const items = notesData?.items || []
+
     items.forEach((item) => {
-      const quote = item.raw_quote || ""
-      if (quote && text.includes(quote)) {
+      const rawQuote = item.raw_quote || ""
+      if (!rawQuote) return
+
+      // 跨 Block 划词时 raw_quote 会含有 \n（块间分隔符）
+      // 按 \n 分割后，每段各自在当前 block 的 text 里独立匹配，实现跨段高亮
+      // 单段笔记（无 \n）则直接作为一个 part 处理
+      const parts = rawQuote
+        .split("\n")
+        .map((p) => p.replace(/\r/g, "").trim())
+        .filter((p) => p.length >= 2) // 过滤掉过短片段（如孤立标点）
+
+      parts.forEach((quote) => {
         let searchIdx = 0
         while (searchIdx < text.length) {
           const idx = text.indexOf(quote, searchIdx)
@@ -189,7 +200,6 @@ export function ReadingArticleViewer({
           const isDuplicate = rawMatches.some(
             (m) => m.category === "user-note" && m.start === idx && m.end === idx + quote.length
           )
-
           if (!isDuplicate) {
             rawMatches.push({
               start: idx,
@@ -201,24 +211,50 @@ export function ReadingArticleViewer({
           }
           searchIdx = idx + quote.length
         }
-      }
+      })
     })
 
+
     // 1.5. 收集当前选中的临时文本高亮（基于精确的 blockId 和偏移下标）
-    if (isWritingNote && menu && menu.blockId === blockId && menu.text) {
-      const start = menu.startOffset
-      const end = menu.endOffset
-      if (start >= 0 && end <= text.length && start < end) {
+    if (isWritingNote && menu && menu.text) {
+      // 起点 Block：用精确 startOffset/endOffset 高亮
+      if (menu.blockId === blockId) {
+        const start = menu.startOffset
+        const end = menu.endOffset
+        if (start >= 0 && end <= text.length && start < end) {
+          const isDuplicate = rawMatches.some(
+            (m) => m.category === "temp-selection" && m.start === start && m.end === end
+          )
+          if (!isDuplicate) {
+            rawMatches.push({ start, end, text: menu.text, category: "temp-selection" })
+          }
+        }
+      }
+
+      // 中间 Block（3+ Block 跨段时）：中间的 Block 被完全选中，直接高亮整段
+      if (menu.middleBlockIds?.includes(blockId || "")) {
         const isDuplicate = rawMatches.some(
-          (m) => m.category === "user-note" && m.start === start && m.end === end
+          (m) => m.category === "temp-selection" && m.start === 0 && m.end === text.length
         )
-        if (!isDuplicate) {
-          rawMatches.push({
-            start,
-            end,
-            text: menu.text,
-            category: "temp-selection",
-          })
+        if (!isDuplicate && text.length > 0) {
+          rawMatches.push({ start: 0, end: text.length, text, category: "temp-selection" })
+        }
+      }
+
+      // 终点 Block（跨 Block 时）：从 menu.text 分割出属于本 Block 的部分，用 indexOf 匹配高亮
+      if (menu.endBlockId && menu.endBlockId === blockId) {
+        const parts = menu.text.split("\n").map((p) => p.trim()).filter((p) => p.length >= 2)
+        const lastPart = parts[parts.length - 1]
+        if (lastPart) {
+          const idx = text.indexOf(lastPart)
+          if (idx !== -1) {
+            const isDuplicate = rawMatches.some(
+              (m) => m.category === "temp-selection" && m.start === idx && m.end === idx + lastPart.length
+            )
+            if (!isDuplicate) {
+              rawMatches.push({ start: idx, end: idx + lastPart.length, text: lastPart, category: "temp-selection" })
+            }
+          }
         }
       }
     }
@@ -259,6 +295,12 @@ export function ReadingArticleViewer({
       const hasUserNote = Boolean(cm.userNote)
       const primaryAI = cm.aiAnnotations[0]
 
+      const hasTempSelection = Boolean(cm.tempSelection)
+      const highlightClass = (hasUserNote || hasTempSelection)
+        ? "bg-amber-400/45 rounded-sm px-0.5"
+        : ""
+
+
       // 视效修饰：下划线统一使用 css underline 属性，避免 border-b 引起的盒子高度和基线错位
       let underlineClass = ""
       if (primaryAI) {
@@ -268,10 +310,19 @@ export function ReadingArticleViewer({
         else if (primaryAI.category === "contrast") underlineClass = "underline decoration-wavy decoration-teal-400 decoration-[3px] underline-offset-[4px]"
       }
 
-      const hasTempSelection = Boolean(cm.tempSelection)
-      const highlightClass = (hasUserNote || hasTempSelection)
-        ? "bg-amber-400/45 rounded-sm px-0.5"
-        : ""
+      // 当笔记和 AI 标注区间没有完全重叠（如笔记包含 AI 标注词的超集），切分后某些子段可能只有黄底而没有下划线。
+      // 为了保证 user-note 段内有 AI 标注的地方也正确展示下划线，这里额外检查 rawMatches 里是否有覆盖当前段的 AI 标注
+      if (hasUserNote && !underlineClass) {
+        const overlappingAI = rawMatches.find(
+          (r) => r.category !== "user-note" && r.category !== "temp-selection" && r.start <= cm.start && r.end >= cm.end
+        )
+        if (overlappingAI) {
+          if (overlappingAI.category === "concept") underlineClass = "underline decoration-amber-400 decoration-[3px] underline-offset-[4px]"
+          else if (overlappingAI.category === "conclusion") underlineClass = "underline decoration-violet-400 decoration-[3px] underline-offset-[4px]"
+          else if (overlappingAI.category === "quote") underlineClass = "underline decoration-purple-400 decoration-[3px] underline-offset-[4px]"
+          else if (overlappingAI.category === "contrast") underlineClass = "underline decoration-wavy decoration-teal-400 decoration-[3px] underline-offset-[4px]"
+        }
+      }
 
       const contentElement = (
         <span
@@ -287,7 +338,10 @@ export function ReadingArticleViewer({
       )
 
       // 只有在拥有真实读书笔记或 AI 解析时，才启用 Popover 悬浮气泡
-      const shouldShowPopover = hasUserNote || cm.aiAnnotations.length > 0
+      const hasOverlappingAI = hasUserNote && rawMatches.some(
+        (r) => r.category !== "user-note" && r.category !== "temp-selection" && r.start <= cm.start && r.end >= cm.end
+      )
+      const shouldShowPopover = hasUserNote || cm.aiAnnotations.length > 0 || hasOverlappingAI
 
       if (shouldShowPopover) {
         nodes.push(
