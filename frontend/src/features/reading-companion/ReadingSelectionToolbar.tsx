@@ -7,7 +7,16 @@ import { cn } from "../../shared/utils/cn"
 
 interface ReadingSelectionToolbarProps {
   onDiscuss: (text: string) => void
-  onCreateNote: (text: string, interpretation?: string) => void
+  onCreateNote: (
+    text: string,
+    interpretation?: string,
+    offsets?: {
+      startOffset?: number;
+      endOffset?: number;
+      chapter_startOffset?: number;
+      chapter_endOffset?: number;
+    }
+  ) => void
   onExtractSkill: (scopeType: "L1" | "L2", text: string) => void
 }
 
@@ -102,7 +111,12 @@ export function ReadingSelectionToolbar({
                   </button>
                   <button
                     onClick={() => {
-                      onCreateNote(menu.text, noteInterpretation.trim())
+                      onCreateNote(menu.text, noteInterpretation.trim(), {
+                        startOffset: menu.startOffset,
+                        endOffset: menu.endOffset,
+                        chapter_startOffset: menu.chapter_startOffset,
+                        chapter_endOffset: menu.chapter_endOffset,
+                      })
                       setIsWritingNote(false)
                       setNoteInterpretation("")
                     }}

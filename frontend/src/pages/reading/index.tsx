@@ -46,8 +46,8 @@ function flattenTocNodes(nodes: TocNodeDO[]): ChapterItem[] {
   return result
 }
 function getSelectionOffsets(container: HTMLElement, range: Range) {
-  let startOffset = 0
-  let endOffset = 0
+  let startOffset = -1
+  let endOffset = -1
 
   const walker = document.createTreeWalker(
     container,
@@ -57,7 +57,7 @@ function getSelectionOffsets(container: HTMLElement, range: Range) {
         let parent = node.parentNode
         while (parent && parent !== container) {
           if (parent instanceof HTMLElement && (
-            parent.classList.contains("absolute") || 
+            parent.classList.contains("absolute") ||
             parent.classList.contains("select-none") ||
             parent.style.position === "absolute"
           )) {
@@ -86,6 +86,13 @@ function getSelectionOffsets(container: HTMLElement, range: Range) {
     node = walker.nextNode()
   }
 
+  if (startOffset === -1) {
+    startOffset = 0
+  }
+  if (endOffset === -1) {
+    endOffset = charCount
+  }
+
   return { startOffset, endOffset }
 }
 
@@ -93,13 +100,16 @@ function getSelectionOffsets(container: HTMLElement, range: Range) {
 export default function ReadingWorkspacePage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
-  const bookId = searchParams.get("book_id")
   const queryClient = useQueryClient()
   const [activeChapter, setActiveChapter] = useState("")
   const [rightTab, setRightTab] = useState<"copilot" | "notes">("copilot")
 
-  const { data: tocResponse, isLoading: isTocLoading } = useBookTocQuery(bookId || undefined)
   const { data: projectDetail } = useProjectDetailQuery(id || "")
+  const effectiveBookId = useMemo(() => {
+    return searchParams.get("book_id") || projectDetail?.book_id || projectDetail?.book?.id || ""
+  }, [searchParams, projectDetail])
+
+  const { data: tocResponse, isLoading: isTocLoading } = useBookTocQuery(effectiveBookId || undefined)
 
   const chapters: ChapterItem[] = useMemo(() => {
     if (tocResponse?.toc_tree && tocResponse.toc_tree.length > 0) {
@@ -175,8 +185,12 @@ export default function ReadingWorkspacePage() {
     return Math.round((doneCount / count) * 100)
   }, [projectDetail])
 
+  const realChapterId = useMemo(() => {
+    return chapterMap.get(activeChapter)?.targetChapterId || activeChapter
+  }, [chapterMap, activeChapter])
+
   // React Query 缓存与 ReadingArticleViewer 共用同一请求，不产生额外网络开销
-  const { data: chapterContentData } = useAllChapterBlocksQuery(bookId || undefined, activeChapter)
+  const { data: chapterContentData } = useAllChapterBlocksQuery(effectiveBookId || undefined, realChapterId)
   const estimatedMinutes = useMemo(() => {
     const blocks = chapterContentData?.blocks || []
     const totalChars = blocks.reduce((sum, b) => sum + (b.text?.length || 0), 0)
@@ -227,20 +241,67 @@ export default function ReadingWorkspacePage() {
 
   // 点击笔记锚点平滑定位与发光高亮
   useEffect(() => {
-    if (targetAnchor && readerRef.current) {
-      const elements = Array.from(
-        readerRef.current.querySelectorAll("h1, h2, h3, p, div, blockquote")
-      )
-      const targetEl = elements.find((el) =>
-        el.textContent?.includes(targetAnchor.split(" · ")[1] || targetAnchor)
-      )
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
-        targetEl.classList.add("ring-2", "ring-cyan-400", "bg-cyan-950/40", "transition-all", "duration-500")
-        setTimeout(() => {
-          targetEl.classList.remove("ring-2", "ring-cyan-400", "bg-cyan-950/40")
-        }, 2200)
+    if (!targetAnchor || !readerRef.current) return
+
+    // 清理和标准化搜索文本
+    const rawTarget = targetAnchor.split(" · ").pop() || targetAnchor
+    const cleanTarget = rawTarget.trim()
+    if (!cleanTarget) return
+
+    const allElements = Array.from(
+      readerRef.current.querySelectorAll("h1, h2, h3, h4, p, blockquote, div, section, mark, span")
+    ) as HTMLElement[]
+
+    // 1. 过滤所有包含目标引文或精准匹配 block_id 的候选节点（排除整个 readerRef 根节点）
+    const candidates = allElements.filter((el) => {
+      if (el === readerRef.current) return false
+
+      // 优先支持按精准 block_id 匹配
+      const elId = el.getAttribute("id")
+      if (elId && elId === cleanTarget) return true
+
+      const text = el.textContent || ""
+      if (text.includes(cleanTarget)) return true
+
+      // 去除标点与多余空白后的模糊特征匹配
+      const simplifiedTarget = cleanTarget.replace(/[\s\p{P}]/gu, "")
+      if (simplifiedTarget.length >= 2) {
+        const simplifiedText = text.replace(/[\s\p{P}]/gu, "")
+        return simplifiedText.includes(simplifiedTarget.slice(0, 15))
       }
+      return false
+    })
+
+    // 2. 核心数学筛选算法：找到无任何“子候选节点”的最小/最深末端承载节点（消除父级容器多余高亮）
+    let targetEl = candidates.find(
+      (candidate) => !candidates.some((other) => other !== candidate && candidate.contains(other))
+    )
+
+    // 如果未找到最精细子节点，退化使用第 1 个候选节点
+    if (!targetEl && candidates.length > 0) {
+      targetEl = candidates[0]
+    }
+
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
+      targetEl.classList.add(
+        "ring-2",
+        "ring-cyan-400",
+        "bg-cyan-950/60",
+        "scale-[1.01]",
+        "transition-all",
+        "duration-500",
+        "rounded-md"
+      )
+      setTimeout(() => {
+        targetEl?.classList.remove(
+          "ring-2",
+          "ring-cyan-400",
+          "bg-cyan-950/60",
+          "scale-[1.01]",
+          "rounded-md"
+        )
+      }, 2500)
     }
   }, [targetAnchor])
 
@@ -266,60 +327,79 @@ export default function ReadingWorkspacePage() {
     if (startAnchor.nodeType !== Node.ELEMENT_NODE) {
       startAnchor = startAnchor.parentNode as Node
     }
-    const startBlockEl = (startAnchor as Element).closest("p, h1, h2, h3, h4, h5, h6, pre, blockquote")
-    const blockId = startBlockEl?.getAttribute("id") || ""
+    const startBlockEl = (startAnchor as Element).closest("[data-block-id], p, h1, h2, h3, h4, h5, h6, pre, blockquote")
+    const blockId = startBlockEl?.getAttribute("data-block-id") || startBlockEl?.getAttribute("id") || ""
 
     // 找出选区终点所在的 Block DOM 节点
     let endAnchor = range.endContainer
     if (endAnchor.nodeType !== Node.ELEMENT_NODE) {
       endAnchor = endAnchor.parentNode as Node
     }
-    const endBlockEl = (endAnchor as Element).closest("p, h1, h2, h3, h4, h5, h6, pre, blockquote")
+    const endBlockEl = (endAnchor as Element).closest("[data-block-id], p, h1, h2, h3, h4, h5, h6, pre, blockquote")
 
     const isCrossBlock = startBlockEl !== endBlockEl
-    const endBlockId = isCrossBlock ? (endBlockEl?.getAttribute("id") || "") : undefined
+    const endBlockId = isCrossBlock ? (endBlockEl?.getAttribute("data-block-id") || endBlockEl?.getAttribute("id") || "") : undefined
 
     // 收集起点与终点之间所有中间 Block 的 id（用于 3+ Block 跨段高亮）
     const middleBlockIds: string[] = []
     if (isCrossBlock && startBlockEl && endBlockEl) {
       let current = startBlockEl.nextElementSibling
       while (current && current !== endBlockEl) {
-        const id = current.getAttribute("id")
+        const id = current.getAttribute("data-block-id") || current.getAttribute("id")
         if (id) middleBlockIds.push(id)
         current = current.nextElementSibling
       }
     }
 
-    let startOffset = 0
-    let endOffset = 0
+    let blockStartOffset = 0
+    let blockEndOffset = 0
+    let chapterStartOffset = 0
+    let chapterEndOffset = 0
     let noteText = text
-
     if (startBlockEl) {
       const tempOffsets = getSelectionOffsets(startBlockEl as HTMLElement, range)
-      startOffset = tempOffsets.startOffset
+      blockStartOffset = tempOffsets.startOffset
+      blockEndOffset = tempOffsets.endOffset
+
+      // 计算 startBlockEl 在整章全量 Blocks 中的前缀字符总长度
+      let blockPrefixOffset = 0
+      if (chapterContentData?.blocks && chapterContentData.blocks.length > 0) {
+        let targetIndex = -1
+        if (blockId) {
+          targetIndex = chapterContentData.blocks.findIndex((b) => b.block_id === blockId)
+        }
+        if (targetIndex === -1 && startBlockEl.hasAttribute("data-block-index")) {
+          targetIndex = parseInt(startBlockEl.getAttribute("data-block-index") || "-1", 10)
+        }
+
+        if (targetIndex > 0) {
+          for (let i = 0; i < targetIndex && i < chapterContentData.blocks.length; i++) {
+            blockPrefixOffset += (chapterContentData.blocks[i].text || "").length + 1
+          }
+        }
+      }
+      chapterStartOffset = blockPrefixOffset + tempOffsets.startOffset
 
       if (isCrossBlock) {
-        // 跨 Block 时：endOffset 锚定到起点 Block 文本末尾（用于 temp-selection 高亮当前 Block）
-        // noteText 保留完整的跨段选中内容（包含 \n），保存到 raw_quote 后
-        // ReadingArticleViewer 会按 \n 分割分别在各自 Block 里高亮
-        endOffset = startBlockEl.textContent?.length || 0
-        noteText = text // text 已经是 sel.toString().trim()，跨段时包含 \n
+        chapterEndOffset = chapterStartOffset + text.length
+        noteText = text
       } else {
-        endOffset = tempOffsets.endOffset
+        chapterEndOffset = chapterStartOffset + (tempOffsets.endOffset - tempOffsets.startOffset)
       }
     } else {
       const tempOffsets = getSelectionOffsets(container, range)
-      startOffset = tempOffsets.startOffset
-      endOffset = tempOffsets.endOffset
+      blockStartOffset = tempOffsets.startOffset
+      blockEndOffset = tempOffsets.endOffset
+      chapterStartOffset = tempOffsets.startOffset
+      chapterEndOffset = tempOffsets.endOffset
     }
 
-
-    setSelectedOffsets({ start: startOffset, end: endOffset })
+    setSelectedOffsets({ start: chapterStartOffset, end: chapterEndOffset })
 
     const rect = range.getBoundingClientRect()
 
     const rawX = rect.left - containerRect.left + rect.width / 2 + container.scrollLeft
-    
+
     // 智能上下方向决策 (Smart Placement)：写笔记面板高约 220px，若上方空间不足 230px 且下方空间充足，向下展开
     const spaceAbove = rect.top - containerRect.top
     const spaceBelow = containerRect.bottom - rect.bottom
@@ -331,8 +411,8 @@ export default function ReadingWorkspacePage() {
 
     // 靠边水平边界 clamp (写笔记卡片半宽 160px + 16px 安全边距 = 176px)
     const halfWidth = 176
-    const clampedX = containerRect.width < halfWidth * 2 
-      ? containerRect.width / 2 
+    const clampedX = containerRect.width < halfWidth * 2
+      ? containerRect.width / 2
       : Math.max(halfWidth, Math.min(rawX, containerRect.width - halfWidth))
     const clampedY = Math.max(10, rawY)
 
@@ -344,10 +424,12 @@ export default function ReadingWorkspacePage() {
       blockId,
       endBlockId,
       middleBlockIds: middleBlockIds.length > 0 ? middleBlockIds : undefined,
-      startOffset,
-      endOffset,
+      startOffset: blockStartOffset,
+      endOffset: blockEndOffset,
+      chapter_startOffset: chapterStartOffset,
+      chapter_endOffset: chapterEndOffset,
     })
-  }, [setFloatingMenu])
+  }, [setFloatingMenu, chapterContentData])
 
   // 划词发起提问 Discuss
   const handleDiscussSelection = (text: string) => {
@@ -358,8 +440,21 @@ export default function ReadingWorkspacePage() {
   }
 
   // 划词快速记笔记
-  const handleCreateNoteFromSelection = (text: string, interpretation?: string) => {
+  const handleCreateNoteFromSelection = (
+    text: string,
+    interpretation?: string,
+    offsets?: {
+      startOffset?: number;
+      endOffset?: number;
+      chapter_startOffset?: number;
+      chapter_endOffset?: number;
+    }
+  ) => {
     const activeChapterLabel = chapterMap.get(activeChapter)?.label || "其他补充笔记"
+    const currentMenu = useFloatingMenu.getState().menu
+    const startOffset = offsets?.chapter_startOffset ?? currentMenu?.chapter_startOffset ?? selectedOffsets.start
+    const endOffset = offsets?.chapter_endOffset ?? currentMenu?.chapter_endOffset ?? selectedOffsets.end
+
     createMaterialNoteMutation.mutate({
       project_id: id || "",
       task_id: currentTaskId,
@@ -367,10 +462,10 @@ export default function ReadingWorkspacePage() {
       raw_quote: text,
       user_interpretation: interpretation || text,
       source_anchor: {
-        book_id: bookId || "",
-        chapter_id: activeChapter || "",
-        start_offset: selectedOffsets.start,
-        end_offset: selectedOffsets.end,
+        book_id: effectiveBookId || "",
+        chapter_id: realChapterId || "",
+        start_offset: startOffset,
+        end_offset: endOffset,
         feature_text: activeChapterLabel,
       }
     })
@@ -433,8 +528,57 @@ export default function ReadingWorkspacePage() {
     }, 25)
   }
 
-  const traceNote = (noteAnchor: string) => {
-    setTargetAnchor(noteAnchor)
+  const traceNote = (noteAnchor: string, sourceAnchor?: any) => {
+    // 1. 智能章节多重关联判断与自动无缝切换
+    if (sourceAnchor?.chapter_id) {
+      const rawChId = sourceAnchor.chapter_id
+      const matchedCh =
+        chapterMap.get(rawChId) ||
+        chapters.find(
+          (c) =>
+            c.id === rawChId ||
+            c.targetChapterId === rawChId ||
+            (Boolean(c.id) && rawChId.includes(c.id)) ||
+            (Boolean(c.targetChapterId) && rawChId.includes(c.targetChapterId))
+        )
+      if (matchedCh) {
+        const realChId = matchedCh.targetChapterId || matchedCh.id
+        if (activeChapter !== realChId) {
+          setActiveChapter(realChId)
+        }
+      }
+    }
+
+    // 2. 基于 start_offset 在全章 Blocks 中精准定位目标物理 Block
+    let searchTarget = ""
+    if (
+      sourceAnchor &&
+      typeof sourceAnchor.start_offset === "number" &&
+      chapterContentData?.blocks &&
+      chapterContentData.blocks.length > 0
+    ) {
+      const targetOffset = sourceAnchor.start_offset
+      let currentAcc = 0
+      for (const b of chapterContentData.blocks) {
+        const len = (b.text || "").length
+        if (currentAcc + len >= targetOffset) {
+          searchTarget = b.block_id || (b.text ? b.text.substring(0, 20) : "")
+          break
+        }
+        currentAcc += len + 1
+      }
+    }
+
+    // 3. 兜底标靶逻辑（若无法通过 offset 命中，且引文非单字短文本，使用 noteAnchor 或 feature_text）
+    if (!searchTarget) {
+      if (noteAnchor && noteAnchor.trim().length >= 2) {
+        searchTarget = noteAnchor
+      } else {
+        searchTarget = sourceAnchor?.feature_text || noteAnchor || ""
+      }
+    }
+
+    setTargetAnchor(searchTarget)
     setTimeout(() => setTargetAnchor(null), 2500)
   }
 
@@ -485,8 +629,8 @@ export default function ReadingWorkspacePage() {
         <ReadingArticleViewer
           projectId={id || ""}
           readerRef={readerRef}
-          bookId={bookId || undefined}
-          chapterId={activeChapter}
+          bookId={effectiveBookId || undefined}
+          chapterId={realChapterId}
           chapterTitle={chapterMap.get(activeChapter)?.label}
           targetAnchor={targetAnchor}
           copiedCode={copiedCode}
@@ -542,6 +686,10 @@ export default function ReadingWorkspacePage() {
         noteSearch={noteSearch}
         setNoteSearch={setNoteSearch}
         onTraceNote={traceNote}
+        onDeleteNote={(noteId) => {
+          setExtractedToast("笔记已成功删除")
+          setTimeout(() => setExtractedToast(null), 2500)
+        }}
         onExtractSkill={handleExtractSkill}
       />
     </div>

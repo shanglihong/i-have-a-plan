@@ -18,13 +18,13 @@ export const READING_TOKENS = {
   // 容器与卡片质感标识 (Surface Tokens)
   surface: {
     // 统一基础卡片 (AI 对话框 & 笔记卡片)
-    card: "bg-[#0F172A]/80 border border-slate-800/80 rounded-2xl shadow-xs",
-    // 统一可悬浮交互卡片 (轻量通透，降低边框噪点)
-    hoverCard: "bg-[#0F172A]/60 hover:bg-[#121C30]/90 border border-slate-800/40 hover:border-cyan-500/30 rounded-2xl shadow-xs hover:shadow-sm transition-all duration-200",
+    card: "bg-[#0F172A]/80 border border-slate-700/80 rounded-2xl shadow-xs",
+    // 统一可悬浮交互卡片 (增强边框清晰度与精致交互)
+    hoverCard: "bg-[#0F172A]/80 hover:bg-[#121C30]/95 border border-slate-700/80 hover:border-cyan-500/50 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200",
     // 用户消息气泡
     userBubble: "bg-[#131C2E] border border-cyan-500/30 text-slate-100 rounded-2xl rounded-tr-xs shadow-sm font-sans font-normal",
-    // 圈选划线原文 (Quote Snippet Container - 清晰高对比与非斜体)
-    quote: "bg-[#0C1A1A]/90 border-l-3 border-l-emerald-400 border-t border-r border-b border-emerald-500/30 text-emerald-100 text-xs sm:text-[13px] font-sans not-italic leading-relaxed rounded-r-xl shadow-inner",
+    // 圈选划线原文 (Quote Snippet Container - 温暖高端的高对比精读引用框)
+    quote: "bg-[#18130B]/90 border-l-4 border-l-amber-400 border-t border-r border-b border-amber-500/30 text-amber-100/95 text-xs sm:text-[13px] font-sans not-italic leading-relaxed rounded-r-xl shadow-md shadow-amber-950/20",
     // 思考感悟 (Thought Block Container)
     thought: "bg-[#0B101D]/90 border border-slate-800/90 focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/20 rounded-xl p-2.5 transition-all shadow-inner",
     // 章节/原文定位 Tag
@@ -35,9 +35,9 @@ export const READING_TOKENS = {
     recommendationBubble: "bg-slate-900/95 border border-cyan-500/40 rounded-2xl shadow-2xl shadow-cyan-950/50 backdrop-blur-xl select-none",
     // 提炼技能主行动按钮
     recommendationAction: "flex-1 shrink-0 whitespace-nowrap px-3 py-1.5 text-xs font-semibold text-cyan-200 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 hover:border-cyan-400 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1 shadow-xs group",
-    // 统一输入框包装容器 (支持 focus-within 青色环绕特效)
-    inputWrapper: "bg-[#111827] border border-slate-700/80 rounded-xl shadow-xl focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/10 transition-all",
-    // 统一输入控件 (无边框、无高亮、透明底色)
-    inputControl: "bg-transparent text-slate-100 placeholder-slate-400 outline-none border-none focus:outline-none focus-visible:outline-none focus:ring-0 ring-0 shadow-none",
+    // 统一输入框包装容器 (静态 border-cyan-500/50，选中提升 border-cyan-500/80)
+    inputWrapper: "bg-[#0F172A] border border-cyan-500/20 focus-within:border-cyan-500/60 rounded-xl transition-all shadow-inner",
+    // 统一输入控件 (彻底无边框、无高亮框、透明底色)
+    inputControl: "bg-transparent text-slate-100 placeholder-slate-400 outline-none border-none border-0 focus:outline-none focus:border-none focus-visible:outline-none focus-visible:ring-0 focus:ring-0 ring-0 shadow-none [outline:none] focus:[outline:none] focus-visible:[outline:none]",
   },
 } as const

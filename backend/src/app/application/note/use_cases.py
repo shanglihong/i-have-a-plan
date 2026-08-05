@@ -107,6 +107,16 @@ class CreateMaterialNoteUseCase:
         # 4. 持久化落库
         await self.note_state_service.create_material_note(note)
 
+        sa_dto_vo = None
+        if note.source_anchor:
+            sa_dto_vo = SourceAnchorDTO(
+                book_id=note.source_anchor.book_id,
+                chapter_id=note.source_anchor.chapter_id,
+                start_offset=note.source_anchor.start_offset,
+                end_offset=note.source_anchor.end_offset,
+                feature_text=note.source_anchor.feature_text,
+            )
+
         # 6. 返回 VO
         return MaterialNoteVO(
             id=note.id,
@@ -118,7 +128,8 @@ class CreateMaterialNoteUseCase:
             context_reflection=note.context_reflection,
             tags=note.tags,
             created_at=note.created_at.isoformat(),
-            anchor_summary=anchor_summary
+            anchor_summary=anchor_summary,
+            source_anchor=sa_dto_vo,
         )
 
 
@@ -154,8 +165,16 @@ class GetMaterialNotesUseCase:
         items_vo = []
         for note in notes:
             summary = None
+            sa_dto_vo = None
             if note.source_anchor:
                 summary = f"{note.source_anchor.chapter_id}"
+                sa_dto_vo = SourceAnchorDTO(
+                    book_id=note.source_anchor.book_id,
+                    chapter_id=note.source_anchor.chapter_id,
+                    start_offset=note.source_anchor.start_offset,
+                    end_offset=note.source_anchor.end_offset,
+                    feature_text=note.source_anchor.feature_text,
+                )
                 
             items_vo.append(MaterialNoteVO(
                 id=note.id,
@@ -167,7 +186,8 @@ class GetMaterialNotesUseCase:
                 context_reflection=note.context_reflection,
                 tags=note.tags,
                 created_at=note.created_at.isoformat(),
-                anchor_summary=summary
+                anchor_summary=summary,
+                source_anchor=sa_dto_vo
             ))
 
         return MaterialNotePageVO(

@@ -1,6 +1,5 @@
 import { PanelLeftOpen, ChevronRight, Clock, PanelRightOpen } from "lucide-react"
 import { useLayoutStore as useLayout } from "../../shared/store"
-import { StatusBadge } from "../../shared/ui"
 import { type ChapterItem } from "./ReadingChapterOutline"
 
 interface ReadingWorkspaceHeaderProps {
@@ -18,7 +17,6 @@ export function ReadingWorkspaceHeader({
   bookTitle,
   chapterItem,
   estimatedMinutes,
-  status,
   onOpenDiscuss,
 }: ReadingWorkspaceHeaderProps) {
   const outlineOpen = useLayout((s) => s.outlineOpen)
@@ -72,14 +70,12 @@ export function ReadingWorkspaceHeader({
 
       {/* Reading Stats & Actions */}
       <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
-        {typeof estimatedMinutes === "number" && !chapterItem?.done && (
-          <div className="hidden md:flex items-center gap-1.5 font-mono text-xs bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-full text-slate-300">
+        {typeof estimatedMinutes === "number" && (
+          <div className="flex items-center gap-1.5 font-mono text-xs bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-full text-slate-300">
             <Clock size={12} className="text-cyan-400" />
             <span>预计 ~{estimatedMinutes} min</span>
           </div>
         )}
-
-        <StatusBadge status={status} />
 
         {!discussOpen && (
           <button

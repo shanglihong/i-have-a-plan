@@ -48,6 +48,7 @@ class MaterialNoteVO(BaseModel):
     created_at: str
     # 额外补充，方便前端页面渲染，可由应用层按需查询出对应 block 的 summary
     anchor_summary: Optional[str] = None
+    source_anchor: Optional[SourceAnchorDTO] = None
 
 
 class MaterialNotePageVO(BaseModel):

@@ -31,29 +31,21 @@ export const useFocusStore = create<FocusState>((set) => ({
 }));
 
 interface FloatingMenuState {
-  menu: { 
-    x: number; 
-    y: number; 
-    text: string; 
+  menu: {
+    x: number;
+    y: number;
+    text: string;
     blockId: string;         // 起点 Block id
     endBlockId?: string;     // 终点 Block id（跨 Block 时使用）
     middleBlockIds?: string[]; // 中间 Block ids（跨 3+ Block 时使用）
-    startOffset: number; 
-    endOffset: number; 
+    startOffset: number;       // Block 相对起点偏移
+    endOffset: number;         // Block 相对终点偏移
+    chapter_startOffset: number; // 章节全量起点偏移
+    chapter_endOffset: number;   // 章节全量终点偏移
     placement?: 'top' | 'bottom';
   } | null;
   isWritingNote: boolean;
-  setMenu: (menu: { 
-    x: number; 
-    y: number; 
-    text: string; 
-    blockId: string;
-    endBlockId?: string;
-    middleBlockIds?: string[];
-    startOffset: number; 
-    endOffset: number; 
-    placement?: 'top' | 'bottom';
-  } | null) => void;
+  setMenu: (menu: FloatingMenuState['menu']) => void;
   setIsWritingNote: (isWritingNote: boolean) => void;
 }
 

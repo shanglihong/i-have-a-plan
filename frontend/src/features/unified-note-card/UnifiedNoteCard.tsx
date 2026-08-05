@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Quote,
-  Target,
+  MapPin,
   Sparkles,
   Trash2,
   Copy,
@@ -10,12 +10,27 @@ import {
   CheckCircle2,
   Clock,
   Edit3,
-  MoreHorizontal,
   ChevronDown,
   ChevronUp,
 } from "lucide-react"
 import { READING_TOKENS } from "../../shared/constants"
 import { cn } from "../../shared/utils/cn"
+
+function formatTimeToSeconds(timeStr?: string): string {
+  if (!timeStr) return ""
+  try {
+    const date = new Date(timeStr)
+    if (!isNaN(date.getTime())) {
+      const pad = (n: number) => n.toString().padStart(2, "0")
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
+        date.getHours()
+      )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    }
+  } catch {
+    // ignore
+  }
+  return timeStr.replace("T", " ").replace(/\.\d+.*$/, "")
+}
 
 export interface NoteCardData {
   id: string
@@ -23,12 +38,19 @@ export interface NoteCardData {
   quote?: string
   content: string
   createdAt?: string
+  sourceAnchor?: {
+    book_id: string
+    chapter_id: string
+    start_offset: number
+    end_offset: number
+    feature_text: string
+  }
 }
 
 interface UnifiedNoteCardProps {
   note: NoteCardData
   isReadOnly?: boolean
-  onTraceAnchor: (anchor: string) => void
+  onTraceAnchor: (anchor: string, sourceAnchor?: NoteCardData["sourceAnchor"]) => void
   onUpdateNote?: (noteId: string, newContent: string) => void
   onDeleteNote?: (noteId: string) => void
   onExtractSkill?: (note: NoteCardData) => void
@@ -45,12 +67,10 @@ export function UnifiedNoteCard({
   const [content, setContent] = useState(note.content || "")
   const [isSaved, setIsSaved] = useState(true)
   const [copied, setCopied] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // 无滚动条 Auto-Growing Textarea 高度自适应
@@ -68,18 +88,6 @@ export function UnifiedNoteCard({
   useLayoutEffect(() => {
     adjustHeight()
   }, [content, adjustHeight])
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false)
-      }
-    }
-    if (showMenu) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [showMenu])
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (isReadOnly) return
@@ -99,10 +107,9 @@ export function UnifiedNoteCard({
   }
 
   const handleCopy = () => {
-    const textToCopy = note.quote ? `引文：${note.quote}\n笔记：${content}` : content
+    const textToCopy = note.quote ? `引文：${note.quote}\n\n思考：${content}` : content
     navigator.clipboard.writeText(textToCopy)
     setCopied(true)
-    setShowMenu(false)
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -115,10 +122,8 @@ export function UnifiedNoteCard({
       animate={{ opacity: isReadOnly ? 0.65 : 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.18 }}
-      onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
-        setIsHovered(false)
-        setShowMenu(false)
+        setShowDeleteConfirm(false)
       }}
       className={cn(
         "group p-3 relative font-sans",
@@ -126,104 +131,120 @@ export function UnifiedNoteCard({
         isReadOnly && "opacity-65 cursor-not-allowed"
       )}
     >
-      {/* ── 1. Card Header: Anchor Label + Primary [原文定位] + More Menu ── */}
+      {/* ── 1. Card Header: Time Meta + [复制 / 定位 / 删除] Actions ── */}
       <div className="flex items-center justify-between gap-1.5 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className={READING_TOKENS.surface.anchorBadge}>
-            {note.anchor}
-          </span>
           {note.createdAt && (
-            <span className={cn(READING_TOKENS.typography.meta, "hidden sm:inline-flex items-center gap-1 shrink-0")}>
+            <span className={cn(READING_TOKENS.typography.meta, "inline-flex items-center gap-1 shrink-0")}>
               <Clock size={11} />
-              {note.createdAt}
+              {formatTimeToSeconds(note.createdAt)}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Primary Action: 原文定位 */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* 1. 复制图标 */}
           <button
-            onClick={() => onTraceAnchor(note.anchor)}
-            className="flex items-center gap-1 text-xs font-medium text-cyan-300 hover:text-cyan-100 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 px-2 py-0.5 rounded-md transition-all cursor-pointer shadow-xs"
-            title="平滑滚动定位至原文段落"
+            onClick={handleCopy}
+            className="p-1.5 text-slate-400 hover:text-cyan-300 bg-slate-800/40 hover:bg-cyan-500/15 border border-slate-700/60 hover:border-cyan-500/40 rounded-lg transition-all cursor-pointer shadow-xs group flex items-center justify-center"
+            title={copied ? "已复制" : "复制引文与思考"}
+            aria-label="复制笔记"
           >
-            <Target size={11} className="text-cyan-400" />
-            <span>定位</span>
+            {copied ? (
+              <Check size={13} className="text-emerald-400 scale-110 transition-transform" />
+            ) : (
+              <Copy size={13} className="group-hover:scale-110 transition-transform" />
+            )}
           </button>
 
-          {/* More Actions Dropdown */}
-          <div className="relative" ref={menuRef}>
+          {/* 2. 原文定位图标 (基于 source_anchor 与划词原文 quote) */}
+          <button
+            onClick={() => {
+              const traceTarget = note.quote || note.anchor
+              if (traceTarget || note.sourceAnchor) {
+                onTraceAnchor(traceTarget, note.sourceAnchor)
+              }
+            }}
+            className="p-1.5 text-cyan-400 hover:text-cyan-200 bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/35 hover:border-cyan-400/70 rounded-lg transition-all cursor-pointer shadow-xs group flex items-center justify-center"
+            title="定位引文至原文段落"
+            aria-label="定位引文至原文段落"
+          >
+            <MapPin size={13} className="group-hover:scale-110 transition-transform" />
+          </button>
+
+          {/* 3. 提炼技能图标 (如有) */}
+          {onExtractSkill && (
             <button
-              onClick={() => setShowMenu(!showMenu)}
-              disabled={isReadOnly}
-              className={cn(
-                "p-1 text-slate-400 hover:text-slate-200 rounded-lg hover:bg-slate-800/80 transition-opacity cursor-pointer",
-                isHovered || showMenu ? "opacity-100" : "opacity-50"
-              )}
-              title="更多操作"
+              onClick={() => onExtractSkill(note)}
+              className="p-1.5 text-violet-400 hover:text-violet-200 bg-violet-500/15 hover:bg-violet-500/30 border border-violet-500/35 hover:border-violet-400/70 rounded-lg transition-all cursor-pointer shadow-xs group flex items-center justify-center"
+              title="提炼技能 (L1)"
+              aria-label="提炼技能"
             >
-              <MoreHorizontal size={14} />
+              <Sparkles size={13} className="group-hover:scale-110 transition-transform" />
             </button>
+          )}
 
-            <AnimatePresence>
-              {showMenu && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.92, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
-                  transition={{ duration: 0.1 }}
-                  className="absolute right-0 top-7 z-40 w-36 bg-[#121A29] border border-slate-700/90 rounded-xl shadow-2xl py-1 backdrop-blur-xl text-xs text-slate-200 font-sans"
-                >
-                  <button
-                    onClick={() => {
-                      onExtractSkill?.(note)
-                      setShowMenu(false)
-                    }}
-                    className="w-full text-left px-3.5 py-1.5 hover:bg-violet-500/20 hover:text-violet-300 flex items-center gap-2 cursor-pointer font-medium"
+          {/* 4. 删除图标与悬浮微型确认 Popover */}
+          {!isReadOnly && (
+            <div className="relative">
+              <button
+                onClick={() => setShowDeleteConfirm((prev) => !prev)}
+                className={cn(
+                  "p-1.5 rounded-lg transition-all cursor-pointer shadow-xs group flex items-center justify-center border",
+                  showDeleteConfirm
+                    ? "text-rose-200 bg-rose-500/30 border-rose-500/60"
+                    : "text-rose-400 hover:text-rose-200 bg-rose-500/15 hover:bg-rose-500/30 border-rose-500/35 hover:border-rose-400/70"
+                )}
+                title="删除笔记"
+                aria-label="删除笔记"
+              >
+                <Trash2 size={13} className="group-hover:scale-110 transition-transform" />
+              </button>
+
+              <AnimatePresence>
+                {showDeleteConfirm && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute right-0 top-full mt-1.5 z-30 flex items-center gap-1 p-1 bg-[#0F172A] border border-rose-500/40 rounded-lg shadow-xl backdrop-blur-md whitespace-nowrap"
                   >
-                    <Sparkles size={13} className="text-violet-400" />
-                    <span>提炼技能 (L1)</span>
-                  </button>
-
-                  <button
-                    onClick={handleCopy}
-                    className="w-full text-left px-3.5 py-1.5 hover:bg-slate-800 hover:text-cyan-300 flex items-center gap-2 cursor-pointer font-medium"
-                  >
-                    {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-                    <span>{copied ? "已复制" : "复制笔记"}</span>
-                  </button>
-
-                  {!isReadOnly && onDeleteNote && (
                     <button
                       onClick={() => {
-                        onDeleteNote(note.id)
-                        setShowMenu(false)
+                        onDeleteNote?.(note.id)
+                        setShowDeleteConfirm(false)
                       }}
-                      className="w-full text-left px-3.5 py-1.5 hover:bg-rose-950/50 hover:text-rose-300 flex items-center gap-2 cursor-pointer font-medium border-t border-slate-800/80 mt-0.5 pt-1.5"
+                      className="px-2 py-0.5 text-[11px] bg-rose-600 hover:bg-rose-500 text-white font-medium rounded transition-colors cursor-pointer shadow-xs"
                     >
-                      <Trash2 size={13} className="text-rose-400" />
-                      <span>删除笔记</span>
+                      确认
                     </button>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-2 py-0.5 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded transition-colors cursor-pointer"
+                    >
+                      取消
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── Card Content Container with Collapsible Max Height & Gradient Mask ── */}
       <div className={cn("relative transition-all duration-200", isLongContent && !isExpanded && "max-h-36 overflow-hidden")}>
-        {/* ── 2. High-Contrast Quote Block ── */}
+        {/* ── 2. High-Contrast Quote Block (Warm Amber Accent) ── */}
         {note.quote && (
           <div className={cn("mb-2 px-3 py-2 select-text flex items-start gap-2", READING_TOKENS.surface.quote)}>
-            <Quote size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+            <Quote size={13} className="text-amber-400 shrink-0 mt-0.5" />
             <span className={cn(isExpanded ? "leading-relaxed" : "line-clamp-3 leading-relaxed")}>{note.quote}</span>
           </div>
         )}
 
         {/* ── 3. Direct Auto-Expanding Textarea ── */}
-        <div className="relative">
+        <div className={cn("relative p-2.5 my-1", READING_TOKENS.surface.inputWrapper)}>
           <textarea
             ref={textareaRef}
             value={content}
@@ -231,8 +252,10 @@ export function UnifiedNoteCard({
             disabled={isReadOnly}
             placeholder={isReadOnly ? "只读模式" : "记下感悟与思考..."}
             rows={1}
+            style={{ outline: "none", boxShadow: "none" }}
             className={cn(
-              "w-full bg-transparent placeholder:text-slate-500 focus:outline-none resize-none overflow-hidden leading-relaxed block",
+              "w-full resize-none overflow-hidden leading-relaxed block border-none",
+              READING_TOKENS.surface.inputControl,
               READING_TOKENS.typography.body,
               isReadOnly && "cursor-not-allowed"
             )}
@@ -240,16 +263,16 @@ export function UnifiedNoteCard({
 
           {/* Auto-Save Status Badge */}
           {!isReadOnly && (
-            <div className="flex justify-end items-center mt-0.5">
+            <div className="flex justify-end items-center mt-1.5 pt-1 border-t border-slate-800/60">
               {isSaved ? (
-                <span className="flex items-center gap-1 opacity-50 text-[10px] text-slate-400 font-mono">
-                  <CheckCircle2 size={10} className="text-emerald-400" />
-                  已存
+                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400 font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                  <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
+                  已保存
                 </span>
               ) : (
-                <span className="text-amber-400/90 flex items-center gap-1 animate-pulse text-[10px] font-mono">
-                  <Edit3 size={10} />
-                  保存中
+                <span className="inline-flex items-center gap-1 text-[11px] font-mono text-amber-300 font-medium px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 animate-pulse">
+                  <Edit3 size={12} className="text-amber-300 shrink-0" />
+                  保存中...
                 </span>
               )}
             </div>

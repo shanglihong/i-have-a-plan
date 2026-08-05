@@ -21,7 +21,7 @@ interface ChapterNoteTreeProps {
   viewMode?: "tree" | "list"
   searchKeyword?: string
   isReadOnly?: boolean
-  onTraceAnchor: (anchor: string) => void
+  onTraceAnchor: (anchor: string, sourceAnchor?: NoteCardData["sourceAnchor"]) => void
   onUpdateNote?: (noteId: string, newContent: string) => void
   onDeleteNote?: (noteId: string) => void
   onExtractSkill?: (note: NoteCardData) => void
@@ -77,6 +77,7 @@ export function ChapterNoteTree({
       quote: item.raw_quote,
       content: item.user_interpretation,
       createdAt: item.created_at,
+      sourceAnchor: item.source_anchor,
     }))
   }, [notesData])
 
@@ -87,13 +88,21 @@ export function ChapterNoteTree({
       (n) =>
         n.content?.toLowerCase().includes(lower) ||
         n.quote?.toLowerCase().includes(lower) ||
-        n.anchor?.toLowerCase().includes(lower)
+        n.anchor?.toLowerCase().includes(lower) ||
+        n.sourceAnchor?.feature_text?.toLowerCase().includes(lower)
     )
   }, [notes, searchKeyword])
 
   const chapterGroups: ChapterGroup[] = useMemo(() => {
     return chapters.map((ch) => {
       const matchedNotes = filteredNotes.filter((n) => {
+        // 优先基于完整的 sourceAnchor.chapter_id 精准归类
+        if (n.sourceAnchor?.chapter_id) {
+          return (
+            n.sourceAnchor.chapter_id === ch.id ||
+            n.sourceAnchor.chapter_id === ch.targetChapterId
+          )
+        }
         if (!n.anchor) return false
         return (
           n.anchor.includes(ch.id) ||
@@ -114,6 +123,13 @@ export function ChapterNoteTree({
 
   const unclassifiedNotes = useMemo(() => {
     return filteredNotes.filter((n) => {
+      if (n.sourceAnchor?.chapter_id) {
+        return !chapters.some(
+          (ch) =>
+            n.sourceAnchor?.chapter_id === ch.id ||
+            n.sourceAnchor?.chapter_id === ch.targetChapterId
+        )
+      }
       return !chapters.some(
         (ch) =>
           n.anchor?.includes(ch.id) ||
@@ -162,7 +178,7 @@ export function ChapterNoteTree({
     }
 
     return (
-      <div className="relative pl-3.5 space-y-3.5 border-l border-slate-800/80 ml-2 my-1">
+      <div className="relative pl-3.5 space-y-3.5 border-l border-slate-700/80 ml-2 my-1">
         {filteredNotes.map((note) => (
           <div key={note.id} className="relative">
             <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-cyan-500/60 border border-cyan-400/80 shadow-xs ring-4 ring-[#090D16]" />
@@ -274,7 +290,7 @@ export function ChapterNoteTree({
                         本章暂无精读笔记，可在正文中选中划线添加
                       </div>
                     ) : (
-                      <div className="relative pl-3.5 space-y-3 border-l border-slate-800/80 ml-3 my-1">
+                      <div className="relative pl-3.5 space-y-3 border-l border-slate-700/80 ml-3 my-1">
                         {group.notes.map((note) => (
                           <div key={note.id} className="relative">
                             <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-cyan-500/60 border border-cyan-400/80 shadow-xs ring-4 ring-[#090D16]" />
@@ -325,7 +341,7 @@ export function ChapterNoteTree({
                 className="overflow-hidden"
               >
                 <div className="pt-1 pb-2">
-                  <div className="relative pl-3.5 space-y-3 border-l border-slate-800/80 ml-3 my-1">
+                  <div className="relative pl-3.5 space-y-3 border-l border-slate-700/80 ml-3 my-1">
                     {unclassifiedNotes.map((note) => (
                       <div key={note.id} className="relative">
                         <div className="absolute -left-[19px] top-4 w-2 h-2 rounded-full bg-cyan-500/60 border border-cyan-400/80 shadow-xs ring-4 ring-[#090D16]" />

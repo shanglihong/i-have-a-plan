@@ -51,6 +51,7 @@ export interface MaterialNoteDO {
   tags: string[];
   created_at: string;
   anchor_summary?: string;
+  source_anchor?: MaterialSourceAnchor;
 }
 
 export interface MaterialNotePage {

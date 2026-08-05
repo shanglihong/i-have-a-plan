@@ -93,6 +93,13 @@
         "raw_quote": "神经网络是一种模仿生物神经网络结构...",
         "user_interpretation": "需要重点关注其权重更新推导",
         "anchor_summary": "P.42 (Ch.01)",
+        "source_anchor": {
+          "book_id": "bk_88776655",
+          "chapter_id": "chap_01",
+          "start_offset": 120,
+          "end_offset": 300,
+          "feature_text": "神经网络是一种模仿..."
+        },
         "created_at": "2026-07-19T10:00:00Z"
       }
     ],

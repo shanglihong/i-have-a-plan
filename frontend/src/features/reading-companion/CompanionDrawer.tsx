@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Bookmark,
@@ -21,7 +21,7 @@ import {
   ArrowRight,
   HelpCircle,
 } from "lucide-react"
-import { UnifiedNoteCard, type NoteCardData } from "../unified-note-card"
+import type { NoteCardData } from "../unified-note-card"
 import { ChapterNoteTree } from "./ChapterNoteTree"
 import type { ChapterItem } from "./ReadingChapterOutline"
 import { useMaterialNotesQuery } from "../../entities/note"
@@ -64,7 +64,7 @@ interface CompanionDrawerProps {
   projectId: string
   noteSearch: string
   setNoteSearch: (search: string) => void
-  onTraceNote: (anchor: string) => void
+  onTraceNote: (anchor: string, sourceAnchor?: any) => void
   onUpdateNote?: (noteId: string, newContent: string) => void
   onDeleteNote?: (noteId: string) => void
   onExtractSkill?: (scopeType: "L1" | "L2", data?: any) => void
@@ -347,7 +347,7 @@ export function CompanionDrawer({
                           {/* Quote Context Box */}
                           {msg.quote && (
                             <div className={cn("mb-2 px-3 py-1.5 flex items-center gap-1.5 shadow-xs leading-relaxed", READING_TOKENS.surface.quote)}>
-                              <Quote size={12} className="shrink-0 text-emerald-400" />
+                              <Quote size={12} className="shrink-0 text-amber-400" />
                               <span className="truncate">{msg.quote}</span>
                             </div>
                           )}
@@ -455,7 +455,7 @@ export function CompanionDrawer({
                     </div>
                   )}
 
-                  <div className="bg-[#0F172A] border border-slate-800 focus-within:border-cyan-500/60 rounded-2xl p-3 transition-all flex flex-col gap-2 shadow-inner">
+                  <div className={cn("p-3 flex flex-col gap-2", READING_TOKENS.surface.inputWrapper)}>
                     <textarea
                       ref={textareaRef}
                       value={discussMsg}
@@ -538,18 +538,25 @@ export function CompanionDrawer({
                       </button>
                     </div>
 
-                    <div className="relative flex-1">
-                      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <div className={cn("flex-1 flex items-center gap-2 px-3 py-1.5", READING_TOKENS.surface.inputWrapper)}>
+                      <Search size={13} className="text-slate-400 shrink-0" />
                       <input
                         type="text"
                         value={noteSearch}
                         onChange={(e) => setNoteSearch(e.target.value)}
                         placeholder="搜索笔记..."
-                        className={cn(
-                          "w-full bg-[#0F172A] border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50",
-                          READING_TOKENS.typography.subtext
-                        )}
+                        style={{ outline: "none", boxShadow: "none" }}
+                        className={cn("flex-1 bg-transparent border-none outline-none", READING_TOKENS.surface.inputControl, READING_TOKENS.typography.subtext)}
                       />
+                      {noteSearch && (
+                        <button
+                          onClick={() => setNoteSearch("")}
+                          className="cursor-pointer text-slate-400 hover:text-slate-200 p-0.5 rounded hover:bg-white/10 transition-colors shrink-0"
+                          title="清空搜索"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
