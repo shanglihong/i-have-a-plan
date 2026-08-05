@@ -171,7 +171,7 @@ export function ReadingArticleViewer({
   }
 
   // 根据 AI 返回 of TextAnnotation 分类数据及读书笔记动态匹配并高亮/下划线渲染纯文本
-  const renderAnnotatedText = (text: string, annotations: TextAnnotation[], blockId?: string) => {
+  const renderAnnotatedText = (text: string, annotations: TextAnnotation[], blockId?: string, blockIndex?: number) => {
     if (!text) return text
 
     const rawMatches: RawMatch[] = []
@@ -337,11 +337,15 @@ export function ReadingArticleViewer({
         </span>
       )
 
-      // 只有在拥有真实读书笔记或 AI 解析时，才启用 Popover 悬浮气泡
+      // 只有在拥有真实读书笔记或 AI 解析且当前无选区/写笔记菜单激活时，才启用 Popover 悬浮气泡
       const hasOverlappingAI = hasUserNote && rawMatches.some(
         (r) => r.category !== "user-note" && r.category !== "temp-selection" && r.start <= cm.start && r.end >= cm.end
       )
-      const shouldShowPopover = hasUserNote || cm.aiAnnotations.length > 0 || hasOverlappingAI
+      // 当选区/写笔记菜单激活 (menu !== null) 时，禁用 Popover 展示，消解与划词菜单的重叠顶盖冲突
+      const shouldShowPopover = (hasUserNote || cm.aiAnnotations.length > 0 || hasOverlappingAI) && !menu
+
+      // 判断当前段落是否偏向顶部（例如前 2 个 Block），向上弹出会被截断，故智能向下弹出
+      const isTopBlock = blockIndex !== undefined && blockIndex <= 1
 
       if (shouldShowPopover) {
         nodes.push(
@@ -350,11 +354,19 @@ export function ReadingArticleViewer({
 
             {/* 融合 Popover 卡片：使用标准 group 与 w-80 规范面板 */}
             <span
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-80 p-3.5 bg-slate-900/98 rounded-xl shadow-2xl border border-cyan-500/50 shadow-cyan-950/20 backdrop-blur-md opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50 text-xs font-normal text-left flex flex-col gap-2.5 select-none"
+              className={cn(
+                "absolute left-1/2 -translate-x-1/2 w-80 p-3.5 bg-slate-900/98 rounded-xl shadow-2xl border border-cyan-500/50 shadow-cyan-950/20 backdrop-blur-md opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50 text-xs font-normal text-left flex flex-col gap-2.5 select-none",
+                isTopBlock ? "top-full mt-3" : "bottom-full mb-3"
+              )}
             >
               {/* 指向标注词的定位小三角 */}
               <span
-                className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-0 h-0 border-x-6 border-x-transparent border-t-6 border-t-cyan-500/50"
+                className={cn(
+                  "absolute left-1/2 -translate-x-1/2 w-0 h-0 border-x-6 border-x-transparent",
+                  isTopBlock
+                    ? "bottom-full -mb-px border-b-6 border-b-cyan-500/50"
+                    : "top-full -mt-px border-t-6 border-t-cyan-500/50"
+                )}
               />
 
               {/* 1. 读书笔记区块 */}
@@ -428,18 +440,6 @@ export function ReadingArticleViewer({
   }
 
 
-
-  // 从 HTML 字符串中提取纯文本（用于将 html_or_markdown 内容交给 React 路径渲染，避免 innerHTML+Tailwind group-hover 失效）
-  const extractTextFromHTML = (html: string): string => {
-    try {
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(html, "text/html")
-      return doc.body.textContent || ""
-    } catch {
-      return html
-    }
-  }
-
   const renderBlock = (block: ContentBlockDO, index: number) => {
     const type = block.block_type.toLowerCase()
     const content = block.html_or_markdown || block.text
@@ -448,10 +448,8 @@ export function ReadingArticleViewer({
       (targetAnchor.includes(block.block_id) ||
         targetAnchor.includes(block.text.substring(0, 10)))
 
-    // 获取用于标注匹配的纯文本：优先从 html_or_markdown 提取，降级使用 block.text
-    const plainText = block.html_or_markdown
-      ? extractTextFromHTML(block.html_or_markdown)
-      : block.text
+    // 获取用于标注匹配的纯文本：直接使用 block.text（后端规范化的 canonical 纯文本，无需解析 HTML）
+    const plainText = block.text || ""
 
     // 标题节点 (Heading)
     if (type.includes("heading") || type.includes("title") || type.includes("header")) {
@@ -464,8 +462,8 @@ export function ReadingArticleViewer({
             isTargeted && "ring-2 ring-cyan-400 bg-cyan-950/40"
           )}
         >
-          <span className="text-cyan-400 font-mono">#{block.sequence_index + 1}</span>
-          <span>{renderAnnotatedText(plainText, activeAnnotations, block.block_id)}</span>
+          <span className="text-cyan-400 font-mono select-none">#{block.sequence_index + 1}</span>
+          <span>{renderAnnotatedText(plainText, activeAnnotations, block.block_id, index)}</span>
         </h2>
       )
     }
@@ -520,9 +518,9 @@ export function ReadingArticleViewer({
           <div className="flex items-start gap-3">
             <Lightbulb size={18} className="text-amber-400 shrink-0 mt-0.5" />
             <div className="min-w-0 flex-1">
-              <h4 className="text-xs font-bold text-slate-200 mb-1">重点标注</h4>
+              <h4 className="text-xs font-bold text-slate-200 mb-1 select-none">重点标注</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                {renderAnnotatedText(plainText, activeAnnotations, block.block_id)}
+                {renderAnnotatedText(plainText, activeAnnotations, block.block_id, index)}
               </p>
             </div>
           </div>
@@ -540,7 +538,7 @@ export function ReadingArticleViewer({
           isTargeted && "ring-2 ring-cyan-400 bg-cyan-950/40"
         )}
       >
-        {renderAnnotatedText(plainText, activeAnnotations, block.block_id)}
+        {renderAnnotatedText(plainText, activeAnnotations, block.block_id, index)}
       </p>
     )
   }

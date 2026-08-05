@@ -40,6 +40,7 @@ interface FloatingMenuState {
     middleBlockIds?: string[]; // 中间 Block ids（跨 3+ Block 时使用）
     startOffset: number; 
     endOffset: number; 
+    placement?: 'top' | 'bottom';
   } | null;
   isWritingNote: boolean;
   setMenu: (menu: { 
@@ -51,6 +52,7 @@ interface FloatingMenuState {
     middleBlockIds?: string[];
     startOffset: number; 
     endOffset: number; 
+    placement?: 'top' | 'bottom';
   } | null) => void;
   setIsWritingNote: (isWritingNote: boolean) => void;
 }

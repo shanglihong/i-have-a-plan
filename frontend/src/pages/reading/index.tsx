@@ -319,13 +319,27 @@ export default function ReadingWorkspacePage() {
     const rect = range.getBoundingClientRect()
 
     const rawX = rect.left - containerRect.left + rect.width / 2 + container.scrollLeft
-    const rawY = rect.top - containerRect.top - 10 + container.scrollTop
-    const clampedX = Math.max(150, Math.min(rawX, containerRect.width - 150))
+    
+    // 智能上下方向决策 (Smart Placement)：写笔记面板高约 220px，若上方空间不足 230px 且下方空间充足，向下展开
+    const spaceAbove = rect.top - containerRect.top
+    const spaceBelow = containerRect.bottom - rect.bottom
+    const placement: "top" | "bottom" = spaceAbove < 230 && spaceBelow >= 120 ? "bottom" : "top"
+
+    const rawY = placement === "bottom"
+      ? rect.bottom - containerRect.top + 10 + container.scrollTop
+      : rect.top - containerRect.top - 10 + container.scrollTop
+
+    // 靠边水平边界 clamp (写笔记卡片半宽 160px + 16px 安全边距 = 176px)
+    const halfWidth = 176
+    const clampedX = containerRect.width < halfWidth * 2 
+      ? containerRect.width / 2 
+      : Math.max(halfWidth, Math.min(rawX, containerRect.width - halfWidth))
     const clampedY = Math.max(10, rawY)
 
     setFloatingMenu({
       x: clampedX,
       y: clampedY,
+      placement,
       text: noteText,
       blockId,
       endBlockId,

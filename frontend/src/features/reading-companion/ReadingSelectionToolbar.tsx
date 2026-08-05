@@ -38,18 +38,21 @@ export function ReadingSelectionToolbar({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [setFloatingMenu])
 
+  const placement = menu?.placement || "top"
+
   return (
     <AnimatePresence>
       {menu && (
         <motion.div
-          initial={{ opacity: 0, y: 6, scale: 0.94 }}
+          initial={{ opacity: 0, y: placement === "bottom" ? -6 : 6, scale: 0.94 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.12 }}
           onMouseDown={(e) => e.stopPropagation()}
           onMouseUp={(e) => e.stopPropagation()}
           className={cn(
-            "absolute z-50 -translate-x-1/2 -translate-y-full backdrop-blur-xl transition-all duration-200",
+            "absolute z-50 -translate-x-1/2 backdrop-blur-xl transition-all duration-200",
+            placement === "bottom" ? "translate-y-0" : "-translate-y-full",
             isWritingNote 
               ? "p-4 w-80 bg-slate-900/98 border border-slate-800/90 focus-within:border-cyan-500/60 focus-within:ring-2 focus-within:ring-cyan-500/10 shadow-2xl shadow-cyan-950/20 rounded-xl" 
               : "px-2 py-1.5 flex items-center gap-1 bg-[#121A29] border border-slate-700/90 rounded-2xl shadow-2xl"
