@@ -18,7 +18,7 @@ export function useFeaturedNotesQuery() {
     queryKey: NOTE_QUERY_KEYS.featured(),
     queryFn: async () => {
       const res = await api.get("/notes/featured");
-      return res.data;
+      return res.data?.data || res.data;
     },
   });
 }
@@ -35,7 +35,7 @@ export function useMaterialNotesQuery(params: {
       const res = await api.get("/notes/material", {
         params,
       });
-      return res.data;
+      return res.data?.data || res.data;
     },
   });
 }
@@ -46,7 +46,7 @@ export function useCreateMaterialNoteMutation() {
   return useMutation({
     mutationFn: async (payload: CreateMaterialNotePayload) => {
       const res = await api.post("/notes/material", payload);
-      return res.data;
+      return res.data?.data || res.data;
     },
     onSuccess: (_, payload) => {
       queryClient.invalidateQueries({ queryKey: NOTE_QUERY_KEYS.material(payload.project_id) });

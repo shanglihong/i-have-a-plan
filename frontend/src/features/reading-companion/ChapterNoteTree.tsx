@@ -11,6 +11,7 @@ export interface ChapterGroup {
   label: string
   level: number
   notes: NoteCardData[]
+  targetChapterId?: string
 }
 
 interface ChapterNoteTreeProps {
@@ -47,12 +48,21 @@ export function ChapterNoteTree({
 
   useEffect(() => {
     if (activeChapterId) {
-      setExpandedChapters((prev) => ({
-        ...prev,
-        [activeChapterId]: true,
-      }))
+      const nextExpanded: Record<string, boolean> = {}
+      chapters.forEach((ch) => {
+        const isMatch =
+          activeChapterId === ch.id ||
+          activeChapterId === ch.targetChapterId ||
+          (Boolean(ch.targetChapterId) && activeChapterId.includes(ch.targetChapterId!)) ||
+          (Boolean(ch.id) && activeChapterId.includes(ch.id))
+        
+        if (isMatch) {
+          nextExpanded[ch.id] = true
+        }
+      })
+      setExpandedChapters(nextExpanded)
     }
-  }, [activeChapterId])
+  }, [activeChapterId, chapters])
 
   const { data: notesData, isLoading } = useMaterialNotesQuery({
     project_id: projectId,
@@ -97,6 +107,7 @@ export function ChapterNoteTree({
         label: ch.label,
         level: ch.level,
         notes: matchedNotes,
+        targetChapterId: ch.targetChapterId,
       }
     })
   }, [chapters, filteredNotes])
@@ -114,10 +125,10 @@ export function ChapterNoteTree({
   }, [chapters, filteredNotes])
 
   const toggleChapter = (chapterId: string) => {
-    setExpandedChapters((prev) => ({
-      ...prev,
-      [chapterId]: !prev[chapterId],
-    }))
+    setExpandedChapters((prev) => {
+      const isExpanded = !!prev[chapterId]
+      return isExpanded ? {} : { [chapterId]: true }
+    })
   }
 
   const expandAll = () => {
@@ -197,7 +208,12 @@ export function ChapterNoteTree({
       {/* Chapter Nodes Tree Stream */}
       {chapterGroups.map((group) => {
         const isExpanded = !!expandedChapters[group.id]
-        const isActive = activeChapterId === group.id
+        const isActive =
+          !!activeChapterId &&
+          (activeChapterId === group.id ||
+            activeChapterId === group.targetChapterId ||
+            (Boolean(group.targetChapterId) && activeChapterId.includes(group.targetChapterId!)) ||
+            (Boolean(group.id) && activeChapterId.includes(group.id)))
         const hasNotes = group.notes.length > 0
 
         return (

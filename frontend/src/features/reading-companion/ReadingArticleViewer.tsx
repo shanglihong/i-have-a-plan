@@ -8,9 +8,11 @@ import {
   type TextAnnotation,
   useAllChapterBlocksQuery,
 } from "../../entities"
+import { useMaterialNotesQuery } from "../../entities/note"
 import { cn } from "../../shared/utils/cn"
 
 interface ReadingArticleViewerProps {
+  projectId: string
   readerRef: RefObject<HTMLDivElement | null>
   bookId?: string
   chapterId?: string
@@ -27,6 +29,7 @@ interface ReadingArticleViewerProps {
 }
 
 export function ReadingArticleViewer({
+  projectId,
   readerRef,
   bookId,
   chapterId,
@@ -43,6 +46,12 @@ export function ReadingArticleViewer({
 }: ReadingArticleViewerProps) {
   const { data: contentData, isLoading } = useAllChapterBlocksQuery(bookId, chapterId)
   const blocks = contentData?.blocks || []
+
+  // 获取真实的素材读书笔记数据
+  const { data: notesData } = useMaterialNotesQuery({
+    project_id: projectId,
+    limit: 100,
+  })
 
   // 1. 自动根据 chapter_id 查询已有的 AI 标注数据（通过 useChapterAnnotationQuery API）
   const { data: cachedAnnotationData } = useChapterAnnotationQuery(bookId, chapterId)
@@ -85,10 +94,6 @@ export function ReadingArticleViewer({
     setUserOverrideAnnotations([])
   }
 
-  // MOCK 示例文本（必须是章节内容中真实存在的字符串，否则 indexOf 永远返回 -1）
-  const MOCK_NOTE_TEXT = "在我们这片远东大陆上，可能在很古的时候住过些还不知道种地的原始人，那些人的生活怎样，对于我们至多只有一些好奇的兴趣罢了。以现在的情形来说，这片大陆上最大多数的人是拖泥带水下田讨生活的了。我们不妨缩小一些范围来看，三条大河的流域已经全是农业区"
-  const MOCK_NOTE_EXPLANATION =
-    "这句话精辟概括了农业社会人口的空间稳定性——土地束缚使定居成为规律，迁移反而是罕见的例外。"
 
   interface RawMatch {
     start: number
@@ -162,22 +167,33 @@ export function ReadingArticleViewer({
 
     const rawMatches: RawMatch[] = []
 
-    // 1. 收集读书笔记
-    if (text.includes(MOCK_NOTE_TEXT)) {
-      let searchIdx = 0
-      while (searchIdx < text.length) {
-        const idx = text.indexOf(MOCK_NOTE_TEXT, searchIdx)
-        if (idx === -1) break
-        rawMatches.push({
-          start: idx,
-          end: idx + MOCK_NOTE_TEXT.length,
-          text: MOCK_NOTE_TEXT,
-          category: "user-note",
-          explanation: MOCK_NOTE_EXPLANATION,
-        })
-        searchIdx = idx + MOCK_NOTE_TEXT.length
+    // 1. 收集真实的素材读书笔记
+    const items = notesData?.items || []
+    items.forEach((item) => {
+      const quote = item.raw_quote || ""
+      if (quote && text.includes(quote)) {
+        let searchIdx = 0
+        while (searchIdx < text.length) {
+          const idx = text.indexOf(quote, searchIdx)
+          if (idx === -1) break
+
+          const isDuplicate = rawMatches.some(
+            (m) => m.category === "user-note" && m.start === idx && m.end === idx + quote.length
+          )
+
+          if (!isDuplicate) {
+            rawMatches.push({
+              start: idx,
+              end: idx + quote.length,
+              text: quote,
+              category: "user-note",
+              explanation: item.user_interpretation,
+            })
+          }
+          searchIdx = idx + quote.length
+        }
       }
-    }
+    })
 
     // 2. 收集 AI 标注
     if (annotations && annotations.length > 0) {

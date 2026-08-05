@@ -397,6 +397,7 @@ export default function ReadingWorkspacePage() {
 
         {/* Reader Scroll Container & Article Content */}
         <ReadingArticleViewer
+          projectId={id || ""}
           readerRef={readerRef}
           bookId={bookId || undefined}
           chapterId={activeChapter}
