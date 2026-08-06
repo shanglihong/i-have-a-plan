@@ -108,7 +108,11 @@ export default function ReadingWorkspacePage() {
   const [activeChapter, setActiveChapter] = useState("")
   const [rightTab, setRightTab] = useState<"copilot" | "notes">("copilot")
 
-  const { data: projectDetail } = useProjectDetailQuery(id || "")
+  const effectiveProjectId = useMemo(() => {
+    return searchParams.get("project_id") || searchParams.get("id") || id || ""
+  }, [searchParams, id])
+
+  const { data: projectDetail } = useProjectDetailQuery(effectiveProjectId)
   const effectiveBookId = useMemo(() => {
     return searchParams.get("book_id") || projectDetail?.book_id || projectDetail?.book?.id || ""
   }, [searchParams, projectDetail])
@@ -199,7 +203,10 @@ export default function ReadingWorkspacePage() {
   }, [chapterMap, activeChapter])
 
   // React Query 缓存与 ReadingArticleViewer 共用同一请求，不产生额外网络开销
-  const { data: chapterContentData } = useAllChapterBlocksQuery(effectiveBookId || undefined, realChapterId)
+  const { data: chapterContentData, isLoading: isBlocksLoading } = useAllChapterBlocksQuery(
+    effectiveBookId || undefined,
+    realChapterId
+  )
   const estimatedMinutes = useMemo(() => {
     const blocks = chapterContentData?.blocks || []
     const totalChars = blocks.reduce((sum, b) => sum + (b.text?.length || 0), 0)
@@ -250,91 +257,121 @@ export default function ReadingWorkspacePage() {
     }
   }, [chapters, chapterMap, activeChapter])
 
-  // 点击笔记锚点平滑定位与发光高亮
-  useEffect(() => {
-    if (!targetAnchor || !readerRef.current) return
+  // 点击章节节点触发防重复查询与锚点定位逻辑
+  const handleSelectChapter = useCallback(
+    (rootChapId: string, item: ChapterItem) => {
+      // 清除文本划选选区与浮动操作菜单
+      window.getSelection()?.removeAllRanges()
+      setFloatingMenu(null)
 
-    // 清理和标准化搜索文本
+      const targetChapId = item.targetChapterId || item.id || rootChapId
+
+      // 防重复查询过滤：仅当目标章节 ID 与当前激活的 activeChapter / realChapterId 不一致时，才触发整章内容切换
+      if (targetChapId && targetChapId !== activeChapter && targetChapId !== realChapterId) {
+        setActiveChapter(targetChapId)
+      } else if (rootChapId && rootChapId !== activeChapter && rootChapId !== realChapterId) {
+        setActiveChapter(rootChapId)
+      }
+
+      // 设置锚点目标定位标签
+      if (item.label) {
+        setTargetAnchor(item.label)
+      }
+    },
+    [activeChapter, realChapterId]
+  )
+
+  // 点击笔记/大纲锚点平滑定位与发光高亮（在 Block 数据异步查询加载完毕后触发）
+  useEffect(() => {
+    if (!targetAnchor || !readerRef.current || isBlocksLoading) return
+
     const rawTarget = targetAnchor.split(" · ").pop() || targetAnchor
     const cleanTarget = rawTarget.trim()
     if (!cleanTarget) return
 
-    const allElements = Array.from(
-      readerRef.current.querySelectorAll("h1, h2, h3, h4, h5, h6, p, blockquote, pre")
-    ) as HTMLElement[]
+    // 延迟一个 Tick 确保 React 结合新 blocks 渲染并完成 DOM 挂载
+    const timer = setTimeout(() => {
+      if (!readerRef.current || !targetAnchor) return
 
-    // 1. 过滤所有包含目标引文或精准匹配 block_id 的候选节点（排除整个 readerRef 根节点）
-    const candidates = allElements.filter((el) => {
-      if (el === readerRef.current) return false
+      const allElements = Array.from(
+        readerRef.current.querySelectorAll("h1, h2, h3, h4, h5, h6, p, blockquote, pre")
+      ) as HTMLElement[]
 
-      // 优先支持按精准 block_id 匹配
-      const elId = el.getAttribute("id")
-      if (elId && elId === cleanTarget) return true
+      // 1. 过滤所有包含目标引文或精准匹配 block_id 的候选节点（排除整个 readerRef 根节点）
+      const candidates = allElements.filter((el) => {
+        if (el === readerRef.current) return false
 
-      const text = el.textContent || ""
-      if (text.includes(cleanTarget)) return true
+        // 优先支持按精准 block_id 匹配
+        const elId = el.getAttribute("id")
+        if (elId && elId === cleanTarget) return true
 
-      // 去除标点与多余空白后的模糊特征匹配
-      const simplifiedTarget = cleanTarget.replace(/[\s\p{P}]/gu, "")
-      if (simplifiedTarget.length >= 2) {
-        const simplifiedText = text.replace(/[\s\p{P}]/gu, "")
-        return simplifiedText.includes(simplifiedTarget.slice(0, 15))
-      }
-      return false
-    })
+        const text = el.textContent || ""
+        if (text.includes(cleanTarget)) return true
 
-    // 2. 核心数学筛选算法：找到无任何“子候选节点”的最小/最深末端承载节点（消除父级容器多余高亮）
-    let targetEl = candidates.find(
-      (candidate) => !candidates.some((other) => other !== candidate && candidate.contains(other))
-    )
-
-    // 如果未找到最精细子节点，退化使用第 1 个候选节点
-    if (!targetEl && candidates.length > 0) {
-      targetEl = candidates[0]
-    }
-
-    if (prevTargetElRef.current) {
-      prevTargetElRef.current.classList.remove(
-        "ring-2",
-        "ring-cyan-400/80",
-        "bg-cyan-950/40",
-        "scale-[1.01]",
-        "rounded-md"
-      )
-      prevTargetElRef.current = null
-    }
-
-    if (targetEl) {
-      prevTargetElRef.current = targetEl
-      targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
-      targetEl.classList.add(
-        "ring-2",
-        "ring-cyan-400/80",
-        "bg-cyan-950/40",
-        "scale-[1.01]",
-        "transition-all",
-        "duration-500",
-        "rounded-md"
-      )
-      setTimeout(() => {
-        if (targetEl) {
-          targetEl.classList.remove(
-            "ring-2",
-            "ring-cyan-400/80",
-            "bg-cyan-950/40",
-            "scale-[1.01]",
-            "rounded-md"
-          )
+        // 去除标点与多余空白后的模糊特征匹配
+        const simplifiedTarget = cleanTarget.replace(/[\s\p{P}]/gu, "")
+        if (simplifiedTarget.length >= 2) {
+          const simplifiedText = text.replace(/[\s\p{P}]/gu, "")
+          return simplifiedText.includes(simplifiedTarget.slice(0, 15))
         }
-      }, 2000)
-    }
+        return false
+      })
+
+      // 2. 核心数学筛选算法：找到无任何“子候选节点”的最小/最深末端承载节点
+      let targetEl = candidates.find(
+        (candidate) => !candidates.some((other) => other !== candidate && candidate.contains(other))
+      )
+
+      if (!targetEl && candidates.length > 0) {
+        targetEl = candidates[0]
+      }
+
+      if (prevTargetElRef.current) {
+        prevTargetElRef.current.classList.remove(
+          "ring-2",
+          "ring-cyan-400/80",
+          "bg-cyan-950/40",
+          "scale-[1.01]",
+          "rounded-md"
+        )
+        prevTargetElRef.current = null
+      }
+
+      if (targetEl) {
+        prevTargetElRef.current = targetEl
+        targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
+        targetEl.classList.add(
+          "ring-2",
+          "ring-cyan-400/80",
+          "bg-cyan-950/40",
+          "scale-[1.01]",
+          "transition-all",
+          "duration-500",
+          "rounded-md"
+        )
+        setTimeout(() => {
+          if (targetEl) {
+            targetEl.classList.remove(
+              "ring-2",
+              "ring-cyan-400/80",
+              "bg-cyan-950/40",
+              "scale-[1.01]",
+              "rounded-md"
+            )
+          }
+        }, 2000)
+      }
+    }, 60)
 
     const autoClearTimer = setTimeout(() => {
       setTargetAnchor(null)
-    }, 2000)
+    }, 2500)
 
-    return () => clearTimeout(autoClearTimer)
-  }, [targetAnchor, chapterContentData, setTargetAnchor])
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(autoClearTimer)
+    }
+  }, [targetAnchor, chapterContentData, isBlocksLoading])
 
   // 划词定位菜单计算
   const handleTextSelect = useCallback(() => {
@@ -487,7 +524,7 @@ export default function ReadingWorkspacePage() {
     const endOffset = offsets?.chapter_endOffset ?? currentMenu?.chapter_endOffset ?? selectedOffsets.end
 
     createMaterialNoteMutation.mutate({
-      project_id: id || "",
+      project_id: effectiveProjectId,
       task_id: currentTaskId,
       source_type: "BOOK_BLOCK",
       raw_quote: text,
@@ -637,21 +674,7 @@ export default function ReadingWorkspacePage() {
         chapters={chapters}
         isLoading={isTocLoading}
         activeChapter={activeChapter}
-        onSelectChapter={(rootChapId, item) => {
-          // 清除文本划选选区与浮动操作菜单
-          window.getSelection()?.removeAllRanges()
-          setFloatingMenu(null)
-
-          // 仅当归属的顶层章节变更时，才触发整章内容切换
-          if (rootChapId && rootChapId !== activeChapter) {
-            setActiveChapter(rootChapId)
-          }
-
-          // 无论是顶层章节还是子章节，只要有标题，统一触发页面标题/Block 锚点定位与选中框
-          if (item.label) {
-            setTargetAnchor(item.label)
-          }
-        }}
+        onSelectChapter={handleSelectChapter}
         scrollProgress={scrollProgress}
         projectProgress={projectProgress}
       />
@@ -672,7 +695,7 @@ export default function ReadingWorkspacePage() {
 
         {/* Reader Scroll Container & Article Content */}
         <ReadingArticleViewer
-          projectId={id || ""}
+          projectId={effectiveProjectId}
           readerRef={readerRef}
           bookId={effectiveBookId || undefined}
           chapterId={realChapterId}
@@ -727,7 +750,7 @@ export default function ReadingWorkspacePage() {
           setExtractedToast(`已将【${taskTitle}】成功注入计划项目执行任务树`)
           setTimeout(() => setExtractedToast(null), 3000)
         }}
-        projectId={id || ""}
+        projectId={effectiveProjectId}
         noteSearch={noteSearch}
         setNoteSearch={setNoteSearch}
         onTraceNote={traceNote}

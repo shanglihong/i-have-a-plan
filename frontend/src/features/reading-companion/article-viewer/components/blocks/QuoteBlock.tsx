@@ -16,6 +16,7 @@ interface QuoteBlockProps {
   quoteItems?: QuoteBlockItem[]
   block?: ContentBlockDO
   index?: number
+  isTargeted?: boolean
   bookId?: string
   targetAnchor?: string | null
   activeAnnotations: TextAnnotation[]
@@ -30,6 +31,7 @@ export function QuoteBlock({
   quoteItems,
   block,
   index = 0,
+  isTargeted: isTargetedProp,
   bookId,
   targetAnchor,
   activeAnnotations,
@@ -52,15 +54,17 @@ export function QuoteBlock({
   const firstIndex = items[0].index
 
   const cleanTarget = targetAnchor ? (targetAnchor.split(" · ").pop() || targetAnchor).trim() : ""
-  const isTargeted = items.some(({ block: itemBlock }) => {
-    const text = itemBlock.text || ""
-    return (
-      Boolean(cleanTarget) &&
-      (itemBlock.block_id === cleanTarget ||
-        (Boolean(text) && text.includes(cleanTarget)) ||
-        (cleanTarget.length >= 4 && Boolean(text) && text.includes(cleanTarget.slice(0, 15))))
-    )
-  })
+  const isTargeted =
+    isTargetedProp ??
+    items.some(({ block: itemBlock }) => {
+      const text = itemBlock.text || ""
+      return (
+        Boolean(cleanTarget) &&
+        (itemBlock.block_id === cleanTarget ||
+          (Boolean(text) && text.includes(cleanTarget)) ||
+          (cleanTarget.length >= 4 && Boolean(text) && text.includes(cleanTarget.slice(0, 15))))
+      )
+    })
 
   return (
     <blockquote

@@ -31,15 +31,23 @@ class HeadingParagraphHandler(IElementHandler):
         toc_titles = context.get('toc_titles', set()) if context else set()
         toc_anchors = context.get('toc_anchors', set()) if context else set()
 
-        is_heading, _ = self._is_heading_element(el, plain_text, toc_titles, toc_anchors)
+        is_heading, level = self._is_heading_element(el, plain_text, toc_titles, toc_anchors)
         b_type = BlockType.HEADING if is_heading else BlockType.PARAGRAPH
+
+        if is_heading:
+            # 用 Markdown '#' 数量 (1~6) 表示标题层级大小（h1 -> #, h2 -> ##, ..., h6 -> ######）
+            heading_level = max(1, min(6, level))
+            md_prefix = "#" * heading_level
+            html_or_markdown = f"{md_prefix} {text}"
+        else:
+            html_or_markdown = str(el)
 
         block = ContentBlock(
             block_id=b_id,
             block_type=b_type,
             sequence_index=seq,
             text=text,
-            html_or_markdown=str(el)
+            html_or_markdown=html_or_markdown
         )
         return block, b_id, el_id
 

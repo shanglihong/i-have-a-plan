@@ -89,6 +89,7 @@ export function ArticleBlockRenderer({
         block={block}
         index={index}
         isTargeted={isTargeted}
+        targetAnchor={targetAnchor}
         activeAnnotations={activeAnnotations}
         blocks={blocks}
         chapterId={chapterId}

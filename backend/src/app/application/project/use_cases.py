@@ -358,16 +358,30 @@ class MountBookTaskTreeUseCase:
     def _build_task_chains_from_toc_tree(
         project_id: str, book_id: str, toc_tree: List[TocNode]
     ) -> List[TaskChain]:
-        """根据 Book 目录大纲树构建 READING_CHAPTER 领域任务链列表"""
-        chains: List[TaskChain] = []
+        """根据 Book 目录大纲树构建 READING_CHAPTER 领域任务链列表，展开解析 children 并对 target_chapter_id 去重（保留首次遇到的节点）"""
+        flattened_nodes: List[TocNode] = []
 
-        for idx, node in enumerate(toc_tree, start=1):
-            chain_id = f"chain_{node.id or idx}"
+        def _flatten(nodes: List[TocNode]):
+            for node in nodes:
+                flattened_nodes.append(node)
+                if node.children:
+                    _flatten(node.children)
+
+        _flatten(toc_tree)
+
+        chains: List[TaskChain] = []
+        seen_chapter_ids = set()
+
+        for idx, node in enumerate(flattened_nodes, start=1):
             chapter_id = node.target_chapter_id or f"chap_{idx:02d}"
-            title = node.title or f"第 {idx} 章"
+            if chapter_id in seen_chapter_ids:
+                continue
+            seen_chapter_ids.add(chapter_id)
+
+            seq_order = len(chains) + 1
+            title = node.title or f"第 {seq_order} 章"
 
             read_task = Task(
-                id=f"task_{chapter_id}_read",
                 title=f"精读 {title}",
                 description="完成对应章节正文切片阅读",
                 sequence_order=1,
@@ -375,11 +389,10 @@ class MountBookTaskTreeUseCase:
             )
 
             chain = TaskChain(
-                id=chain_id,
                 project_id=project_id,
                 title=title,
                 chain_type=TaskChainType.READING_CHAPTER,
-                sequence_order=idx,
+                sequence_order=seq_order,
                 status=TaskStatus.PENDING,
                 book_id=book_id,
                 chapter_id=chapter_id,
@@ -388,4 +401,5 @@ class MountBookTaskTreeUseCase:
             chains.append(chain)
 
         return chains
+
 
