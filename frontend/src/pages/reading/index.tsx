@@ -19,7 +19,11 @@ import {
   type ChapterItem,
 } from "../../features"
 import { useBookTocQuery, useAllChapterBlocksQuery, type TocNodeDO } from "../../entities/book"
-import { useCreateMaterialNoteMutation } from "../../entities/note"
+import {
+  useCreateMaterialNoteMutation,
+  useUpdateMaterialNoteMutation,
+  useDeleteMaterialNoteMutation,
+} from "../../entities/note"
 import { useProjectDetailQuery } from "../../entities/project"
 import {
   MOCK_READING_INITIAL_MESSAGES,
@@ -223,6 +227,8 @@ export default function ReadingWorkspacePage() {
   }
 
   const createMaterialNoteMutation = useCreateMaterialNoteMutation()
+  const updateMaterialNoteMutation = useUpdateMaterialNoteMutation()
+  const deleteMaterialNoteMutation = useDeleteMaterialNoteMutation()
 
   const currentTaskId = useMemo(() => {
     const chains = projectDetail?.task_chains || []
@@ -725,9 +731,24 @@ export default function ReadingWorkspacePage() {
         noteSearch={noteSearch}
         setNoteSearch={setNoteSearch}
         onTraceNote={traceNote}
+        onUpdateNote={(noteId, newContent) => {
+          updateMaterialNoteMutation.mutate(
+            { noteId, user_interpretation: newContent },
+            {
+              onSuccess: () => {
+                setExtractedToast("笔记修改已成功保存")
+                setTimeout(() => setExtractedToast(null), 2000)
+              },
+            }
+          )
+        }}
         onDeleteNote={(noteId) => {
-          setExtractedToast("笔记已成功删除")
-          setTimeout(() => setExtractedToast(null), 2500)
+          deleteMaterialNoteMutation.mutate(noteId, {
+            onSuccess: () => {
+              setExtractedToast("笔记已成功删除")
+              setTimeout(() => setExtractedToast(null), 2500)
+            },
+          })
         }}
         onExtractSkill={handleExtractSkill}
       />

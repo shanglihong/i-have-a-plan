@@ -89,6 +89,8 @@ from app.application.project.task_use_cases import (
 from app.application.note import (
     CreateMaterialNoteUseCase,
     GetMaterialNotesUseCase,
+    UpdateMaterialNoteUseCase,
+    DeleteMaterialNoteUseCase,
     CreateSynthesizedNoteUseCase,
     GetSynthesizedNoteUseCase,
     UpdateSynthesizedNoteUseCase,
@@ -316,6 +318,8 @@ class AppContainer:
                 self.task_query_service
             ),
             "get_material_use_case": GetMaterialNotesUseCase(self.note_query_service),
+            "update_material_use_case": UpdateMaterialNoteUseCase(self.note_state_service),
+            "delete_material_use_case": DeleteMaterialNoteUseCase(self.note_state_service),
             "create_synthesized_use_case": CreateSynthesizedNoteUseCase(
                 self.note_state_service,
                 self.note_query_service,

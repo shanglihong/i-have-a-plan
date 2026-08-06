@@ -12,4 +12,5 @@ export * from "./FileDropzone";
 export * from "./Toast";
 export * from "./Select";
 export * from "./UserAvatar";
+export * from "./ImageLightboxModal";
 

@@ -30,6 +30,13 @@ class MaterialNoteDeletedEvent(DomainEvent):
 
 
 @dataclass
+class MaterialNoteUpdatedEvent(DomainEvent):
+    """素材笔记更新事件"""
+    note_id: str = ""
+    project_id: str = ""
+
+
+@dataclass
 class SynthesizedNoteDeletedEvent(DomainEvent):
     """沉淀/经验笔记删除事件"""
     note_id: str = ""

@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { Image as ImageIcon, ImageOff } from "lucide-react"
+import { Image as ImageIcon, ImageOff, ZoomIn } from "lucide-react"
 import { ContentBlockDO } from "../../../../../entities"
+import { ImageLightboxModal } from "../../../../../shared/ui"
 import { cn } from "../../../../../shared/utils/cn"
 
 interface ImageBlockProps {
@@ -43,52 +44,77 @@ function getImageUrl(src: string, bookId?: string): string {
 export function ImageBlock({ block, index, bookId }: ImageBlockProps) {
   const [hasError, setHasError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isZoomed, setIsZoomed] = useState(false)
 
   const { src: rawSrc, alt } = extractImageSrcAndAlt(block.html_or_markdown || "", block.text || "")
   const finalSrc = getImageUrl(rawSrc, bookId)
 
   return (
-    <div
-      key={block.block_id || index}
-      id={block.block_id}
-      data-block-id={block.block_id}
-      data-block-index={index}
-      className="my-6 p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col items-center justify-center relative overflow-hidden shadow-lg group font-sans"
-    >
-      {finalSrc && !hasError ? (
-        <div className="relative flex flex-col items-center justify-center max-w-full">
-          {isLoading && (
-            <div className="w-64 h-48 rounded-xl bg-slate-800/60 animate-pulse flex flex-col items-center justify-center gap-2 text-slate-400 font-sans">
-              <ImageIcon size={28} className="animate-bounce text-cyan-400/70" />
-              <span className="text-xs font-mono">载入图片资源中...</span>
-            </div>
-          )}
-          <img
-            src={finalSrc}
-            alt={alt}
-            onLoad={() => setIsLoading(false)}
-            onError={() => {
-              setIsLoading(false)
-              setHasError(true)
-            }}
-            className={cn(
-              "max-w-full h-auto rounded-xl shadow-md transition-all duration-300 group-hover:scale-[1.01]",
-              isLoading ? "hidden" : "block"
+    <>
+      <div
+        key={block.block_id || index}
+        id={block.block_id}
+        data-block-id={block.block_id}
+        data-block-index={index}
+        className="my-6 p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col items-center justify-center relative overflow-hidden shadow-lg group font-sans"
+      >
+        {finalSrc && !hasError ? (
+          <div className="relative flex flex-col items-center justify-center max-w-full group">
+            {isLoading && (
+              <div className="w-64 h-48 rounded-xl bg-slate-800/60 animate-pulse flex flex-col items-center justify-center gap-2 text-slate-400 font-sans">
+                <ImageIcon size={28} className="animate-bounce text-cyan-400/70" />
+                <span className="text-xs font-mono">载入图片资源中...</span>
+              </div>
             )}
-          />
-          {alt && !isLoading && (
-            <span className="mt-2.5 text-xs font-sans text-slate-400 italic text-center block">
-              {alt}
-            </span>
-          )}
-        </div>
-      ) : (
-        <div className="py-8 px-6 flex flex-col items-center justify-center gap-2 text-slate-500 bg-slate-950/40 rounded-xl border border-dashed border-slate-800/80 w-full font-sans">
-          <ImageOff size={24} className="text-slate-600" />
-          <span className="text-xs font-mono text-slate-400">{alt || "未找到图片资源"}</span>
-          {rawSrc && <span className="text-[10px] font-mono text-slate-600">{rawSrc}</span>}
-        </div>
-      )}
-    </div>
+
+            <div
+              className="relative overflow-hidden rounded-xl cursor-zoom-in group/img"
+              onClick={() => setIsZoomed(true)}
+            >
+              <img
+                src={finalSrc}
+                alt={alt}
+                onLoad={() => setIsLoading(false)}
+                onError={() => {
+                  setIsLoading(false)
+                  setHasError(true)
+                }}
+                className={cn(
+                  "max-w-full h-auto rounded-xl shadow-md transition-all duration-300 group-hover/img:scale-[1.02]",
+                  isLoading ? "hidden" : "block"
+                )}
+              />
+              {/* 悬浮放大微型提示角标 */}
+              {!isLoading && (
+                <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 text-slate-200 opacity-0 group-hover/img:opacity-100 transition-all shadow-lg flex items-center gap-1 text-[11px] font-medium pointer-events-none">
+                  <ZoomIn size={14} className="text-cyan-400" />
+                  <span>点击放大</span>
+                </div>
+              )}
+            </div>
+
+            {alt && !isLoading && (
+              <span className="mt-2.5 text-xs font-sans text-slate-400 italic text-center block">
+                {alt}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="py-8 px-6 flex flex-col items-center justify-center gap-2 text-slate-500 bg-slate-950/40 rounded-xl border border-dashed border-slate-800/80 w-full font-sans">
+            <ImageOff size={24} className="text-slate-600" />
+            <span className="text-xs font-mono text-slate-400">{alt || "未找到图片资源"}</span>
+            {rawSrc && <span className="text-[10px] font-mono text-slate-600">{rawSrc}</span>}
+          </div>
+        )}
+      </div>
+
+      {/* ── 引用通用 UI 组件: ImageLightboxModal ── */}
+      <ImageLightboxModal
+        isOpen={isZoomed}
+        src={finalSrc}
+        alt={alt}
+        onClose={() => setIsZoomed(false)}
+      />
+    </>
   )
 }

@@ -15,6 +15,8 @@
 | :--- | :--- | :--- | :--- |
 | **创建素材笔记** | `POST` | `/api/notes/material` | 支持“划词高亮”与“伴读对话转存”生成素材笔记实体并持久化 SourceAnchor |
 | **查询素材笔记列表 (支持跨项目)** | `GET` | `/api/notes/material` | 游标分页获取素材笔记列表，支持全局跨项目检索，`project_id` 为可选过滤条件 |
+| **更新素材笔记内容** | `PUT` | `/api/notes/material/{id}` | 更新已有素材笔记的用户解读 (user_interpretation) 与感悟思考内容 |
+| **删除素材笔记** | `DELETE` | `/api/notes/material/{id}` | 从数据库中彻底物理删除素材笔记卡片及其锚点元数据 |
 | **提炼创建沉淀笔记 (飞书式 Block)** | `POST` | `/api/notes/synthesize` | 创建类似飞书云文档的自由 Block 块级沉淀笔记，落盘为 Markdown 离线文件 |
 | **获取沉淀笔记详情** | `GET` | `/api/notes/synthesize/{id}` | 获取单个沉淀笔记的元数据、解析后的 Block 节点数组与物理 Markdown 内容 |
 | **更新沉淀笔记内容 (飞书式 Block)** | `PUT` | `/api/notes/synthesize/{id}` | 更新已有沉淀笔记的标题或 Block 节点结构，原子重命名重新落盘 Markdown 文件 |
@@ -266,6 +268,53 @@
   "message": "success",
   "data": {
     "id": "syn_note_8811",
+    "deleted": true
+  }
+}
+```
+
+---
+
+### 7. 更新素材笔记内容
+
+* **接口路径**：`PUT /api/notes/material/{id}`
+* **功能描述**：更新已有素材笔记卡片的用户思考与感悟内容 (`user_interpretation`)。
+
+#### 请求载荷 (`JSON`)
+```json
+{
+  "user_interpretation": "最新思考感悟内容..."
+}
+```
+
+#### 响应载荷 (`200 OK`)
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "mat_note_9918",
+    "project_id": "proj_112233",
+    "user_interpretation": "最新思考感悟内容...",
+    "updated_at": "2026-08-06T14:25:00Z"
+  }
+}
+```
+
+---
+
+### 8. 删除素材笔记
+
+* **接口路径**：`DELETE /api/notes/material/{id}`
+* **功能描述**：从数据库中物理擦除素材笔记卡片实体。
+
+#### 响应载荷 (`200 OK`)
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "mat_note_9918",
     "deleted": true
   }
 }

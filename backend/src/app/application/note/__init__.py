@@ -2,6 +2,7 @@
 
 from .dtos import (
     CreateMaterialNoteDTO,
+    UpdateMaterialNoteDTO,
     MaterialNoteVO,
     MaterialNotePageVO,
     CreateSynthesizedNoteDTO,
@@ -13,6 +14,8 @@ from .dtos import (
 from .use_cases import (
     CreateMaterialNoteUseCase,
     GetMaterialNotesUseCase,
+    UpdateMaterialNoteUseCase,
+    DeleteMaterialNoteUseCase,
     CreateSynthesizedNoteUseCase,
     GetSynthesizedNoteUseCase,
     UpdateSynthesizedNoteUseCase,
@@ -23,6 +26,7 @@ from .use_cases import (
 
 __all__ = [
     "CreateMaterialNoteDTO",
+    "UpdateMaterialNoteDTO",
     "MaterialNoteVO",
     "MaterialNotePageVO",
     "CreateSynthesizedNoteDTO",
@@ -32,6 +36,8 @@ __all__ = [
     "DeleteResponseVO",
     "CreateMaterialNoteUseCase",
     "GetMaterialNotesUseCase",
+    "UpdateMaterialNoteUseCase",
+    "DeleteMaterialNoteUseCase",
     "CreateSynthesizedNoteUseCase",
     "GetSynthesizedNoteUseCase",
     "UpdateSynthesizedNoteUseCase",

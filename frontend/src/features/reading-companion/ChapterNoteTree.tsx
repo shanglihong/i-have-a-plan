@@ -268,12 +268,12 @@ export function ChapterNoteTree({
               {/* Note Count Badge */}
               <span
                 className={cn(
-                  "text-[11px] font-mono px-2 py-0.5 rounded-full shrink-0",
+                  "text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full shrink-0 transition-colors border",
                   hasNotes
                     ? isActive
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                      : "bg-slate-800/80 text-slate-400"
-                    : "bg-slate-900/60 text-slate-600"
+                      ? "bg-cyan-500/25 text-cyan-200 border-cyan-400/60 shadow-xs"
+                      : "bg-cyan-950/80 text-cyan-300 border-cyan-800/70"
+                    : "bg-slate-900/90 text-slate-400 border-slate-800/80"
                 )}
               >
                 {group.notes.length} 条

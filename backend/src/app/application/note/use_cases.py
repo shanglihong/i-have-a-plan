@@ -24,6 +24,7 @@ from app.domain.book.services.query_service import BookChapterContentDomainServi
 from app.domain.project.services.project_query_service import ProjectQueryDomainService
 from app.application.note.dtos import (
     CreateMaterialNoteDTO,
+    UpdateMaterialNoteDTO,
     SourceAnchorDTO,
     MaterialNoteVO,
     MaterialNotePageVO,
@@ -131,6 +132,57 @@ class CreateMaterialNoteUseCase:
             anchor_summary=anchor_summary,
             source_anchor=sa_dto_vo,
         )
+
+
+class UpdateMaterialNoteUseCase:
+    """更新素材笔记 UseCase"""
+
+    def __init__(self, note_state_service: NoteStateDomainService):
+        self.note_state_service = note_state_service
+
+    async def execute(self, note_id: str, dto: UpdateMaterialNoteDTO) -> Optional[MaterialNoteVO]:
+        updated_note = await self.note_state_service.update_material_note(
+            note_id=note_id,
+            user_interpretation=dto.user_interpretation,
+            context_reflection=dto.context_reflection,
+        )
+        if not updated_note:
+            raise DomainException(f"Material note with id '{note_id}' not found.")
+
+        anchor_vo = None
+        if updated_note.source_anchor:
+            anchor_vo = SourceAnchorDTO(
+                book_id=updated_note.source_anchor.book_id,
+                chapter_id=updated_note.source_anchor.chapter_id,
+                start_offset=updated_note.source_anchor.start_offset,
+                end_offset=updated_note.source_anchor.end_offset,
+                feature_text=updated_note.source_anchor.feature_text,
+            )
+
+        return MaterialNoteVO(
+            id=updated_note.id,
+            project_id=updated_note.project_id,
+            task_id=updated_note.task_id or "",
+            source_type=updated_note.source_type.value,
+            raw_quote=updated_note.raw_quote,
+            user_interpretation=updated_note.user_interpretation,
+            context_reflection=updated_note.context_reflection,
+            tags=updated_note.tags,
+            anchor_summary=f"P.0 (Ch.{updated_note.source_anchor.chapter_id})" if updated_note.source_anchor else "补充笔记",
+            source_anchor=anchor_vo,
+            created_at=updated_note.created_at.isoformat(),
+        )
+
+
+class DeleteMaterialNoteUseCase:
+    """删除素材笔记 UseCase"""
+
+    def __init__(self, note_state_service: NoteStateDomainService):
+        self.note_state_service = note_state_service
+
+    async def execute(self, note_id: str) -> DeleteResponseVO:
+        await self.note_state_service.delete_material_note(note_id)
+        return DeleteResponseVO(id=note_id, deleted=True)
 
 
 class GetMaterialNotesUseCase:

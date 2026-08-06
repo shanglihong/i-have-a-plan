@@ -103,7 +103,16 @@ export function UnifiedNoteCard({
     debounceTimerRef.current = setTimeout(() => {
       onUpdateNote?.(note.id, val)
       setIsSaved(true)
-    }, 500)
+    }, 1500)
+  }
+
+  const handleBlur = () => {
+    if (isReadOnly || isSaved) return
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    onUpdateNote?.(note.id, content)
+    setIsSaved(true)
   }
 
   const handleCopy = () => {
@@ -249,6 +258,7 @@ export function UnifiedNoteCard({
             ref={textareaRef}
             value={content}
             onChange={handleContentChange}
+            onBlur={handleBlur}
             disabled={isReadOnly}
             placeholder={isReadOnly ? "只读模式" : "记下感悟与思考..."}
             rows={1}

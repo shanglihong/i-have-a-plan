@@ -54,3 +54,42 @@ export function useCreateMaterialNoteMutation() {
     },
   });
 }
+
+export function useUpdateMaterialNoteMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      noteId,
+      user_interpretation,
+      context_reflection,
+    }: {
+      noteId: string;
+      user_interpretation?: string;
+      context_reflection?: string;
+    }) => {
+      const res = await api.put(`/notes/material/${noteId}`, {
+        user_interpretation,
+        context_reflection,
+      });
+      return res.data?.data || res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: NOTE_QUERY_KEYS.all });
+    },
+  });
+}
+
+export function useDeleteMaterialNoteMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (noteId: string) => {
+      const res = await api.delete(`/notes/material/${noteId}`);
+      return res.data?.data || res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: NOTE_QUERY_KEYS.all });
+    },
+  });
+}

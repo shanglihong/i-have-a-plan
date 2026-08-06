@@ -218,7 +218,7 @@ export function CompanionDrawer({
           animate={{ width: currentWidth, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={isResizing ? { duration: 0 } : { duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-          className="overflow-hidden shrink-0 bg-[#090D16] border-l border-slate-800/80 z-20 shadow-2xl flex flex-col relative select-none font-sans"
+          className="overflow-hidden shrink-0 bg-[#0C111D] border-l border-slate-800/80 z-20 shadow-2xl flex flex-col relative select-none font-sans"
         >
           {/* Left Edge Resizer Drag Handle */}
           <div
@@ -237,44 +237,60 @@ export function CompanionDrawer({
 
           <div className="w-full h-full flex flex-col transition-all duration-200 pl-1.5">
             {/* ── Header Bar & Animated Tab Selector ── */}
-            <div className="h-12 px-3.5 border-b border-slate-800/80 flex items-center justify-between bg-[#0C111D]/80 backdrop-blur-md shrink-0">
+            <div className="h-12 px-3.5 border-b border-slate-800/80 flex items-center justify-between bg-[#090D16]/50 backdrop-blur-md shrink-0">
               <div className="grid grid-cols-2 gap-1 bg-slate-950/90 p-1 rounded-xl border border-slate-800/90 shadow-inner w-[200px] sm:w-[230px] 2xl:w-[260px]">
                 <button
                   onClick={() => onTabChange("copilot")}
                   className={cn(
-                    "relative py-1.5 px-2 font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5",
+                    "relative py-1.5 px-2 font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 group",
                     READING_TOKENS.typography.subtext,
-                    activeTab === "copilot" ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
+                    activeTab === "copilot" ? "text-violet-200" : "text-slate-400 hover:text-slate-200"
                   )}
                 >
                   {activeTab === "copilot" && (
                     <motion.div
                       layoutId="activeCompanionTab"
-                      className="absolute inset-0 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 shadow-xs z-0"
+                      className="absolute inset-0 rounded-lg bg-gradient-to-r from-violet-500/25 via-purple-500/20 to-indigo-500/25 border border-violet-500/40 shadow-xs z-0"
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
-                  <Sparkles size={14} className={cn("relative z-10", activeTab === "copilot" ? "text-cyan-400" : "text-slate-400")} />
-                  <span className="relative z-10 truncate">AI 伴读</span>
+                  <Sparkles
+                    size={14}
+                    className={cn(
+                      "relative z-10 shrink-0 transition-colors",
+                      activeTab === "copilot"
+                        ? "text-violet-400 fill-violet-400/25"
+                        : "text-violet-400/80 group-hover:text-violet-300"
+                    )}
+                  />
+                  <span className="relative z-10 truncate leading-none">AI 伴读</span>
                 </button>
 
                 <button
                   onClick={() => onTabChange("notes")}
                   className={cn(
-                    "relative py-1.5 px-2 font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5",
+                    "relative py-1.5 px-2 font-medium rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1.5 group",
                     READING_TOKENS.typography.subtext,
-                    activeTab === "notes" ? "text-cyan-300" : "text-slate-400 hover:text-slate-200"
+                    activeTab === "notes" ? "text-amber-200" : "text-slate-400 hover:text-slate-200"
                   )}
                 >
                   {activeTab === "notes" && (
                     <motion.div
                       layoutId="activeCompanionTab"
-                      className="absolute inset-0 rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 shadow-xs z-0"
+                      className="absolute inset-0 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 shadow-xs z-0"
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
-                  <Bookmark size={14} className={cn("relative z-10", activeTab === "notes" ? "text-cyan-400" : "text-slate-400")} />
-                  <span className="relative z-10 truncate">笔记 ({notesCount})</span>
+                  <Bookmark
+                    size={14}
+                    className={cn(
+                      "relative z-10 shrink-0 transition-colors",
+                      activeTab === "notes"
+                        ? "text-amber-400 fill-amber-400/20"
+                        : "text-amber-400/80 group-hover:text-amber-300"
+                    )}
+                  />
+                  <span className="relative z-10 truncate leading-none">笔记</span>
                 </button>
               </div>
 
@@ -505,7 +521,7 @@ export function CompanionDrawer({
 
             {/* ── TAB 2: UNIFIED NOTES ── */}
             {activeTab === "notes" && (
-              <div className="flex-1 flex flex-col min-h-0 bg-[#090D16] font-sans">
+              <div className="flex-1 flex flex-col min-h-0 bg-[#0C111D] font-sans">
                 {/* Search Header & View Mode Switcher */}
                 <div className="p-3.5 border-b border-slate-800/80 bg-[#0C111D]/50 shrink-0 space-y-2">
                   <div className="flex items-center justify-between gap-2">
@@ -559,6 +575,7 @@ export function CompanionDrawer({
                     </div>
                   </div>
                 </div>
+
 
                 {/* Notes Stream Body */}
                 <div className="flex-1 overflow-y-auto p-3.5 2xl:p-5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800/80">

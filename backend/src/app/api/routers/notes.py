@@ -17,6 +17,7 @@ from app.api.deps import get_note_use_cases
 from app.api.response import ApiResponse, success_response
 from app.application.note.dtos import (
     CreateMaterialNoteDTO,
+    UpdateMaterialNoteDTO,
     SourceAnchorDTO,
     MaterialNoteVO,
     MaterialNotePageVO,
@@ -64,6 +65,35 @@ async def list_material_notes(
         limit=limit,
         keyword=keyword
     )
+    return success_response(data=result)
+
+
+@router.put(
+    "/notes/material/{note_id}",
+    response_model=ApiResponse[MaterialNoteVO],
+    summary="更新素材笔记内容"
+)
+async def update_material_note(
+    note_id: str,
+    dto: UpdateMaterialNoteDTO,
+    use_cases: dict = Depends(get_note_use_cases)
+):
+    uc = use_cases["update_material_use_case"]
+    result = await uc.execute(note_id, dto)
+    return success_response(data=result)
+
+
+@router.delete(
+    "/notes/material/{note_id}",
+    response_model=ApiResponse[DeleteResponseVO],
+    summary="删除素材笔记"
+)
+async def delete_material_note(
+    note_id: str,
+    use_cases: dict = Depends(get_note_use_cases)
+):
+    uc = use_cases["delete_material_use_case"]
+    result = await uc.execute(note_id)
     return success_response(data=result)
 
 

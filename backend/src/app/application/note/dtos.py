@@ -35,6 +35,12 @@ class CreateMaterialNoteDTO(BaseModel):
     tags: List[str] = Field(default_factory=list)
 
 
+class UpdateMaterialNoteDTO(BaseModel):
+    """更新素材笔记接收参数"""
+    user_interpretation: Optional[str] = None
+    context_reflection: Optional[str] = None
+
+
 class MaterialNoteVO(BaseModel):
     """素材笔记返回视图对象"""
     id: str
@@ -44,7 +50,7 @@ class MaterialNoteVO(BaseModel):
     raw_quote: Optional[str] = None
     user_interpretation: str
     context_reflection: Optional[str] = None
-    tags: List[str]
+    tags: List[str] = Field(default_factory=list)
     created_at: str
     # 额外补充，方便前端页面渲染，可由应用层按需查询出对应 block 的 summary
     anchor_summary: Optional[str] = None

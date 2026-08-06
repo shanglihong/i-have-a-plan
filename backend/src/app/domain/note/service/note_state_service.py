@@ -6,7 +6,9 @@ from app.domain.note.entities import MaterialNote, SynthesizedNote
 from app.domain.note.factory import NoteMarkdownFactory
 from app.domain.note.events import (
     MaterialNoteCreatedEvent,
-    SynthesizedNoteCreatedEvent, MaterialNoteDeletedEvent,
+    MaterialNoteUpdatedEvent,
+    SynthesizedNoteCreatedEvent,
+    MaterialNoteDeletedEvent,
 )
 from app.domain.note.ports import (
     MaterialNoteRepositoryPort,
@@ -44,6 +46,27 @@ class NoteStateDomainService:
     async def delete_material_note(self, note_id: str) -> None:
         await self.material_repo.delete_material(note_id)
         await self.event_publisher.publish(MaterialNoteDeletedEvent(note_id=note_id))
+
+    async def update_material_note(
+        self,
+        note_id: str,
+        user_interpretation: Optional[str] = None,
+        context_reflection: Optional[str] = None
+    ) -> Optional[MaterialNote]:
+        note = await self.material_repo.find_material_by_id(note_id)
+        if not note:
+            return None
+
+        if user_interpretation is not None:
+            note.user_interpretation = user_interpretation
+        if context_reflection is not None:
+            note.context_reflection = context_reflection
+
+        await self.material_repo.save_material(note)
+        await self.event_publisher.publish(
+            MaterialNoteUpdatedEvent(note_id=note.id, project_id=note.project_id)
+        )
+        return note
 
 
     async def create_synthesized_note(self, note: SynthesizedNote) -> None:
