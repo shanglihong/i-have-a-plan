@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from ebooklib import epub
 from app.domain.book.entities import TocNode, ContentBlock, BlockType
 from app.domain.book.parser.base import IBookParser
-
+from app.domain.book.parser.epub_handlers import ElementHandlerRegistry
 
 
 @dataclass
@@ -19,6 +19,9 @@ class _RawTocItem:
 
 class EpubParser(IBookParser):
     """EPUB 专业解析策略（参考 Readium / Foliate 工业级实现）"""
+
+    def __init__(self, registry: Optional[ElementHandlerRegistry] = None):
+        self.registry = registry or ElementHandlerRegistry()
 
     def parse(self, file_path: str) -> Tuple[List[TocNode], Dict[str, List[ContentBlock]]]:
         """EPUB 文件解析主入口编排"""
@@ -92,12 +95,13 @@ class EpubParser(IBookParser):
 
             # 2. HTML/XHTML 页面解析
             soup = BeautifulSoup(content, 'html.parser')
+            # logger.info(str(soup)) # 打印网页内容
 
             # 过滤 EPUB 导航/目录专用页面
             if self._is_toc_or_nav_item(book, item, soup):
                 continue
 
-            elements = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'img', 'image', 'table', 'pre'])
+            elements = soup.find_all(self.registry.supported_tags)
             if not elements:
                 continue
 
@@ -131,191 +135,27 @@ class EpubParser(IBookParser):
         blocks: List[ContentBlock] = []
         elem_id_map: Dict[str, str] = {}
         seq = 0
+        context = {
+            'toc_titles': toc_titles,
+            'toc_anchors': toc_anchors
+        }
 
         for el in elements:
-            tag_name = el.name.lower()
-
-            # 过滤处于 table 或 pre 内部的子节点，避免重复记录
-            if tag_name not in ('table', 'pre') and el.find_parent(['table', 'pre']):
-                continue
-
-            if tag_name in ('img', 'image'):
-                block, b_id, el_id = self._parse_image_element(el, item, chap_id, seq + 1)
+            parsed_results = self.registry.parse_element(
+                el=el,
+                item=item,
+                chap_id=chap_id,
+                seq=seq + 1,
+                context=context
+            )
+            for block, b_id, el_id in parsed_results:
                 if block:
                     seq += 1
                     if el_id:
                         elem_id_map[el_id] = b_id
                     blocks.append(block)
-                continue
-
-            if tag_name == 'table':
-                block, b_id, el_id = self._parse_table_element(el, chap_id, seq + 1)
-                if block:
-                    seq += 1
-                    if el_id:
-                        elem_id_map[el_id] = b_id
-                    blocks.append(block)
-                continue
-
-            if tag_name == 'pre':
-                block, b_id, el_id = self._parse_code_element(el, chap_id, seq + 1)
-                if block:
-                    seq += 1
-                    if el_id:
-                        elem_id_map[el_id] = b_id
-                    blocks.append(block)
-                continue
-
-            text = el.get_text().strip()
-            if not text:
-                continue
-
-            seq += 1
-            b_id = f"b_{chap_id}_{seq:03d}"
-
-            el_id = el.get('id', '')
-            if el_id:
-                elem_id_map[el_id] = b_id
-
-            is_heading, _ = self._is_heading_element(el, text, toc_titles, toc_anchors)
-            b_type = BlockType.HEADING if is_heading else BlockType.PARAGRAPH
-
-            blocks.append(ContentBlock(
-                block_id=b_id,
-                block_type=b_type,
-                sequence_index=seq,
-                text=text,
-                html_or_markdown=str(el)
-            ))
 
         return blocks, elem_id_map
-
-    def _parse_image_element(
-        self,
-        el,
-        item: epub.EpubItem,
-        chap_id: str,
-        seq: int
-    ) -> Tuple[Optional[ContentBlock], str, str]:
-        """处理 img/image 节点并生成 BlockType.IMAGE 块"""
-        src = el.get('src', '').strip() or el.get('xlink:href', '').strip() or el.get('href', '').strip()
-        if not src:
-            return None, "", ""
-
-        alt = el.get('alt', '').strip() or el.get('title', '').strip()
-        if not alt and el.parent and el.parent.name.lower() in ('figure', 'svg'):
-            figcaption = el.parent.find('figcaption')
-            if figcaption:
-                alt = figcaption.get_text().strip()
-
-        if not alt:
-            is_cover = item.get_type() == ebooklib.ITEM_COVER or "cover" in (item.get_name() or "").lower()
-            alt = "封面" if is_cover else "图片"
-
-        b_id = f"b_{chap_id}_{seq:03d}"
-        el_id = el.get('id', '') or (el.parent.get('id', '') if el.parent and el.parent.name.lower() in ('figure', 'svg') else '')
-
-        block = ContentBlock(
-            block_id=b_id,
-            block_type=BlockType.IMAGE,
-            sequence_index=seq,
-            text=alt,
-            html_or_markdown=str(el)
-        )
-        return block, b_id, el_id
-
-    def _parse_table_element(
-        self,
-        el,
-        chap_id: str,
-        seq: int
-    ) -> Tuple[Optional[ContentBlock], str, str]:
-        """处理 table 节点并生成 BlockType.TABLE 块"""
-        rows = []
-        for tr in el.find_all('tr'):
-            cells = [td.get_text(strip=True).replace('|', '\\|') for td in tr.find_all(['th', 'td'])]
-            if cells:
-                rows.append(cells)
-
-        plain_text = el.get_text(separator=" ", strip=True)
-        if not plain_text:
-            return None, "", ""
-
-        if not rows:
-            markdown_table = str(el)
-        else:
-            max_cols = max(len(r) for r in rows)
-            header = rows[0]
-            header += [''] * (max_cols - len(header))
-
-            md_lines = ["| " + " | ".join(header) + " |"]
-            md_lines.append("| " + " | ".join(['---'] * max_cols) + " |")
-
-            for row in rows[1:]:
-                row += [''] * (max_cols - len(row))
-                md_lines.append("| " + " | ".join(row) + " |")
-
-            markdown_table = "\n".join(md_lines)
-
-        b_id = f"b_{chap_id}_{seq:03d}"
-        el_id = el.get('id', '')
-
-        block = ContentBlock(
-            block_id=b_id,
-            block_type=BlockType.TABLE,
-            sequence_index=seq,
-            text=plain_text,
-            html_or_markdown=markdown_table
-        )
-        return block, b_id, el_id
-
-    def _parse_code_element(
-        self,
-        el,
-        chap_id: str,
-        seq: int
-    ) -> Tuple[Optional[ContentBlock], str, str]:
-        """处理 pre 代码块节点并生成 BlockType.CODE 块"""
-        code_text = el.get_text().strip('\r\n')
-        if not code_text.strip():
-            return None, "", ""
-
-        lang = self._extract_code_language(el)
-        markdown_code = f"```{lang}\n{code_text}\n```" if lang else f"```\n{code_text}\n```"
-
-        b_id = f"b_{chap_id}_{seq:03d}"
-        el_id = el.get('id', '')
-
-        block = ContentBlock(
-            block_id=b_id,
-            block_type=BlockType.CODE,
-            sequence_index=seq,
-            text=code_text,
-            html_or_markdown=markdown_code
-        )
-        return block, b_id, el_id
-
-    def _extract_code_language(self, el) -> str:
-        """从 class 属性中提取代码编程语言"""
-        classes = el.get('class', [])
-        if isinstance(classes, str):
-            classes = classes.split()
-
-        code_child = el.find('code')
-        if code_child and code_child.get('class'):
-            child_cls = code_child.get('class')
-            classes.extend(child_cls if isinstance(child_cls, list) else child_cls.split())
-
-        for cls in classes:
-            cls_lower = str(cls).lower()
-            if cls_lower.startswith(('language-', 'lang-')):
-                return cls_lower.split('-', 1)[1]
-            if cls_lower.startswith('brush:'):
-                return cls_lower.split(':', 1)[1].strip()
-            if cls_lower in {'python', 'javascript', 'js', 'typescript', 'ts', 'go', 'golang', 'java', 'cpp', 'c', 'sql', 'html', 'css', 'json', 'bash', 'shell', 'yaml', 'xml'}:
-                return cls_lower
-
-        return ""
 
     def _create_binary_cover_block(self, chap_id: str, item_name: str) -> ContentBlock:
         """为纯二进制图片格式的封面创建 ContentBlock"""

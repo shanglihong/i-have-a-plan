@@ -197,3 +197,198 @@ def test_epub_parser_table_and_code_extraction():
     assert "def parse_book():" in code_blocks[0].text
 
 
+def test_epub_parser_list_and_quote_extraction():
+    parser = EpubParser()
+
+    chap_with_list_and_quote = create_mock_item(
+        name="OEBPS/chap4.xhtml",
+        content="""<html><body>
+        <h1>第四章 列表与引用</h1>
+        <ul>
+            <li>无序列表项 1</li>
+            <li><p>无序列表项 2 (带段落)</p></li>
+        </ul>
+        <ol>
+            <li>有序列表项 1</li>
+            <li value="5">有序列表项 5</li>
+        </ol>
+        <blockquote>
+            <p>这是一段引用的经典名言。</p>
+        </blockquote>
+        <dl>
+            <dt>DDD</dt>
+            <dd>领域驱动设计</dd>
+        </dl>
+        </body></html>"""
+    )
+
+    mock_book = MagicMock()
+    mock_book.toc = []
+    mock_book.spine = [('chap4_id', 'yes')]
+    mock_book.get_item_with_id.side_effect = lambda item_id: chap_with_list_and_quote if item_id == 'chap4_id' else None
+    mock_book.get_items_of_type.return_value = [chap_with_list_and_quote]
+
+    with patch('ebooklib.epub.read_epub', return_value=mock_book):
+        toc_tree, chapter_blocks = parser.parse("dummy.epub")
+
+    assert "chap_01" in chapter_blocks
+    blocks = chapter_blocks["chap_01"]
+
+    # 1. 验证无序列表与有序列表提取
+    li_blocks = [b for b in blocks if b.text.startswith(("•", "1.", "5."))]
+    assert len(li_blocks) == 4
+    assert li_blocks[0].text == "• 无序列表项 1"
+    assert li_blocks[1].text == "• 无序列表项 2 (带段落)"
+    assert li_blocks[2].text == "1. 有序列表项 1"
+    assert li_blocks[3].text == "5. 有序列表项 5"
+
+    # 2. 验证引用块提取
+    quote_blocks = [b for b in blocks if b.block_type == BlockType.QUOTE]
+    assert len(quote_blocks) == 1
+    assert quote_blocks[0].text == "这是一段引用的经典名言。"
+    assert "> 这是一段引用的经典名言。" in quote_blocks[0].html_or_markdown
+
+    # 3. 验证定义列表提取
+    dt_blocks = [b for b in blocks if "【DDD】" in b.text]
+    dd_blocks = [b for b in blocks if b.text == "领域驱动设计"]
+    assert len(dt_blocks) == 1
+    assert len(dd_blocks) == 1
+
+    # 4. 验证防重复拦截：p 标签处于 li、blockquote 内部，不应单独再生成 ContentBlock
+    total_blocks_count = len(blocks)
+    # 标题(1) + 无序li(2) + 有序li(2) + blockquote(1) + dt(1) + dd(1) = 8 个 blocks
+    assert total_blocks_count == 8
+
+
+def test_epub_parser_quote_with_embedded_image_splitting():
+    parser = EpubParser()
+
+    chap_with_quote_image = create_mock_item(
+        name="OEBPS/chap5.xhtml",
+        content="""<html><body>
+        <h1>第五章 架构图文</h1>
+        <blockquote>
+            <p>这是引用上半段说明。</p>
+            <img src="images/architecture.png" alt="系统架构图" />
+            <p>这是引用下半段总结。</p>
+        </blockquote>
+        </body></html>"""
+    )
+
+    mock_book = MagicMock()
+    mock_book.toc = []
+    mock_book.spine = [('chap5_id', 'yes')]
+    mock_book.get_item_with_id.side_effect = lambda item_id: chap_with_quote_image if item_id == 'chap5_id' else None
+    mock_book.get_items_of_type.return_value = [chap_with_quote_image]
+
+    with patch('ebooklib.epub.read_epub', return_value=mock_book):
+        toc_tree, chapter_blocks = parser.parse("dummy.epub")
+
+    assert "chap_01" in chapter_blocks
+    blocks = chapter_blocks["chap_01"]
+
+    # 包含：标题(1), QUOTE(2), IMAGE(3), QUOTE(4) 共 4 个 blocks
+    assert len(blocks) == 4
+    assert blocks[0].block_type == BlockType.HEADING
+
+    assert blocks[1].block_type == BlockType.QUOTE
+    assert blocks[1].text == "这是引用上半段说明。"
+
+    assert blocks[2].block_type == BlockType.IMAGE
+    assert blocks[2].text == "系统架构图"
+    assert 'src="images/architecture.png"' in blocks[2].html_or_markdown
+
+    assert blocks[3].block_type == BlockType.QUOTE
+    assert blocks[3].text == "这是引用下半段总结。"
+
+
+def test_epub_parser_quote_with_figure_figcaption():
+    parser = EpubParser()
+
+    chap_with_figcaption = create_mock_item(
+        name="OEBPS/chap6.xhtml",
+        content="""<html><body>
+        <h1>第六章 图注隔离</h1>
+        <blockquote>
+            <p>引言正文。</p>
+            <figure>
+                <img src="images/agent.png" />
+                <figcaption aria-hidden="true">图1-4 “模型即 Agent” 架构——原生工具调用</figcaption>
+            </figure>
+            <p>结语正文。</p>
+        </blockquote>
+        </body></html>"""
+    )
+
+    mock_book = MagicMock()
+    mock_book.toc = []
+    mock_book.spine = [('chap6_id', 'yes')]
+    mock_book.get_item_with_id.side_effect = lambda item_id: chap_with_figcaption if item_id == 'chap6_id' else None
+    mock_book.get_items_of_type.return_value = [chap_with_figcaption]
+
+    with patch('ebooklib.epub.read_epub', return_value=mock_book):
+        toc_tree, chapter_blocks = parser.parse("dummy.epub")
+
+    assert "chap_01" in chapter_blocks
+    blocks = chapter_blocks["chap_01"]
+
+    # 包含：标题(1), QUOTE(2), IMAGE(3), QUOTE(4) 共 4 个 blocks
+    assert len(blocks) == 4
+    assert blocks[0].block_type == BlockType.HEADING
+
+    assert blocks[1].block_type == BlockType.QUOTE
+    assert blocks[1].text == "引言正文。"
+
+    # 校验图注被合并为 IMAGE 块的 text 属性
+    assert blocks[2].block_type == BlockType.IMAGE
+    assert blocks[2].text == "图1-4 “模型即 Agent” 架构——原生工具调用"
+
+    # 校验图注文字绝未泄露为独立的 QUOTE 块
+    assert blocks[3].block_type == BlockType.QUOTE
+    assert blocks[3].text == "结语正文。"
+
+
+def test_epub_parser_aside_and_mathml():
+    parser = EpubParser()
+
+    chap_epub3 = create_mock_item(
+        name="OEBPS/chap7.xhtml",
+        content="""<html><body>
+        <h1>第七章 EPUB3 高级语义</h1>
+        <aside epub:type="sidebar">
+            <p>这是侧边栏注解卡片内容。</p>
+        </aside>
+        <p>下面是一个 MathML 公式：</p>
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <mrow><mi>E</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></mrow>
+        </math>
+        </body></html>"""
+    )
+
+    mock_book = MagicMock()
+    mock_book.toc = []
+    mock_book.spine = [('chap7_id', 'yes')]
+    mock_book.get_item_with_id.side_effect = lambda item_id: chap_epub3 if item_id == 'chap7_id' else None
+    mock_book.get_items_of_type.return_value = [chap_epub3]
+
+    with patch('ebooklib.epub.read_epub', return_value=mock_book):
+        toc_tree, chapter_blocks = parser.parse("dummy.epub")
+
+    assert "chap_01" in chapter_blocks
+    blocks = chapter_blocks["chap_01"]
+
+    # 包含：标题(1), QUOTE(2, 来自aside), PARAGRAPH(3), CODE(4, 来自math)
+    aside_blocks = [b for b in blocks if b.block_type == BlockType.QUOTE]
+    math_blocks = [b for b in blocks if b.block_type == BlockType.CODE and "mathml" in b.html_or_markdown]
+
+    assert len(aside_blocks) == 1
+    assert aside_blocks[0].text == "这是侧边栏注解卡片内容。"
+
+    assert len(math_blocks) == 1
+    assert "E=mc" in math_blocks[0].text or "E" in math_blocks[0].text
+
+
+
+
+
+

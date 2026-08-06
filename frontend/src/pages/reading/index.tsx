@@ -121,9 +121,13 @@ export default function ReadingWorkspacePage() {
   const chapterMap = useMemo(() => {
     const map = new Map<string, ChapterItem>()
     for (const item of chapters) {
-      map.set(item.id, item)
-      if (item.targetChapterId && item.targetChapterId !== item.id) {
-        map.set(item.targetChapterId, item)
+      if (!map.has(item.id) || item.level === 0) {
+        map.set(item.id, item)
+      }
+      if (item.targetChapterId) {
+        if (!map.has(item.targetChapterId) || item.level === 0) {
+          map.set(item.targetChapterId, item)
+        }
       }
     }
     return map
@@ -160,6 +164,7 @@ export default function ReadingWorkspacePage() {
   const [extractedToast, setExtractedToast] = useState<string | null>(null)
 
   const readerRef = useRef<HTMLDivElement>(null)
+  const prevTargetElRef = useRef<HTMLElement | null>(null)
 
   // 从 project task_chains 中找到当前章节对应的 TaskChain，取其 status
   const currentTaskChainStatus = useMemo(() => {
@@ -249,7 +254,7 @@ export default function ReadingWorkspacePage() {
     if (!cleanTarget) return
 
     const allElements = Array.from(
-      readerRef.current.querySelectorAll("h1, h2, h3, h4, p, blockquote, div, section, mark, span")
+      readerRef.current.querySelectorAll("h1, h2, h3, h4, h5, h6, p, blockquote, pre")
     ) as HTMLElement[]
 
     // 1. 过滤所有包含目标引文或精准匹配 block_id 的候选节点（排除整个 readerRef 根节点）
@@ -282,28 +287,48 @@ export default function ReadingWorkspacePage() {
       targetEl = candidates[0]
     }
 
+    if (prevTargetElRef.current) {
+      prevTargetElRef.current.classList.remove(
+        "ring-2",
+        "ring-cyan-400/80",
+        "bg-cyan-950/40",
+        "scale-[1.01]",
+        "rounded-md"
+      )
+      prevTargetElRef.current = null
+    }
+
     if (targetEl) {
+      prevTargetElRef.current = targetEl
       targetEl.scrollIntoView({ behavior: "smooth", block: "center" })
       targetEl.classList.add(
         "ring-2",
-        "ring-cyan-400",
-        "bg-cyan-950/60",
+        "ring-cyan-400/80",
+        "bg-cyan-950/40",
         "scale-[1.01]",
         "transition-all",
         "duration-500",
         "rounded-md"
       )
       setTimeout(() => {
-        targetEl?.classList.remove(
-          "ring-2",
-          "ring-cyan-400",
-          "bg-cyan-950/60",
-          "scale-[1.01]",
-          "rounded-md"
-        )
-      }, 2500)
+        if (targetEl) {
+          targetEl.classList.remove(
+            "ring-2",
+            "ring-cyan-400/80",
+            "bg-cyan-950/40",
+            "scale-[1.01]",
+            "rounded-md"
+          )
+        }
+      }, 2000)
     }
-  }, [targetAnchor])
+
+    const autoClearTimer = setTimeout(() => {
+      setTargetAnchor(null)
+    }, 2000)
+
+    return () => clearTimeout(autoClearTimer)
+  }, [targetAnchor, chapterContentData, setTargetAnchor])
 
   // 划词定位菜单计算
   const handleTextSelect = useCallback(() => {
@@ -606,7 +631,21 @@ export default function ReadingWorkspacePage() {
         chapters={chapters}
         isLoading={isTocLoading}
         activeChapter={activeChapter}
-        onSelectChapter={setActiveChapter}
+        onSelectChapter={(rootChapId, item) => {
+          // 清除文本划选选区与浮动操作菜单
+          window.getSelection()?.removeAllRanges()
+          setFloatingMenu(null)
+
+          // 仅当归属的顶层章节变更时，才触发整章内容切换
+          if (rootChapId && rootChapId !== activeChapter) {
+            setActiveChapter(rootChapId)
+          }
+
+          // 无论是顶层章节还是子章节，只要有标题，统一触发页面标题/Block 锚点定位与选中框
+          if (item.label) {
+            setTargetAnchor(item.label)
+          }
+        }}
         scrollProgress={scrollProgress}
         projectProgress={projectProgress}
       />

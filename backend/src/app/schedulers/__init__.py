@@ -14,12 +14,12 @@ scheduler = AsyncIOScheduler()
 
 def register_schedulers() -> AsyncIOScheduler:
     """注册全局 Cron / Interval 定时任务"""
-    scheduler.add_job(
-        handle_pending_graph_blocks,
-        "interval",
-        seconds=10,
-        id="handle_pending_graph_blocks_job",
-        replace_existing=True,
-    )
+    # scheduler.add_job(
+    #     handle_pending_graph_blocks,
+    #     "interval",
+    #     seconds=10,
+    #     id="handle_pending_graph_blocks_job",
+    #     replace_existing=True,
+    # )
     logger.info("已完成定时任务调度注册: Graph Pending Blocks 相关定时任务")
     return scheduler

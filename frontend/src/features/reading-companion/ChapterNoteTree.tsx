@@ -93,8 +93,13 @@ export function ChapterNoteTree({
     )
   }, [notes, searchKeyword])
 
+  const topLevelChapters = useMemo(() => {
+    const rootNodes = chapters.filter((ch) => ch.level === 0)
+    return rootNodes.length > 0 ? rootNodes : chapters
+  }, [chapters])
+
   const chapterGroups: ChapterGroup[] = useMemo(() => {
-    return chapters.map((ch) => {
+    return topLevelChapters.map((ch) => {
       const matchedNotes = filteredNotes.filter((n) => {
         // 优先基于完整的 sourceAnchor.chapter_id 精准归类
         if (n.sourceAnchor?.chapter_id) {
@@ -119,18 +124,18 @@ export function ChapterNoteTree({
         targetChapterId: ch.targetChapterId,
       }
     })
-  }, [chapters, filteredNotes])
+  }, [topLevelChapters, filteredNotes])
 
   const unclassifiedNotes = useMemo(() => {
     return filteredNotes.filter((n) => {
       if (n.sourceAnchor?.chapter_id) {
-        return !chapters.some(
+        return !topLevelChapters.some(
           (ch) =>
             n.sourceAnchor?.chapter_id === ch.id ||
             n.sourceAnchor?.chapter_id === ch.targetChapterId
         )
       }
-      return !chapters.some(
+      return !topLevelChapters.some(
         (ch) =>
           n.anchor?.includes(ch.id) ||
           (ch.targetChapterId && n.anchor?.includes(ch.targetChapterId)) ||
@@ -138,7 +143,7 @@ export function ChapterNoteTree({
           (ch.label.length >= 4 && n.anchor?.includes(ch.label.slice(0, 4)))
       )
     })
-  }, [chapters, filteredNotes])
+  }, [topLevelChapters, filteredNotes])
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters((prev) => {

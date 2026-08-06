@@ -2,6 +2,7 @@ import { ContentBlockDO, TextAnnotation } from "../../../../../entities"
 import { HeadingBlock } from "./HeadingBlock"
 import { CodeBlock } from "./CodeBlock"
 import { CalloutBlock } from "./CalloutBlock"
+import { QuoteBlock } from "./QuoteBlock"
 import { ParagraphBlock } from "./ParagraphBlock"
 import { ImageBlock } from "./ImageBlock"
 import { TableBlock } from "./TableBlock"
@@ -79,8 +80,24 @@ export function ArticleBlockRenderer({
     )
   }
 
-  // 5. 重点高亮/提示框节点 (Callout / Quote) — 使用 block.text
-  if (type.includes("callout") || type.includes("quote") || type.includes("note")) {
+  // 5. 引用块节点 (Quote / Blockquote) — 优先使用专用的 QuoteBlock
+  if (type.includes("quote") || type.includes("blockquote")) {
+    return (
+      <QuoteBlock
+        key={block.block_id || index}
+        block={block}
+        index={index}
+        isTargeted={isTargeted}
+        activeAnnotations={activeAnnotations}
+        blocks={blocks}
+        chapterId={chapterId}
+        notesData={notesData}
+      />
+    )
+  }
+
+  // 6. 重点高亮/提示框节点 (Callout / Note) — 使用 block.text
+  if (type.includes("callout") || type.includes("note")) {
     return (
       <CalloutBlock
         key={block.block_id || index}
