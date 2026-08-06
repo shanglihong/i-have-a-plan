@@ -56,19 +56,19 @@ export function ImageBlock({ block, index, bookId }: ImageBlockProps) {
         id={block.block_id}
         data-block-id={block.block_id}
         data-block-index={index}
-        className="my-6 p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex flex-col items-center justify-center relative overflow-hidden shadow-lg group font-sans"
+        className="my-4 p-1.5 rounded-xl bg-slate-950/40 border border-slate-800/60 flex flex-col items-center justify-center relative overflow-hidden shadow-xs group font-sans"
       >
         {finalSrc && !hasError ? (
           <div className="relative flex flex-col items-center justify-center max-w-full group">
             {isLoading && (
-              <div className="w-64 h-48 rounded-xl bg-slate-800/60 animate-pulse flex flex-col items-center justify-center gap-2 text-slate-400 font-sans">
-                <ImageIcon size={28} className="animate-bounce text-cyan-400/70" />
+              <div className="w-64 h-48 rounded-lg bg-slate-800/50 animate-pulse flex flex-col items-center justify-center gap-2 text-slate-400 font-sans">
+                <ImageIcon size={26} className="animate-bounce text-cyan-400/70" />
                 <span className="text-xs font-mono">载入图片资源中...</span>
               </div>
             )}
 
             <div
-              className="relative overflow-hidden rounded-xl cursor-zoom-in group/img"
+              className="relative overflow-hidden rounded-lg cursor-zoom-in group/img"
               onClick={() => setIsZoomed(true)}
             >
               <img
@@ -80,28 +80,28 @@ export function ImageBlock({ block, index, bookId }: ImageBlockProps) {
                   setHasError(true)
                 }}
                 className={cn(
-                  "max-w-full h-auto rounded-xl shadow-md transition-all duration-300 group-hover/img:scale-[1.02]",
+                  "max-w-full h-auto rounded-lg shadow-xs transition-all duration-300 group-hover/img:scale-[1.01]",
                   isLoading ? "hidden" : "block"
                 )}
               />
               {/* 悬浮放大微型提示角标 */}
               {!isLoading && (
-                <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 text-slate-200 opacity-0 group-hover/img:opacity-100 transition-all shadow-lg flex items-center gap-1 text-[11px] font-medium pointer-events-none">
-                  <ZoomIn size={14} className="text-cyan-400" />
+                <div className="absolute top-2 right-2 p-1 px-2 rounded-md bg-black/70 backdrop-blur-md border border-white/10 text-slate-200 opacity-0 group-hover/img:opacity-100 transition-all shadow-md flex items-center gap-1 text-[10.5px] font-medium pointer-events-none">
+                  <ZoomIn size={12} className="text-cyan-400" />
                   <span>点击放大</span>
                 </div>
               )}
             </div>
 
             {alt && !isLoading && (
-              <span className="mt-2.5 text-xs font-sans text-slate-400 italic text-center block">
+              <span className="mt-1.5 mb-0.5 text-[12px] font-sans text-slate-400/90 italic text-center block px-2">
                 {alt}
               </span>
             )}
           </div>
         ) : (
-          <div className="py-8 px-6 flex flex-col items-center justify-center gap-2 text-slate-500 bg-slate-950/40 rounded-xl border border-dashed border-slate-800/80 w-full font-sans">
-            <ImageOff size={24} className="text-slate-600" />
+          <div className="py-6 px-4 flex flex-col items-center justify-center gap-1.5 text-slate-500 bg-slate-950/30 rounded-lg border border-dashed border-slate-800/60 w-full font-sans">
+            <ImageOff size={22} className="text-slate-600" />
             <span className="text-xs font-mono text-slate-400">{alt || "未找到图片资源"}</span>
             {rawSrc && <span className="text-[10px] font-mono text-slate-600">{rawSrc}</span>}
           </div>
