@@ -6,6 +6,7 @@ import { QuoteBlock } from "./QuoteBlock"
 import { ParagraphBlock } from "./ParagraphBlock"
 import { ImageBlock } from "./ImageBlock"
 import { TableBlock } from "./TableBlock"
+import { ListBlock } from "./ListBlock"
 
 interface ArticleBlockRendererProps {
   block: ContentBlockDO
@@ -100,6 +101,22 @@ export function ArticleBlockRenderer({
   if (type.includes("callout") || type.includes("note")) {
     return (
       <CalloutBlock
+        key={block.block_id || index}
+        block={block}
+        index={index}
+        isTargeted={isTargeted}
+        activeAnnotations={activeAnnotations}
+        blocks={blocks}
+        chapterId={chapterId}
+        notesData={notesData}
+      />
+    )
+  }
+
+  // 7. 列表节点 (List / UL / OL) — 使用专用的 ListBlock
+  if (type.includes("list") || type.includes("ul") || type.includes("ol")) {
+    return (
+      <ListBlock
         key={block.block_id || index}
         block={block}
         index={index}

@@ -21,7 +21,7 @@ export function ParagraphBlock({
   chapterId,
   notesData,
 }: ParagraphBlockProps) {
-  const plainText = block.text || ""
+  const plainText = block.text || block.html_or_markdown || ""
 
   return (
     <p
@@ -30,7 +30,7 @@ export function ParagraphBlock({
       data-block-id={block.block_id}
       data-block-index={index}
       className={cn(
-        "text-[16px] xl:text-[18px] 2xl:text-[19px] leading-[1.85] xl:leading-[1.95] 2xl:leading-[2.0] text-slate-300 mb-6 transition-all duration-500 rounded p-1",
+        "text-[16px] xl:text-[18px] 2xl:text-[19px] leading-[1.85] xl:leading-[1.95] 2xl:leading-[2.0] text-slate-300 mb-6 transition-all duration-500 rounded p-1 whitespace-pre-wrap",
         isTargeted && "ring-2 ring-cyan-400 bg-cyan-950/40"
       )}
     >
@@ -46,3 +46,4 @@ export function ParagraphBlock({
     </p>
   )
 }
+

@@ -234,13 +234,11 @@ def test_epub_parser_list_and_quote_extraction():
     assert "chap_01" in chapter_blocks
     blocks = chapter_blocks["chap_01"]
 
-    # 1. 验证无序列表与有序列表提取
-    li_blocks = [b for b in blocks if b.text.startswith(("•", "1.", "5."))]
-    assert len(li_blocks) == 4
-    assert li_blocks[0].text == "• 无序列表项 1"
-    assert li_blocks[1].text == "• 无序列表项 2 (带段落)"
-    assert li_blocks[2].text == "1. 有序列表项 1"
-    assert li_blocks[3].text == "5. 有序列表项 5"
+    # 1. 验证无序列表与有序列表按 ul / ol 组块提取
+    list_blocks = [b for b in blocks if b.block_type == BlockType.LIST]
+    assert len(list_blocks) == 2
+    assert list_blocks[0].text == "• 无序列表项 1\n• 无序列表项 2 (带段落)"
+    assert list_blocks[1].text == "1 有序列表项 1\n5 有序列表项 5"
 
     # 2. 验证引用块提取
     quote_blocks = [b for b in blocks if b.block_type == BlockType.QUOTE]
@@ -254,10 +252,10 @@ def test_epub_parser_list_and_quote_extraction():
     assert len(dt_blocks) == 1
     assert len(dd_blocks) == 1
 
-    # 4. 验证防重复拦截：p 标签处于 li、blockquote 内部，不应单独再生成 ContentBlock
+    # 4. 验证防重复拦截：p / li 标签处于 ul、ol、blockquote 内部，不应单独再生成 ContentBlock
     total_blocks_count = len(blocks)
-    # 标题(1) + 无序li(2) + 有序li(2) + blockquote(1) + dt(1) + dd(1) = 8 个 blocks
-    assert total_blocks_count == 8
+    # 标题(1) + 无序列表块(1) + 有序列表块(1) + blockquote(1) + dt(1) + dd(1) = 6 个 blocks
+    assert total_blocks_count == 6
 
 
 def test_epub_parser_quote_with_embedded_image_splitting():
@@ -386,6 +384,91 @@ def test_epub_parser_aside_and_mathml():
 
     assert len(math_blocks) == 1
     assert "E=mc" in math_blocks[0].text or "E" in math_blocks[0].text
+
+
+def test_epub_parser_inline_code_not_split():
+    parser = EpubParser()
+
+    chap_inline_code = create_mock_item(
+        name="OEBPS/chap8.xhtml",
+        content="""<html><body>
+        <h1>第八章 代码测试</h1>
+        <p>这是包含 <code>var count = 1;</code> 的行内代码段落。</p>
+        <blockquote>
+            <p>引文中包含 <code>const x = 10;</code> 行内代码。</p>
+        </blockquote>
+        </body></html>"""
+    )
+
+    mock_book = MagicMock()
+    mock_book.toc = []
+    mock_book.spine = [('chap8_id', 'yes')]
+    mock_book.get_item_with_id.side_effect = lambda item_id: chap_inline_code if item_id == 'chap8_id' else None
+    mock_book.get_items_of_type.return_value = [chap_inline_code]
+
+    with patch('ebooklib.epub.read_epub', return_value=mock_book):
+        toc_tree, chapter_blocks = parser.parse("dummy.epub")
+
+    assert "chap_01" in chapter_blocks
+    blocks = chapter_blocks["chap_01"]
+
+    # 块结构：标题(1) + 段落(1) + QUOTE(1) = 3个 blocks
+    assert len(blocks) == 3
+    assert blocks[0].block_type == BlockType.HEADING
+    assert blocks[1].block_type == BlockType.PARAGRAPH
+    assert "var count = 1;" in blocks[1].text
+    assert "`var count = 1;`" in blocks[1].text or "var count = 1;" in blocks[1].text
+
+    assert blocks[2].block_type == BlockType.QUOTE
+    assert "const x = 10;" in blocks[2].text
+
+    # 确认没有任何独立的 CODE 或 QUOTE_CODE 块
+    code_blocks = [b for b in blocks if b.block_type in (BlockType.CODE, BlockType.QUOTE_CODE)]
+    assert len(code_blocks) == 0
+
+
+def test_epub_parser_quote_with_embedded_pre_code_splitting():
+    parser = EpubParser()
+
+    chap_quote_pre = create_mock_item(
+        name="OEBPS/chap9.xhtml",
+        content="""<html><body>
+        <h1>第九章 引用内代码块</h1>
+        Quote 前段:
+        <blockquote>
+            <p>引用前言说明。</p>
+            <pre class="language-python"><code>def hello():
+    print("world")</code></pre>
+            <p>引用总结说明。</p>
+        </blockquote>
+        </body></html>"""
+    )
+
+    mock_book = MagicMock()
+    mock_book.toc = []
+    mock_book.spine = [('chap9_id', 'yes')]
+    mock_book.get_item_with_id.side_effect = lambda item_id: chap_quote_pre if item_id == 'chap9_id' else None
+    mock_book.get_items_of_type.return_value = [chap_quote_pre]
+
+    with patch('ebooklib.epub.read_epub', return_value=mock_book):
+        toc_tree, chapter_blocks = parser.parse("dummy.epub")
+
+    assert "chap_01" in chapter_blocks
+    blocks = chapter_blocks["chap_01"]
+
+    # 包含：标题(1) + QUOTE(1) + QUOTE_CODE(1) + QUOTE(1) = 4 个 blocks
+    assert len(blocks) == 4
+    assert blocks[0].block_type == BlockType.HEADING
+    assert blocks[1].block_type == BlockType.QUOTE
+    assert blocks[1].text == "引用前言说明。"
+
+    assert blocks[2].block_type == BlockType.QUOTE_CODE
+    assert "def hello():" in blocks[2].text
+    assert "```python" in blocks[2].html_or_markdown
+
+    assert blocks[3].block_type == BlockType.QUOTE
+    assert blocks[3].text == "引用总结说明。"
+
 
 
 

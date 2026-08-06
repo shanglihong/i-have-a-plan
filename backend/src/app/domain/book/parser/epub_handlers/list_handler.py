@@ -5,11 +5,11 @@ from app.domain.book.parser.epub_handlers.base import IElementHandler
 
 
 class ListElementHandler(IElementHandler):
-    """列表项 (li) 节点解析策略"""
+    """列表 (ul, ol) 节点容器解析策略"""
 
     @property
     def supported_tags(self) -> Set[str]:
-        return {'li'}
+        return {'ul', 'ol'}
 
     @property
     def is_container(self) -> bool:
@@ -23,32 +23,45 @@ class ListElementHandler(IElementHandler):
         seq: int,
         context: Optional[Dict[str, Any]] = None
     ) -> Tuple[Optional[ContentBlock], str, str]:
-        raw_text = self._extract_li_text(el)
-        if not raw_text:
+        tag_name = el.name.lower()
+        is_ol = tag_name == 'ol'
+
+        li_elements = el.find_all('li')
+        lines = []
+
+        if li_elements:
+            for idx, li in enumerate(li_elements, start=1):
+                raw_text = self._extract_li_text(li)
+                if not raw_text:
+                    continue
+                if is_ol:
+                    if li.has_attr('value') and str(li['value']).isdigit():
+                        curr_idx = int(li['value'])
+                    else:
+                        curr_idx = idx
+                    prefix = f"{curr_idx}"
+                else:
+                    prefix = "•"
+                lines.append(f"{prefix} {raw_text}")
+        else:
+            raw_text = el.get_text(separator="\n", strip=True)
+            if raw_text:
+                for line in raw_text.splitlines():
+                    cleaned = line.strip()
+                    if cleaned:
+                        prefix = "1" if is_ol else "•"
+                        lines.append(f"{prefix} {cleaned}")
+
+        if not lines:
             return None, "", ""
 
-        parent_ol = el.find_parent('ol')
-        if parent_ol:
-            if el.has_attr('value') and str(el['value']).isdigit():
-                idx = int(el['value'])
-            else:
-                sibling_lis = parent_ol.find_all('li', recursive=False)
-                if el in sibling_lis:
-                    idx = sibling_lis.index(el) + 1
-                else:
-                    all_lis = parent_ol.find_all('li')
-                    idx = all_lis.index(el) + 1 if el in all_lis else 1
-            prefix = f"{idx}."
-        else:
-            prefix = "•"
-
-        text = f"{prefix} {raw_text}"
+        text = "\n".join(lines)
         b_id = f"b_{chap_id}_{seq:03d}"
         el_id = el.get('id', '')
 
         block = ContentBlock(
             block_id=b_id,
-            block_type=BlockType.PARAGRAPH,
+            block_type=BlockType.LIST,
             sequence_index=seq,
             text=text,
             html_or_markdown=str(el)
@@ -65,3 +78,4 @@ class ListElementHandler(IElementHandler):
             if isinstance(child, str):
                 text_parts.append(child)
         return " ".join("".join(text_parts).split())
+

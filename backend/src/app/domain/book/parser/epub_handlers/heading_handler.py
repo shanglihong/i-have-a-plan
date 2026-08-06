@@ -19,9 +19,11 @@ class HeadingParagraphHandler(IElementHandler):
         seq: int,
         context: Optional[Dict[str, Any]] = None
     ) -> Tuple[Optional[ContentBlock], str, str]:
-        text = el.get_text().strip()
-        if not text:
+        plain_text = el.get_text().strip()
+        if not plain_text:
             return None, "", ""
+
+        text = self._extract_element_text(el)
 
         b_id = f"b_{chap_id}_{seq:03d}"
         el_id = el.get('id', '')
@@ -29,7 +31,7 @@ class HeadingParagraphHandler(IElementHandler):
         toc_titles = context.get('toc_titles', set()) if context else set()
         toc_anchors = context.get('toc_anchors', set()) if context else set()
 
-        is_heading, _ = self._is_heading_element(el, text, toc_titles, toc_anchors)
+        is_heading, _ = self._is_heading_element(el, plain_text, toc_titles, toc_anchors)
         b_type = BlockType.HEADING if is_heading else BlockType.PARAGRAPH
 
         block = ContentBlock(
@@ -40,6 +42,31 @@ class HeadingParagraphHandler(IElementHandler):
             html_or_markdown=str(el)
         )
         return block, b_id, el_id
+
+    def _extract_element_text(self, el) -> str:
+        """提取 DOM 元素的文本内容，保持 code (`...`) 和加粗 (**...**) 语法"""
+        codes = el.find_all('code') if hasattr(el, 'find_all') else []
+        bolds = el.find_all(['b', 'strong']) if hasattr(el, 'find_all') else []
+        if not codes and not bolds and getattr(el, 'name', None) not in ('code', 'b', 'strong'):
+            return el.get_text(strip=True) if hasattr(el, 'get_text') else str(el).strip()
+
+        buf = []
+        if hasattr(el, 'children'):
+            for child in el.children:
+                c_name = getattr(child, 'name', None)
+                if c_name == 'code':
+                    c_text = child.get_text().strip()
+                    if c_text:
+                        buf.append(f"`{c_text}`")
+                elif c_name in ('b', 'strong'):
+                    b_text = child.get_text().strip()
+                    if b_text:
+                        buf.append(f"**{b_text}**")
+                elif c_name:
+                    buf.append(self._extract_element_text(child))
+                elif isinstance(child, str):
+                    buf.append(str(child))
+        return "".join(buf).strip()
 
     def _is_heading_element(self, el, text: str, toc_titles: Set[str], toc_anchors: Set[str]) -> Tuple[bool, int]:
         tag_name = el.name.lower()
@@ -69,3 +96,4 @@ class HeadingParagraphHandler(IElementHandler):
             return True, 2
 
         return False, 1
+

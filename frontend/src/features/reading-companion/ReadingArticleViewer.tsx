@@ -1,13 +1,46 @@
 import { BookOpen, Loader2 } from "lucide-react"
 import { ReadingSelectionToolbar } from "./ReadingSelectionToolbar"
-import { useAllChapterBlocksQuery } from "../../entities"
+import { useAllChapterBlocksQuery, ContentBlockDO } from "../../entities"
 import { useMaterialNotesQuery } from "../../entities/note"
 import { ReadingArticleViewerProps } from "./article-viewer/types"
 import { useReadingAnnotations } from "./article-viewer/hooks/useReadingAnnotations"
 import { ReadingArticleHeader } from "./article-viewer/components/ReadingArticleHeader"
 import { ArticleBlockRenderer } from "./article-viewer/components/blocks/ArticleBlockRenderer"
+import { QuoteBlock, QuoteBlockItem } from "./article-viewer/components/blocks/QuoteBlock"
 
 export type { ReadingArticleViewerProps }
+
+interface RenderGroup {
+  type: "quote" | "single"
+  items: QuoteBlockItem[]
+}
+
+/**
+ * 将连续的 QUOTE 前缀 Block (QUOTE, QUOTE_IMAGE, QUOTE_LIST, QUOTE_TABLE 等) 聚合为一个引用组
+ */
+function groupConsecutiveBlocks(blocks: ContentBlockDO[]): RenderGroup[] {
+  const groups: RenderGroup[] = []
+  let currentQuoteItems: QuoteBlockItem[] = []
+
+  blocks.forEach((block, index) => {
+    const isQuote = block.block_type.toLowerCase().includes("quote")
+    if (isQuote) {
+      currentQuoteItems.push({ block, index })
+    } else {
+      if (currentQuoteItems.length > 0) {
+        groups.push({ type: "quote", items: currentQuoteItems })
+        currentQuoteItems = []
+      }
+      groups.push({ type: "single", items: [{ block, index }] })
+    }
+  })
+
+  if (currentQuoteItems.length > 0) {
+    groups.push({ type: "quote", items: currentQuoteItems })
+  }
+
+  return groups
+}
 
 export function ReadingArticleViewer({
   projectId,
@@ -82,21 +115,41 @@ export function ReadingArticleViewer({
         {/* Content Render: 由后端 API blocks 真实切片数据驱动动态渲染 */}
         {!isLoading && blocks.length > 0 && (
           <div className="space-y-4 text-slate-300">
-            {blocks.map((block, idx) => (
-              <ArticleBlockRenderer
-                key={block.block_id || idx}
-                block={block}
-                index={idx}
-                bookId={bookId}
-                targetAnchor={targetAnchor}
-                activeAnnotations={activeAnnotations}
-                blocks={blocks}
-                chapterId={chapterId}
-                notesData={notesData}
-                copiedCode={copiedCode}
-                onCopyFormulaCode={onCopyFormulaCode}
-              />
-            ))}
+            {groupConsecutiveBlocks(blocks).map((group, groupIdx) => {
+              if (group.type === "quote") {
+                return (
+                  <QuoteBlock
+                    key={group.items[0].block.block_id || groupIdx}
+                    quoteItems={group.items}
+                    bookId={bookId}
+                    targetAnchor={targetAnchor}
+                    activeAnnotations={activeAnnotations}
+                    blocks={blocks}
+                    chapterId={chapterId}
+                    notesData={notesData}
+                    copiedCode={copiedCode}
+                    onCopyFormulaCode={onCopyFormulaCode}
+                  />
+                )
+              }
+
+              const { block, index } = group.items[0]
+              return (
+                <ArticleBlockRenderer
+                  key={block.block_id || index}
+                  block={block}
+                  index={index}
+                  bookId={bookId}
+                  targetAnchor={targetAnchor}
+                  activeAnnotations={activeAnnotations}
+                  blocks={blocks}
+                  chapterId={chapterId}
+                  notesData={notesData}
+                  copiedCode={copiedCode}
+                  onCopyFormulaCode={onCopyFormulaCode}
+                />
+              )
+            })}
           </div>
         )}
 

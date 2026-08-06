@@ -42,6 +42,12 @@ class BlockType(str, Enum):
     QUOTE = "QUOTE"
     IMAGE = "IMAGE"
     TABLE = "TABLE"
+    LIST = "LIST"
+    QUOTE_IMAGE = "QUOTE_IMAGE"
+    QUOTE_CODE = "QUOTE_CODE"
+    QUOTE_LIST = "QUOTE_LIST"
+    QUOTE_PARAGRAPH = "QUOTE_PARAGRAPH"
+    QUOTE_TABLE = "QUOTE_TABLE"
 
 
 class TocNode(BaseModel):

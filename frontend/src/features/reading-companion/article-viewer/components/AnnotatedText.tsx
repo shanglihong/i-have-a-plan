@@ -25,6 +25,41 @@ interface AnnotatedTextProps {
   }
 }
 
+function renderInlineMarkdown(str: string): React.ReactNode {
+  if (!str) return str
+  if (!str.includes("`") && !str.includes("**")) return str
+
+  const parts = str.split(/(`[^`]+`|\*\*[^*]+\*\*)/g)
+  if (parts.length <= 1) return str
+
+  return (
+    <>
+      {parts.map((part, idx) => {
+        if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
+          const codeContent = part.slice(1, -1)
+          return (
+            <code
+              key={idx}
+              className="px-1.5 py-0.5 mx-0.5 rounded text-xs md:text-sm font-mono bg-slate-800/90 text-cyan-300 border border-slate-700/60 font-medium inline-block align-baseline leading-none shadow-xs"
+            >
+              {codeContent}
+            </code>
+          )
+        }
+        if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+          const boldContent = part.slice(2, -2)
+          return (
+            <strong key={idx} className="font-bold text-slate-100 dark:text-slate-100 px-0.5">
+              {boldContent}
+            </strong>
+          )
+        }
+        return part
+      })}
+    </>
+  )
+}
+
 export function AnnotatedText({
   text,
   annotations,
@@ -157,7 +192,7 @@ export function AnnotatedText({
     })
   }
 
-  if (rawMatches.length === 0) return <>{text}</>
+  if (rawMatches.length === 0) return <>{renderInlineMarkdown(text)}</>
 
   const combinedMatches = buildCombinedMatches(text, rawMatches)
 
@@ -166,7 +201,7 @@ export function AnnotatedText({
 
   combinedMatches.forEach((cm, index) => {
     if (cm.start > lastPos) {
-      nodes.push(text.substring(lastPos, cm.start))
+      nodes.push(renderInlineMarkdown(text.substring(lastPos, cm.start)))
     }
 
     const key = `combined-${cm.start}-${index}`
@@ -231,7 +266,7 @@ export function AnnotatedText({
           underlineClass
         )}
       >
-        {cm.text}
+        {renderInlineMarkdown(cm.text)}
       </span>
     )
 
@@ -262,8 +297,10 @@ export function AnnotatedText({
   })
 
   if (lastPos < text.length) {
-    nodes.push(text.substring(lastPos))
+    nodes.push(renderInlineMarkdown(text.substring(lastPos)))
   }
 
   return <>{nodes}</>
 }
+
+

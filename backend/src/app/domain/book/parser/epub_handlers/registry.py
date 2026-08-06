@@ -77,12 +77,12 @@ class ElementHandlerRegistry:
             if el.find_parent(list(self._container_tags.union({'figure'}))):
                 return []
         else:
-            # 容器节点（如 li, blockquote, aside, dt, dd 等）：处在父级更高级容器内部时的拦截逻辑
-            if tag_name == 'li' and el.find_parent(['table', 'pre', 'blockquote', 'aside']):
+            # 容器节点（如 ul, ol, blockquote, aside, dt, dd 等）：处在父级更高级容器内部时的拦截逻辑
+            if tag_name in ('ul', 'ol') and el.find_parent(['table', 'pre', 'blockquote', 'aside', 'ul', 'ol']):
                 return []
             if tag_name in ('blockquote', 'aside') and el.find_parent(['table', 'pre']):
                 return []
-            if tag_name in ('dt', 'dd') and el.find_parent(['table', 'pre', 'blockquote', 'aside', 'li']):
+            if tag_name in ('dt', 'dd') and el.find_parent(['table', 'pre', 'blockquote', 'aside', 'ul', 'ol']):
                 return []
 
         # 标记当前节点已处理
@@ -98,4 +98,7 @@ class ElementHandlerRegistry:
                 processed_elements.add(id(child))
             return [res for res in result if res and res[0]]
         else:
+            if result[0]:
+                for child in el.find_all(True):
+                    processed_elements.add(id(child))
             return [result] if result[0] else []
