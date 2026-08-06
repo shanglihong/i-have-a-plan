@@ -72,7 +72,7 @@ class GraphHealing:
                     continue
                 all_nodes = _flatten_toc(book.toc_tree)
                 for node in all_nodes:
-                    chapter_id = node.target_chapter_id or node.id
+                    chapter_id = node.target_chapter_id
                     if chapter_id:
                         chapter_content = await self.container.book_content_service.get_chapter_content(
                             book_id=book.id, chapter_id=chapter_id, limit=100

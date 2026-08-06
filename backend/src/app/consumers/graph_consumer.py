@@ -64,7 +64,7 @@ async def handle_book_parsed(event: BookParsedEvent) -> None:
             count = 0
             all_nodes = _flatten_toc(book.toc_tree)
             for node in all_nodes:
-                chapter_id = node.target_chapter_id or node.id
+                chapter_id = node.target_chapter_id
                 if chapter_id:
                     chapter_content = await container.book_content_service.get_chapter_content(
                         book_id=book.id, chapter_id=chapter_id, limit=500

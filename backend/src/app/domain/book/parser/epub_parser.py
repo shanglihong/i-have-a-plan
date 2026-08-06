@@ -21,113 +21,338 @@ class EpubParser(IBookParser):
     """EPUB 专业解析策略（参考 Readium / Foliate 工业级实现）"""
 
     def parse(self, file_path: str) -> Tuple[List[TocNode], Dict[str, List[ContentBlock]]]:
+        """EPUB 文件解析主入口编排"""
+        book = self._load_epub(file_path)
+        document_items = self._collect_document_items(book)
+
+        chapter_blocks, chapter_file_map, chapter_element_ids = self._parse_all_chapters(book, document_items)
+
+        toc_tree = self._build_toc_tree(book, chapter_file_map, chapter_blocks, chapter_element_ids)
+
+        return toc_tree, chapter_blocks
+
+    # ----------------------------------------------------------------------
+    # 核心解析步骤方法 (Step Methods)
+    # ----------------------------------------------------------------------
+
+    def _load_epub(self, file_path: str) -> epub.EpubBook:
+        """安全加载 EPUB 文件"""
         try:
-            book = epub.read_epub(file_path)
+            return epub.read_epub(file_path)
         except Exception as e:
             raise ValueError(f"EPUB 文件损坏或解析流意外中断: {str(e)}") from e
 
-        # 1. 依据 EPUB Spine 规范建立主阅读流 Document 顺序
-        document_items = []
-        if hasattr(book, 'spine') and book.spine:
-            for spine_item in book.spine:
-                item_id = spine_item[0] if isinstance(spine_item, (tuple, list)) else spine_item
-                linear = spine_item[1] if isinstance(spine_item, (tuple, list)) and len(spine_item) > 1 else 'yes'
-                if str(linear).lower() in ('no', 'false', '0'):
-                    continue
-                item = book.get_item_with_id(item_id)
-                if item and item.get_type() == ebooklib.ITEM_DOCUMENT:
-                    document_items.append(item)
+    def _collect_document_items(self, book: epub.EpubBook) -> List[epub.EpubItem]:
+        """依据 EPUB Spine 规范建立主阅读流 Document 顺序，并补全封面项"""
+        document_items: List[epub.EpubItem] = []
+        for entry in getattr(book, 'spine', []):
+            item_id = entry[0] if isinstance(entry, (tuple, list)) else entry
+            linear = entry[1] if isinstance(entry, (tuple, list)) and len(entry) > 1 else 'yes'
+            if str(linear).lower() in ('no', 'false', '0'):
+                continue
+            if (item := book.get_item_with_id(item_id)) and item.get_type() in (ebooklib.ITEM_DOCUMENT, ebooklib.ITEM_COVER):
+                document_items.append(item)
 
         if not document_items:
-            document_items = list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT))
+            raise ValueError("EPUB 文件未包含有效的可阅读文档内容")
 
+        # 补全可能不在 spine 中的 ITEM_COVER
+        cover_items = list(book.get_items_of_type(ebooklib.ITEM_COVER))
+        for cov in cover_items:
+            if cov not in document_items:
+                document_items.insert(0, cov)
+
+        return document_items
+
+    def _parse_all_chapters(
+        self,
+        book: epub.EpubBook,
+        document_items: List[epub.EpubItem]
+    ) -> Tuple[Dict[str, List[ContentBlock]], Dict[str, str], Dict[str, Dict[str, str]]]:
+        """遍历所有文档项并解析提取章节内容块及 ID 映射关系"""
         chap_counter = 0
         chapter_blocks: Dict[str, List[ContentBlock]] = {}
-        chapter_file_map: Dict[str, str] = {}  # 映射文件名/href -> chap_id
-        chapter_element_ids: Dict[str, Dict[str, str]] = {}  # chap_id -> {element_id: block_id}
+        chapter_file_map: Dict[str, str] = {}
+        chapter_element_ids: Dict[str, Dict[str, str]] = {}
 
-        fallback_toc_tree: List[TocNode] = []
         toc_titles, toc_anchors = self._extract_toc_info(book.toc)
 
         for item in document_items:
             content = item.get_content()
+
+            # 1. 独立处理纯二进制图片格式的 ITEM_COVER
+            if item.get_type() == ebooklib.ITEM_COVER and not content.lstrip().startswith(b'<'):
+                chap_counter += 1
+                chap_id = f"chap_{chap_counter:02d}"
+                self._record_file_mapping(chapter_file_map, item.get_name() or "cover.jpg", chap_id)
+
+                cover_block = self._create_binary_cover_block(chap_id, item.get_name() or "cover.jpg")
+                chapter_blocks[chap_id] = [cover_block]
+                continue
+
+            # 2. HTML/XHTML 页面解析
             soup = BeautifulSoup(content, 'html.parser')
 
-            # 过滤 EPUB 导航/目录专用页面（防止 TOC 页面被当作正文重复解析）
+            # 过滤 EPUB 导航/目录专用页面
             if self._is_toc_or_nav_item(book, item, soup):
                 continue
 
-            elements = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'])
+            elements = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'img', 'image', 'table', 'pre'])
             if not elements:
                 continue
 
             chap_counter += 1
             chap_id = f"chap_{chap_counter:02d}"
-            item_name = (item.get_name() or "").lower()
-            chapter_file_map[item_name] = chap_id
-            chapter_file_map[os.path.basename(item_name)] = chap_id
+            self._record_file_mapping(chapter_file_map, item.get_name() or "", chap_id)
 
-            blocks: List[ContentBlock] = []
-            elem_id_map: Dict[str, str] = {}
-            chap_title = f"章节 {chap_counter}"
-
-            seq = 0
-            for el in elements:
-                text = el.get_text().strip()
-                if not text:
-                    continue
-
-                seq += 1
-                b_id = f"b_{chap_id}_{seq:03d}"
-
-                el_id = el.get('id', '')
-                if el_id:
-                    elem_id_map[el_id] = b_id
-
-                is_heading, level = self._is_heading_element(el, text, toc_titles, toc_anchors)
-
-                if is_heading:
-                    b_type = BlockType.HEADING
-                    if seq == 1 or chap_title.startswith("章节"):
-                        chap_title = text
-
-                    fallback_toc_tree.append(TocNode(
-                        id=f"toc_{b_id}",
-                        title=text,
-                        level=level,
-                        target_chapter_id=chap_id,
-                        target_block_id=b_id
-                    ))
-                else:
-                    b_type = BlockType.PARAGRAPH
-
-                blocks.append(ContentBlock(
-                    block_id=b_id,
-                    block_type=b_type,
-                    sequence_index=seq,
-                    text=text,
-                    html_or_markdown=str(el)
-                ))
+            blocks, elem_id_map = self._parse_elements_to_blocks(
+                elements=elements,
+                item=item,
+                chap_id=chap_id,
+                toc_titles=toc_titles,
+                toc_anchors=toc_anchors
+            )
 
             if blocks:
                 chapter_blocks[chap_id] = blocks
                 chapter_element_ids[chap_id] = elem_id_map
 
-        # 2. 优先解析原生 book.toc，构建具备多级层次结构的权威目录树
-        raw_toc_items = self._build_raw_toc_items(book.toc)
+        return chapter_blocks, chapter_file_map, chapter_element_ids
 
-        if raw_toc_items:
-            native_toc_tree = self._build_toc_tree_from_raw(
-                raw_items=raw_toc_items,
-                chapter_file_map=chapter_file_map,
-                chapter_blocks=chapter_blocks,
-                chapter_element_ids=chapter_element_ids
-            )
-            toc_tree = native_toc_tree if native_toc_tree else fallback_toc_tree
+    def _parse_elements_to_blocks(
+        self,
+        elements: List,
+        item: epub.EpubItem,
+        chap_id: str,
+        toc_titles: Set[str],
+        toc_anchors: Set[str]
+    ) -> Tuple[List[ContentBlock], Dict[str, str]]:
+        """将 DOM 元素转换为 ContentBlock 列表及 element_id -> block_id 的映射"""
+        blocks: List[ContentBlock] = []
+        elem_id_map: Dict[str, str] = {}
+        seq = 0
+
+        for el in elements:
+            tag_name = el.name.lower()
+
+            # 过滤处于 table 或 pre 内部的子节点，避免重复记录
+            if tag_name not in ('table', 'pre') and el.find_parent(['table', 'pre']):
+                continue
+
+            if tag_name in ('img', 'image'):
+                block, b_id, el_id = self._parse_image_element(el, item, chap_id, seq + 1)
+                if block:
+                    seq += 1
+                    if el_id:
+                        elem_id_map[el_id] = b_id
+                    blocks.append(block)
+                continue
+
+            if tag_name == 'table':
+                block, b_id, el_id = self._parse_table_element(el, chap_id, seq + 1)
+                if block:
+                    seq += 1
+                    if el_id:
+                        elem_id_map[el_id] = b_id
+                    blocks.append(block)
+                continue
+
+            if tag_name == 'pre':
+                block, b_id, el_id = self._parse_code_element(el, chap_id, seq + 1)
+                if block:
+                    seq += 1
+                    if el_id:
+                        elem_id_map[el_id] = b_id
+                    blocks.append(block)
+                continue
+
+            text = el.get_text().strip()
+            if not text:
+                continue
+
+            seq += 1
+            b_id = f"b_{chap_id}_{seq:03d}"
+
+            el_id = el.get('id', '')
+            if el_id:
+                elem_id_map[el_id] = b_id
+
+            is_heading, _ = self._is_heading_element(el, text, toc_titles, toc_anchors)
+            b_type = BlockType.HEADING if is_heading else BlockType.PARAGRAPH
+
+            blocks.append(ContentBlock(
+                block_id=b_id,
+                block_type=b_type,
+                sequence_index=seq,
+                text=text,
+                html_or_markdown=str(el)
+            ))
+
+        return blocks, elem_id_map
+
+    def _parse_image_element(
+        self,
+        el,
+        item: epub.EpubItem,
+        chap_id: str,
+        seq: int
+    ) -> Tuple[Optional[ContentBlock], str, str]:
+        """处理 img/image 节点并生成 BlockType.IMAGE 块"""
+        src = el.get('src', '').strip() or el.get('xlink:href', '').strip() or el.get('href', '').strip()
+        if not src:
+            return None, "", ""
+
+        alt = el.get('alt', '').strip() or el.get('title', '').strip()
+        if not alt and el.parent and el.parent.name.lower() in ('figure', 'svg'):
+            figcaption = el.parent.find('figcaption')
+            if figcaption:
+                alt = figcaption.get_text().strip()
+
+        if not alt:
+            is_cover = item.get_type() == ebooklib.ITEM_COVER or "cover" in (item.get_name() or "").lower()
+            alt = "封面" if is_cover else "图片"
+
+        b_id = f"b_{chap_id}_{seq:03d}"
+        el_id = el.get('id', '') or (el.parent.get('id', '') if el.parent and el.parent.name.lower() in ('figure', 'svg') else '')
+
+        block = ContentBlock(
+            block_id=b_id,
+            block_type=BlockType.IMAGE,
+            sequence_index=seq,
+            text=alt,
+            html_or_markdown=str(el)
+        )
+        return block, b_id, el_id
+
+    def _parse_table_element(
+        self,
+        el,
+        chap_id: str,
+        seq: int
+    ) -> Tuple[Optional[ContentBlock], str, str]:
+        """处理 table 节点并生成 BlockType.TABLE 块"""
+        rows = []
+        for tr in el.find_all('tr'):
+            cells = [td.get_text(strip=True).replace('|', '\\|') for td in tr.find_all(['th', 'td'])]
+            if cells:
+                rows.append(cells)
+
+        plain_text = el.get_text(separator=" ", strip=True)
+        if not plain_text:
+            return None, "", ""
+
+        if not rows:
+            markdown_table = str(el)
         else:
-            toc_tree = fallback_toc_tree
+            max_cols = max(len(r) for r in rows)
+            header = rows[0]
+            header += [''] * (max_cols - len(header))
 
-        return toc_tree, chapter_blocks
+            md_lines = ["| " + " | ".join(header) + " |"]
+            md_lines.append("| " + " | ".join(['---'] * max_cols) + " |")
+
+            for row in rows[1:]:
+                row += [''] * (max_cols - len(row))
+                md_lines.append("| " + " | ".join(row) + " |")
+
+            markdown_table = "\n".join(md_lines)
+
+        b_id = f"b_{chap_id}_{seq:03d}"
+        el_id = el.get('id', '')
+
+        block = ContentBlock(
+            block_id=b_id,
+            block_type=BlockType.TABLE,
+            sequence_index=seq,
+            text=plain_text,
+            html_or_markdown=markdown_table
+        )
+        return block, b_id, el_id
+
+    def _parse_code_element(
+        self,
+        el,
+        chap_id: str,
+        seq: int
+    ) -> Tuple[Optional[ContentBlock], str, str]:
+        """处理 pre 代码块节点并生成 BlockType.CODE 块"""
+        code_text = el.get_text().strip('\r\n')
+        if not code_text.strip():
+            return None, "", ""
+
+        lang = self._extract_code_language(el)
+        markdown_code = f"```{lang}\n{code_text}\n```" if lang else f"```\n{code_text}\n```"
+
+        b_id = f"b_{chap_id}_{seq:03d}"
+        el_id = el.get('id', '')
+
+        block = ContentBlock(
+            block_id=b_id,
+            block_type=BlockType.CODE,
+            sequence_index=seq,
+            text=code_text,
+            html_or_markdown=markdown_code
+        )
+        return block, b_id, el_id
+
+    def _extract_code_language(self, el) -> str:
+        """从 class 属性中提取代码编程语言"""
+        classes = el.get('class', [])
+        if isinstance(classes, str):
+            classes = classes.split()
+
+        code_child = el.find('code')
+        if code_child and code_child.get('class'):
+            child_cls = code_child.get('class')
+            classes.extend(child_cls if isinstance(child_cls, list) else child_cls.split())
+
+        for cls in classes:
+            cls_lower = str(cls).lower()
+            if cls_lower.startswith(('language-', 'lang-')):
+                return cls_lower.split('-', 1)[1]
+            if cls_lower.startswith('brush:'):
+                return cls_lower.split(':', 1)[1].strip()
+            if cls_lower in {'python', 'javascript', 'js', 'typescript', 'ts', 'go', 'golang', 'java', 'cpp', 'c', 'sql', 'html', 'css', 'json', 'bash', 'shell', 'yaml', 'xml'}:
+                return cls_lower
+
+        return ""
+
+    def _create_binary_cover_block(self, chap_id: str, item_name: str) -> ContentBlock:
+        """为纯二进制图片格式的封面创建 ContentBlock"""
+        b_id = f"b_{chap_id}_001"
+        return ContentBlock(
+            block_id=b_id,
+            block_type=BlockType.IMAGE,
+            sequence_index=1,
+            text="封面",
+            html_or_markdown=f'<img src="{item_name}" alt="封面" />'
+        )
+
+    def _record_file_mapping(self, file_map: Dict[str, str], item_name: str, chap_id: str) -> None:
+        """记录文件全名及 Basename 与章节 ID 的映射"""
+        name_lower = (item_name or "").lower()
+        if name_lower:
+            file_map[name_lower] = chap_id
+            file_map[os.path.basename(name_lower)] = chap_id
+
+    def _build_toc_tree(
+        self,
+        book: epub.EpubBook,
+        chapter_file_map: Dict[str, str],
+        chapter_blocks: Dict[str, List[ContentBlock]],
+        chapter_element_ids: Dict[str, Dict[str, str]]
+    ) -> List[TocNode]:
+        """根据原生 book.toc 解析并构建 TocNode 目录树"""
+        raw_toc_items = self._build_raw_toc_items(book.toc)
+        if not raw_toc_items:
+            return []
+
+        return self._build_toc_tree_from_raw(
+            raw_items=raw_toc_items,
+            chapter_file_map=chapter_file_map,
+            chapter_blocks=chapter_blocks,
+            chapter_element_ids=chapter_element_ids
+        )
 
     def _build_raw_toc_items(self, toc_items, level: int = 1) -> List[_RawTocItem]:
         """从 EPUB 原生 book.toc 中提取原始层次节点 (不直接构造 Pydantic 模型)"""
