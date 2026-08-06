@@ -126,3 +126,14 @@ class GetChapterContentUseCase:
             next_chapter_id=content.next_chapter_id,
             blocks=blocks_dtos
         )
+
+
+class GetBookImageUseCase:
+    """获取图书图片资源用例"""
+
+    def __init__(self, query_service: BookQueryDomainService):
+        self.query_service = query_service
+
+    async def execute(self, book_id: str, image_name: str):
+        return await self.query_service.get_book_image_path(book_id, image_name)
+

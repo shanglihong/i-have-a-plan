@@ -1,21 +1,77 @@
-"""书籍领域查询服务 (Domain Services)"""
-
+from pathlib import Path
 from typing import List, Dict, Any, Tuple, Optional
-from app.domain.book.entities import Book, TocNode, ChapterContent, ContentBlock, ParsingStatus
+from app.utils.path import get_workspace_dir
+from app.domain.book.entities import Book, TocNode, ChapterContent, ContentBlock, ParsingStatus, BookFileType
 from app.domain.book.ports import BookRepositoryPort, BookFileStoragePort
 from app.domain.book.exceptions import (
     BookNotFoundException,
     BookParsingFailedException,
-    ChapterNotFoundException
+    ChapterNotFoundException,
+    BookImageNotFoundException,
+    UnsupportedBookFormatException,
 )
 from app.utils.cache import LRUCache
 
 
 class BookQueryDomainService:
-    """书籍领域查询服务（目录、基本信息）"""
+    """书籍领域查询服务（目录、基本信息、图片）"""
 
     def __init__(self, repository: BookRepositoryPort):
         self.repository = repository
+
+    async def get_book_image_path(self, book_id: str, image_name: str) -> Path:
+        """获取图书图片路径：直接从 book.storage_path 定位，仅限于 EPUB 图书"""
+        import zipfile
+
+        book = await self.repository.find_by_id(book_id)
+        if not book or not book.storage_path:
+            raise BookNotFoundException(book_id)
+
+        # 判定图书文件类型，限制该图片提取接口仅适用于 EPUB 图书
+        is_epub = (
+            getattr(book, "file_type", None) == BookFileType.EPUB
+            or str(getattr(book, "file_type", "")).upper() == "EPUB"
+            or str(book.storage_path).lower().endswith(".epub")
+        )
+        if not is_epub:
+            raise UnsupportedBookFormatException(str(getattr(book, "file_type", "UNKNOWN")))
+
+        # 1. 源文件物理路径与所在目录
+        storage_file = Path(book.storage_path)
+        base_dir = storage_file.parent
+        clean_name = Path(image_name).name
+
+        # 2. 优先检查磁盘上已解压存在的图片文件
+        for check_path in [
+            base_dir / image_name,
+            base_dir / "images" / image_name,
+            base_dir / clean_name,
+            base_dir / "images" / clean_name,
+        ]:
+            if check_path.exists() and check_path.is_file():
+                return check_path.resolve()
+
+        # 3. EPUB 原书直接从 Zip 包内部寻找并自动解压释放
+        if storage_file.exists() and storage_file.is_file() and zipfile.is_zipfile(storage_file):
+            with zipfile.ZipFile(storage_file, "r") as zf:
+                matched_zip_name = None
+                for name in zf.namelist():
+                    if (
+                        name == image_name
+                        or name.endswith("/" + image_name)
+                        or Path(name).name.lower() == clean_name.lower()
+                    ):
+                        matched_zip_name = name
+                        break
+
+                if matched_zip_name:
+                    out_path = base_dir / "images" / clean_name
+                    out_path.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(matched_zip_name) as source, open(out_path, "wb") as target:
+                        target.write(source.read())
+                    return out_path.resolve()
+
+        raise BookImageNotFoundException(image_name)
 
     async def get_toc_tree(self, book_id: str) -> Tuple[str, List[TocNode]]:
         book = await self.repository.find_by_id(book_id)

@@ -87,6 +87,7 @@ export function ReadingArticleViewer({
                 key={block.block_id || idx}
                 block={block}
                 index={idx}
+                bookId={bookId}
                 targetAnchor={targetAnchor}
                 activeAnnotations={activeAnnotations}
                 blocks={blocks}

@@ -9,6 +9,7 @@ import { TableBlock } from "./TableBlock"
 interface ArticleBlockRendererProps {
   block: ContentBlockDO
   index: number
+  bookId?: string
   targetAnchor: string | null
   activeAnnotations: TextAnnotation[]
   blocks: ContentBlockDO[]
@@ -21,6 +22,7 @@ interface ArticleBlockRendererProps {
 export function ArticleBlockRenderer({
   block,
   index,
+  bookId,
   targetAnchor,
   activeAnnotations,
   blocks,
@@ -40,7 +42,7 @@ export function ArticleBlockRenderer({
 
   // 1. 图片节点 (Image / Figure) — 优先使用 html_or_markdown
   if (type.includes("img") || type.includes("image") || type.includes("figure") || type.includes("photo")) {
-    return <ImageBlock key={block.block_id || index} block={block} index={index} />
+    return <ImageBlock key={block.block_id || index} block={block} index={index} bookId={bookId} />
   }
 
   // 2. 表格节点 (Table / Grid) — 优先使用 html_or_markdown

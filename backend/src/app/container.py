@@ -68,6 +68,7 @@ from app.application.book import (
     GetBookTocUseCase,
     GetChapterContentUseCase,
     CreateBookUseCase,
+    GetBookImageUseCase,
 )
 from app.application.project.use_cases import (
     CreateProjectUseCase,
@@ -265,6 +266,7 @@ class AppContainer:
             "get_metadata_use_case": GetBookMetadataUseCase(self.book_repo),
             "get_toc_use_case": GetBookTocUseCase(self.book_service),
             "get_content_use_case": GetChapterContentUseCase(self.book_content_service),
+            "get_image_use_case": GetBookImageUseCase(self.book_service),
         }
 
     def get_project_use_cases(self) -> Dict[str, Any]:

@@ -3,6 +3,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, UploadFile, File, Form, status
 
+from fastapi.responses import FileResponse
 from app.utils.path import get_workspace_dir
 from app.api.deps import get_book_use_cases
 from app.api.response import success_response, ResponseCode
@@ -11,6 +12,18 @@ from app.application.book.dtos import (
 )
 
 router = APIRouter(prefix="/api/books", tags=["Book Domain"])
+
+
+@router.get("/{book_id}/images/{image_name:path}")
+async def get_book_image(
+    book_id: str,
+    image_name: str,
+    deps: dict = Depends(get_book_use_cases)
+):
+    """获取解析提取的图书图片物理文件资源"""
+    get_image_use_case = deps["get_image_use_case"]
+    image_path = await get_image_use_case.execute(book_id=book_id, image_name=image_name)
+    return FileResponse(image_path)
 
 
 @router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)

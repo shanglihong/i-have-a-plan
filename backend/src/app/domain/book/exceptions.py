@@ -77,3 +77,15 @@ class ChapterNotFoundException(BookDomainException):
         super().__init__(f"未找到章节: {chapter_id}", error_code="CHAPTER_NOT_FOUND")
 
 
+class BookImageNotFoundException(BookDomainException):
+    """未找到图书图片资源异常"""
+
+    error_type: str = "book-image-not-found"
+    title: str = "Book Image Not Found"
+    status_code: int = 404
+
+    def __init__(self, image_name: str):
+        super().__init__(f"未找到图书图片: {image_name}", error_code="IMAGE_NOT_FOUND")
+
+
+

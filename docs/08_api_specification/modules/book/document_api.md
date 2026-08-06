@@ -16,6 +16,7 @@
 | **获取书籍元数据** | `GET` | `/api/books/{book_id}` | 获取书籍基本元数据、格式、解析状态及审计统计 |
 | **获取书籍目录大纲树** | `GET` | `/api/books/{book_id}/toc` | 获取抹平格式差异的通用 `parsed_structure` 递归目录树索引 |
 | **获取章节 ContentBlock 正文切片** | `GET` | `/api/books/{book_id}/chapters/{chapter_id}` | 懒加载特定章节正文中的原子 ContentBlock 切片数组（支持分页） |
+| **获取图书图片资源** | `GET` | `/api/books/{book_id}/images/{image_name:path}` | 获取解析提取的物理图片/媒体资源流 |
 
 ---
 
@@ -287,3 +288,30 @@
 | `404` | `BOOK_NOT_FOUND` | 指定 `book_id` 不存在 |
 | `404` | `CHAPTER_NOT_FOUND` | 指定 `chapter_id` 在解析内容中不存在 |
 | `422` | `BOOK_PARSING_FAILED` | 书籍尚未解析完成（`parsing_status != COMPLETED`） |
+
+---
+
+### 4. 获取图书图片资源
+
+- **接口路径**：`GET /api/books/{book_id}/images/{image_name:path}`
+- **功能描述**：获取从电子书解析过程中提取的图片或媒体物理文件流（如 PNG, JPEG, GIF, SVG 等）。后端校验文件路径安全性（防止路径穿越）后，以 `FileResponse` 形式返回文件数据。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `book_id` | `string` | 是 | 书籍唯一标识 |
+| `image_name` | `string` | 是 | 图片相对路径或文件名（如 `img_001.png` 或 `sub/img_001.jpg`） |
+
+#### 响应载荷 (`200 OK`)
+
+- **Content-Type**：`image/png`, `image/jpeg`, `image/gif`, `image/svg+xml` 等
+- **Body**：二进制图片文件流
+
+#### 错误响应
+
+| 状态码 | `error_code` | 说明 |
+| :--- | :--- | :--- |
+| `404` | `BOOK_NOT_FOUND` | 指定 `book_id` 不存在 |
+| `404` | `IMAGE_NOT_FOUND` | 指定图片文件不存在，或试图进行非法路径穿越 |
+

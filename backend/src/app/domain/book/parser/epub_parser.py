@@ -502,9 +502,12 @@ class EpubParser(IBookParser):
         toc_titles: Set[str],
         toc_anchors: Set[str]
     ) -> Tuple[bool, int]:
-        """判断 HTML 元素是否为标题并返回层级 (is_heading, level)"""
+        """判断 HTML 元素是否为标题并返回层级 (is_heading, level)
+        目录严格依赖原生 book.toc 提取的信息及标准 <h1-h6> 标签，禁止从正文 p 标签自发猜想标题
+        """
         tag_name = el.name.lower()
 
+        # 1. 链接校验：若整个元素仅为一个跳转链接，则不作为标题
         a_tag = el.find('a')
         if a_tag and a_tag.get('href'):
             href = a_tag.get('href')
@@ -514,31 +517,19 @@ class EpubParser(IBookParser):
                 if el_text == a_text:
                     return False, 1
 
+        # 2. 原生 HTML h1 - h6 标题标签
         if tag_name.startswith('h') and len(tag_name) == 2 and tag_name[1].isdigit():
             level = int(tag_name[1])
             return True, level
 
+        # 3. 元素 ID 匹配 book.toc 中定义的锚点
         el_id = el.get('id', '')
         if el_id and el_id in toc_anchors:
             return True, 2
 
-        if text in toc_titles and len(text) <= 80:
+        # 4. 文本匹配 book.toc 中记录的目录标题
+        if text in toc_titles:
             return True, 2
-
-        if tag_name == 'p':
-            el_classes = ' '.join(el.get('class', [])) if el.get('class') else ''
-            
-            has_bold_tag = bool(el.find(['b', 'strong']))
-            has_bold_class = any(k in el_classes.lower() for k in ['bold', 'title', 'heading', 'chap'])
-            has_child_bold_class = bool(el.find(class_=lambda c: c and any(k in str(c).lower() for k in ['bold', 'title', 'heading'])))
-
-            is_styled_heading = has_bold_tag or has_bold_class or has_child_bold_class
-
-            is_short_text = len(text) <= 60
-            not_ending_punctuation = not text.endswith(('。', '；', '?', '!', '.', ';'))
-
-            if is_styled_heading and is_short_text and not_ending_punctuation:
-                return True, 2
 
         return False, 1
 
